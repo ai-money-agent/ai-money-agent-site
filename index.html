@@ -166,6 +166,7 @@ footer {
   }
 }
 </style>
+<script src="whish_payment_config.js"></script>
 </head>
 
 <body>
@@ -282,7 +283,7 @@ footer {
         writing, promotion, and AI resources for your business.
       </p>
 
-      <a class="cta" href="#contact">Request the Pack</a>
+      <a class="cta" href="#contact" id="whish-pay-button">Pay with Whish Pay — $29</a>
 
       <p class="note">
         Payment and delivery instructions will be provided after your request is reviewed.
@@ -311,6 +312,25 @@ footer {
     © 2026 AI Money Agent · Small Business AI Content Starter Pack
   </div>
 </footer>
+
+
+<script>
+(function () {
+  const button = document.getElementById("whish-pay-button");
+  if (!button) return;
+
+  if (WHISH_PAYMENT.enabled && WHISH_PAYMENT.payment_url) {
+    button.href = WHISH_PAYMENT.payment_url;
+    button.target = "_blank";
+    button.rel = "noopener";
+  } else {
+    button.addEventListener("click", function (event) {
+      event.preventDefault();
+      alert("Whish Pay activation is pending. Payment will be enabled as soon as the Whish payment link is available.");
+    });
+  }
+})();
+</script>
 
 </body>
 </html>
