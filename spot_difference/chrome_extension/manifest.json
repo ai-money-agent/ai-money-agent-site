@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Spot the Difference - Kids",
+  "version": "1.0.0",
+  "description": "A fun 10-level Spot the Difference game for children ages 5–8.",
+  "action": {
+    "default_title": "Spot the Difference",
+    "default_popup": "game.html"
+  },
+  "icons": {},
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}
