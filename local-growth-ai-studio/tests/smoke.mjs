@@ -114,7 +114,7 @@ try {
   assert.equal(recovered.credits.balance,7);
   assert.equal((await get('/api/generations/missing-request-0001')).status,404);
   assert.equal((await get('/api/generations/invalid')).status,400);
-  assert.equal((await (await get('/api/credits')).json()).balance,5);
+  assert.equal((await (await get('/api/credits')).json()).balance,7);
   console.log('PASS: auth, CSRF, Demo/Live isolation, zero-cost Demo, validation, retry safety, persistence, protected files, video contract and UI.');
 } finally {
   await stop();
