@@ -75,3 +75,42 @@ test('job recovery is account-scoped and read-only for every status',()=>{
     assert.equal(db.account('owner').balance,2);
   } finally { db.close(); }
 });
+
+
+test('demo generation never calls a paid provider',async()=>{
+  const original=globalThis.fetch;
+  globalThis.fetch=async()=>{ throw new Error('provider must not be called in demo mode'); };
+  try {
+    const output=await generate(
+      {mode:'reel',productName:'Demo Product',description:'A useful product for testing.',audience:'small businesses',language:'en',imageDataUrl:null},
+      {liveEnabled:false,allowDemo:true}
+    );
+    assert.equal(output.engine,'demo');
+    assert.match(output.result.hook,/Demo Product/);
+  } finally { globalThis.fetch=original; }
+});
+
+test('Anthropic adapter sends schema and image server-side without exposing credentials',async()=>{
+  const original=globalThis.fetch;
+  const good={hook:'Hook',reelScript:'Script',shotList:['Shot'],onScreenText:['Text'],caption:'Caption',cta:'CTA',adIdeas:['Idea']};
+  try {
+    globalThis.fetch=async(url,options)=>{
+      assert.equal(url,'https://api.anthropic.com/v1/messages');
+      assert.equal(options.headers['x-api-key'],'server-secret-test');
+      assert.equal(options.headers['anthropic-version'],'2023-06-01');
+      const body=JSON.parse(options.body);
+      assert.equal(body.model,'claude-test');
+      assert.equal(body.output_config.format.type,'json_schema');
+      assert.equal(body.messages[0].content[0].type,'image');
+      assert.equal(body.messages[0].content.at(-1).type,'text');
+      return {ok:true,json:async()=>({content:[{type:'text',text:JSON.stringify(good)}]})};
+    };
+    const tinyPng='data:image/png;base64,iVBORw0KGgo=';
+    const output=await generate(
+      {mode:'ad',productName:'Product',description:'Description long enough',audience:'Adults',language:'en',imageDataUrl:tinyPng},
+      {liveEnabled:true,provider:'anthropic',anthropicApiKey:'server-secret-test',anthropicModel:'claude-test'}
+    );
+    assert.equal(output.engine,'anthropic');
+    assert.deepEqual(output.result,good);
+  } finally { globalThis.fetch=original; }
+});
