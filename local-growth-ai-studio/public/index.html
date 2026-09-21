@@ -47,19 +47,22 @@
           <p>Give the AI only what it needs.</p>
         </div>
 
-        <label class="upload" id="uploadDropzone">
-          <input id="productImage" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="imageHelp" />
-          <div id="uploadEmpty" class="upload-empty">
+        <div class="upload" id="uploadDropzone">
+          <input id="productImage" class="upload-input" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="imageHelp" />
+          <label id="uploadEmpty" class="upload-empty" for="productImage">
             <span class="upload-icon">＋</span>
             <strong>Upload product image</strong>
             <span id="imageHelp">PNG, JPG or WebP · max 5 MB</span>
-          </div>
+          </label>
           <div id="uploadPreviewWrap" class="upload-preview-wrap hidden">
             <img id="uploadPreview" class="upload-preview" alt="Selected product preview" />
             <div id="imageMeta" class="image-meta" aria-live="polite"></div>
-            <button id="removeImage" class="remove-image" type="button" aria-label="Remove selected product image">×</button>
+            <div class="image-actions">
+              <label class="replace-image" for="productImage">Replace</label>
+              <button id="removeImage" class="remove-image" type="button" aria-label="Remove selected product image">Remove</button>
+            </div>
           </div>
-        </label>
+        </div>
 
         <div class="field-grid">
           <label class="field">
