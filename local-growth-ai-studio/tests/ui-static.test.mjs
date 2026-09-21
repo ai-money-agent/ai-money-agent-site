@@ -11,13 +11,15 @@ const [html, css, js] = await Promise.all([
 
 test('UI contains the complete requested creative workflow',()=>{
   for (const id of [
-    'productImage','productName','description','language','audience',
+    'productImage','productName','description','language','audience','generationDemo','generationLive','imageMeta','resultMeta',
     'hookOutput','scriptOutput','shotsOutput','screenTextOutput',
     'captionOutput','ctaOutput','ideasOutput'
   ]) assert.match(html,new RegExp(`id=["']${id}["']`));
   assert.match(html,/data-mode="ad"/);
   assert.match(html,/data-mode="reel"/);
   assert.match(html,/data-generation-cost/);
+  assert.match(html,/No provider API calls/);
+  assert.match(html,/aria-live="polite"/);
 });
 
 test('frontend is mobile-first, self-contained and does not contain provider secrets',()=>{
@@ -26,7 +28,9 @@ test('frontend is mobile-first, self-contained and does not contain provider sec
   assert.match(css,/@media \(max-width: 540px\)/);
   assert.doesNotMatch(html,/<script[^>]+https?:\/\//i);
   assert.doesNotMatch(html,/<link[^>]+https?:\/\//i);
-  assert.doesNotMatch(html+js,/OPENAI_API_KEY|sk-[A-Za-z0-9_-]{12,}/);
+  assert.doesNotMatch(html+js,/OPENAI_API_KEY|ANTHROPIC_API_KEY|sk-[A-Za-z0-9_-]{12,}/);
   assert.match(js,/fetch\('\/api\/generate'/);
   assert.match(js,/textContent/);
+  assert.match(js,/generationMode/);
+  assert.match(css,/min-height: 44px/);
 });
