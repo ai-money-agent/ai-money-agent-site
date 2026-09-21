@@ -33,13 +33,13 @@ test('provider adapter sends image and structured schema; refuses malformed outp
     };
     const result=await generate(
       {mode:'ad',productName:'Product',description:'Description',audience:'Adults',language:'en',imageDataUrl:'test-image'},
-      {liveEnabled:true,apiKey:'test-only',model:'test-model'}
+      {liveEnabled:true,provider:'openai',openaiApiKey:'test-only',openaiModel:'test-model'}
     );
     assert.deepEqual(result.result,good);
     assert.throws(()=>validateOutput({...good,shotList:'invalid'}));
     globalThis.fetch=async()=>({ok:false,status:500,json:async()=>({error:{message:'private provider detail'}})});
     await assert.rejects(
-      ()=>generate({}, {liveEnabled:true,apiKey:'test-only',model:'test-model'}),
+      ()=>generate({}, {liveEnabled:true,provider:'openai',openaiApiKey:'test-only',openaiModel:'test-model'}),
       error=>!error.message.includes('private provider detail')
     );
   } finally {
