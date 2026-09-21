@@ -174,7 +174,8 @@ async function api(req, res, url) {
       const output = await generate(input,config);
       ledger.complete(accountId,id,output);
       return json(res,200,{ok:true,...output,credits:ledger.account(accountId)});
-    } catch {
+    } catch (error) {
+      console.error('[generation]', error?.message || 'unknown error');
       ledger.fail(accountId,id);
       return json(res,502,{ok:false,error:'Generation did not complete. Your Studio credit was returned.',retryWithNewId:true});
     }
