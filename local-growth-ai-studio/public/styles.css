@@ -139,3 +139,33 @@ button:focus-visible, a:focus-visible, .upload:focus-within { outline: 2px solid
 
 .output-actions { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
 .output-panel > .panel-heading { flex-wrap:wrap; gap:12px; }
+
+
+/* Generation mode + mobile usability */
+.mode-picker { margin: 18px 0 0; padding: 0; border: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mode-picker legend { width: 100%; padding: 0 0 8px; color: #c4ccda; font-size: 12px; font-weight: 700; }
+.mode-option { min-width: 0; position: relative; display: block; cursor: pointer; }
+.mode-option input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.mode-option > span { min-height: 64px; display: flex; flex-direction: column; justify-content: center; border: 1px solid var(--line); border-radius: 14px; background: #0d121c; padding: 10px 12px; transition: border-color .18s, background .18s, box-shadow .18s; }
+.mode-option strong { font-size: 13px; }
+.mode-option small { color: var(--muted); margin-top: 2px; font-size: 11px; line-height: 1.35; }
+.mode-option input:checked + span { border-color: rgba(124,92,255,.72); background: rgba(124,92,255,.1); box-shadow: 0 0 0 3px rgba(124,92,255,.08); }
+.mode-option input:focus-visible + span { outline: 2px solid #c5baff; outline-offset: 3px; }
+.mode-option input:disabled + span { opacity: .46; cursor: not-allowed; }
+.mode-help { margin: 8px 2px 0; color: var(--muted); font-size: 11px; }
+.image-meta { position: absolute; left: 10px; bottom: 10px; max-width: calc(100% - 20px); padding: 6px 9px; border-radius: 9px; background: rgba(8,10,15,.78); color: #dbe2ee; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result-meta { border: 1px solid var(--line); border-radius: 12px; padding: 9px 11px; background: rgba(255,255,255,.025); color: var(--muted); font-size: 11px; }
+[aria-invalid="true"] { border-color: rgba(255,109,131,.75) !important; box-shadow: 0 0 0 3px rgba(255,109,131,.09) !important; }
+button, .mode-option > span { -webkit-tap-highlight-color: transparent; }
+.generate-actions button, .text-button, .remove-image, .access-button { min-height: 44px; }
+@supports (padding: max(0px)) {
+  .topbar { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+  footer { padding-bottom: max(28px, env(safe-area-inset-bottom)); }
+}
+@media (max-width: 540px) {
+  .mode-picker { grid-template-columns: 1fr; }
+  .mode-option > span { min-height: 58px; }
+  .output-actions { width: 100%; justify-content: flex-start; }
+  .text-button { padding: 8px 6px; }
+  .result-card { padding: 14px; }
+}
