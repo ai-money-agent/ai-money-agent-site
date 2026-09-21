@@ -63,7 +63,8 @@ async function generateWithOpenAI(input, config) {
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(`AI provider HTTP ${response.status}`);
+    const errorCode = typeof data?.error?.code === 'string' ? data.error.code : 'unknown';
+    throw new Error(`AI provider HTTP ${response.status}; code=${errorCode}`);
   }
 
   const raw = extractResponseText(data);
