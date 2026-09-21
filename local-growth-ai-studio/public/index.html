@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0d14" />
+  <meta name="description" content="Local Growth AI Studio — turn product details into ads and Reel scripts." />
+  <title>Local Growth AI Studio</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Local Growth AI Studio home">
+      <span class="brand-mark">LG</span>
+      <span><strong>Local Growth</strong><small>AI Studio</small></span>
+    </a>
+    <div class="top-actions">
+      <span id="engineBadge" class="badge badge-muted">Checking AI…</span>
+      <span id="creditsBadge" class="badge">— credits</span>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="hero">
+      <span class="eyebrow">PRODUCT → CREATIVE</span>
+      <h1>Turn one product into a creative campaign.</h1>
+      <p>Upload a product image, add the essentials, and generate the Hook, Reel script, shots, on-screen text, caption, CTA and ad angles.</p>
+    </section>
+
+    <p id="modeNotice" class="mode-notice" role="status">Checking Studio status…</p>
+    <section id="accessPanel" class="panel access-panel hidden">
+      <h2>Open your Studio</h2>
+      <form id="accessForm">
+        <label class="field"><span>Studio access code · رمز الدخول</span><input id="accessCode" type="password" autocomplete="current-password" required /></label>
+        <button class="secondary access-button" type="submit">Continue · دخول</button>
+        <p id="accessMessage" role="status"></p>
+      </form>
+    </section>
+
+    <section class="workspace" aria-label="AI creative workspace">
+      <form id="studioForm" class="panel form-panel" novalidate>
+        <div class="panel-heading">
+          <div><span class="step">01</span><h2>Product brief</h2></div>
+          <p>Give the AI only what it needs.</p>
+        </div>
+
+        <label class="upload" id="uploadDropzone">
+          <input id="productImage" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="imageHelp" />
+          <div id="uploadEmpty" class="upload-empty">
+            <span class="upload-icon">＋</span>
+            <strong>Upload product image</strong>
+            <span id="imageHelp">PNG, JPG or WebP · max 5 MB</span>
+          </div>
+          <div id="uploadPreviewWrap" class="upload-preview-wrap hidden">
+            <img id="uploadPreview" class="upload-preview" alt="Selected product preview" />
+            <button id="removeImage" class="remove-image" type="button" aria-label="Remove image">×</button>
+          </div>
+        </label>
+
+        <div class="field-grid">
+          <label class="field">
+            <span>Product name</span>
+            <input id="productName" name="productName" maxlength="120" autocomplete="off" placeholder="e.g. Portable mini blender" required />
+          </label>
+
+          <label class="field field-full">
+            <span>Product description</span>
+            <textarea id="description" name="description" maxlength="1800" rows="5" placeholder="What it is, key features, price/value, what makes it useful…" required></textarea>
+            <small><span id="descriptionCount">0</span>/1800</small>
+          </label>
+
+          <label class="field">
+            <span>Language</span>
+            <select id="language" name="language">
+              <option value="en">English</option>
+              <option value="ar">العربية</option>
+              <option value="bilingual">العربية + English</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Target audience</span>
+            <input id="audience" name="audience" maxlength="240" placeholder="e.g. Busy women 20–40 who cook at home" required />
+          </label>
+        </div>
+
+        <div class="generate-actions">
+          <button class="primary" type="button" data-mode="ad">
+            <span>Generate Ad</span><small><span data-generation-cost>1</span> credit</small>
+          </button>
+          <button class="secondary" type="button" data-mode="reel">
+            <span>Generate Reel Script</span><small><span data-generation-cost>1</span> credit</small>
+          </button>
+        </div>
+
+        <div id="formMessage" class="message hidden" role="status"></div>
+      </form>
+
+      <section class="panel output-panel" aria-live="polite">
+        <div class="panel-heading">
+          <div><span class="step">02</span><h2>Creative pack</h2></div>
+          <div class="output-actions">
+            <button id="recoverResult" class="text-button hidden" type="button">Recover last result</button>
+            <button id="downloadResult" class="text-button" type="button" disabled>Download .txt</button>
+            <button id="copyAll" class="text-button" type="button" disabled>Copy all</button>
+          </div>
+        </div>
+
+        <div id="emptyState" class="empty-state">
+          <div class="spark">✦</div>
+          <h3>Your campaign appears here</h3>
+          <p>Complete the product brief, then choose Ad or Reel Script.</p>
+        </div>
+
+        <div id="loadingState" class="loading-state hidden">
+          <div class="loader"></div>
+          <h3>Building your creative pack…</h3>
+          <p>Hook, script, shots and conversion angles are being structured.</p>
+        </div>
+
+        <div id="results" class="results hidden">
+          <article class="result-card highlight"><span>HOOK</span><p id="hookOutput"></p></article>
+          <article class="result-card"><span>REEL SCRIPT</span><p id="scriptOutput"></p></article>
+          <article class="result-card"><span>SHOT LIST</span><ol id="shotsOutput"></ol></article>
+          <article class="result-card"><span>ON-SCREEN TEXT</span><ul id="screenTextOutput"></ul></article>
+          <article class="result-card"><span>CAPTION</span><p id="captionOutput"></p></article>
+          <article class="result-card"><span>CTA</span><p id="ctaOutput"></p></article>
+          <article class="result-card"><span>AD IDEAS</span><ul id="ideasOutput"></ul></article>
+        </div>
+      </section>
+    </section>
+
+    <section class="video-roadmap">
+      <div>
+        <span class="eyebrow">NEXT MODULE</span>
+        <h2>AI Video Generation</h2>
+        <p>The server contract is prepared for vertical, square and landscape jobs. A provider will be connected only after approval.</p>
+      </div>
+      <div class="video-status">
+        <span>Video generation</span><strong>Prepared</strong><button type="button" disabled>Provider not connected</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>Local Growth AI Studio · MVP</footer>
+  <script src="/app.js" defer></script>
+</body>
+</html>
