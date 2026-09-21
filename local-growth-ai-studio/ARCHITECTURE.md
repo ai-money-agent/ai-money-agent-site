@@ -12,7 +12,9 @@ Image input is bounded at 5 MB and checked for MIME, canonical base64 and file s
 
 ## Credits and retry behavior
 
-SQLite tables: `accounts(id,balance,used)` and `jobs(account,id,fingerprint,status,cost,output)`. `BEGIN IMMEDIATE` ensures atomic reservation and a nonnegative balance. Client request IDs are bound to a normalized-brief hash. A repeated completed request returns its stored result; a pending request cannot start a second provider job. Changed content under the same ID is rejected. Failed jobs refund once. Browser retries retain the ID after a lost response.
+SQLite tables: `accounts(id,balance,used)` and `jobs(account,id,fingerprint,status,cost,output)`. `BEGIN IMMEDIATE` ensures atomic reservation and a nonnegative balance. Client request IDs are bound to a normalized-brief hash. A repeated completed request returns its stored result; a pending request cannot start a second provider job. Changed content under the same ID is rejected. Failed jobs refund once.
+
+The initial private-beta balance and creative generation cost are server configuration (`INITIAL_CREDITS`, `GENERATION_CREDIT_COST`). The browser reads the current generation cost from the API rather than trusting a hard-coded price.
 
 SQLite must live on persistent local storage. Do not run independent replicas with separate databases. Pending jobs after a crash are held for manual provider reconciliation. Successful creative outputs remain stored for idempotent recovery; images and raw briefs are not persisted. Add retention and deletion controls before broad customer launch.
 
@@ -22,4 +24,6 @@ SQLite must live on persistent local storage. Do not run independent replicas wi
 
 ## Future video integration
 
-`POST /api/video/prepare` returns `501 provider_not_connected`, without reserving credits. A future adapter will validate script/image/duration/aspect ratio, reserve an agreed cost, persist the remote job ID, authenticate callback signatures, settle the ledger once, and return an expiring asset URL. No provider or credit price has been assumed.
+`lib/video.js` defines the provider-independent input contract. `POST /api/video/prepare` currently validates script, duration and aspect ratio, then returns `501 provider_not_connected` without reserving credits. Supported preparation targets are vertical (9:16), square (1:1) and landscape (16:9) with controlled short-form durations.
+
+A future provider adapter should reserve an agreed cost, persist the remote job ID, authenticate callback signatures, settle the ledger once, and return an expiring asset URL. No provider, API key, paid plan or video credit price is assumed by the current code.

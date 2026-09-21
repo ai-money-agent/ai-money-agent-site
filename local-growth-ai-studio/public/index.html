@@ -39,6 +39,7 @@
         <p id="accessMessage" role="status"></p>
       </form>
     </section>
+
     <section class="workspace" aria-label="AI creative workspace">
       <form id="studioForm" class="panel form-panel" novalidate>
         <div class="panel-heading">
@@ -47,11 +48,11 @@
         </div>
 
         <label class="upload" id="uploadDropzone">
-          <input id="productImage" type="file" accept="image/png,image/jpeg,image/webp" />
+          <input id="productImage" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="imageHelp" />
           <div id="uploadEmpty" class="upload-empty">
             <span class="upload-icon">＋</span>
             <strong>Upload product image</strong>
-            <span>PNG, JPG or WebP · max 5 MB</span>
+            <span id="imageHelp">PNG, JPG or WebP · max 5 MB</span>
           </div>
           <div id="uploadPreviewWrap" class="upload-preview-wrap hidden">
             <img id="uploadPreview" class="upload-preview" alt="Selected product preview" />
@@ -88,10 +89,10 @@
 
         <div class="generate-actions">
           <button class="primary" type="button" data-mode="ad">
-            <span>Generate Ad</span><small>1 credit</small>
+            <span>Generate Ad</span><small><span data-generation-cost>1</span> credit</small>
           </button>
           <button class="secondary" type="button" data-mode="reel">
-            <span>Generate Reel Script</span><small>1 credit</small>
+            <span>Generate Reel Script</span><small><span data-generation-cost>1</span> credit</small>
           </button>
         </div>
 
@@ -132,10 +133,10 @@
       <div>
         <span class="eyebrow">NEXT MODULE</span>
         <h2>AI Video Generation</h2>
-        <p>Video generation is coming later. For now, create and copy your script and shot list.</p>
+        <p>The server contract is prepared for vertical, square and landscape jobs. A provider will be connected only after approval.</p>
       </div>
       <div class="video-status">
-        <span>Video generation</span><strong>Coming later</strong><button type="button" disabled>Provider not connected</button>
+        <span>Video generation</span><strong>Prepared</strong><button type="button" disabled>Provider not connected</button>
       </div>
     </section>
   </main>

@@ -1,0 +1,32 @@
+name: Local Growth AI Studio tests
+
+on:
+  push:
+    branches:
+      - codex/local-growth-studio
+    paths:
+      - "local-growth-ai-studio/**"
+      - ".github/workflows/local-growth-ai-studio.yml"
+  pull_request:
+    paths:
+      - "local-growth-ai-studio/**"
+      - ".github/workflows/local-growth-ai-studio.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: local-growth-ai-studio
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: local-growth-ai-studio/package.json
+      - name: Run Studio tests
+        run: npm test

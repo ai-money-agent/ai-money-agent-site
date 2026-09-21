@@ -1,0 +1,32 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+
+const root = new URL('../', import.meta.url);
+const [html, css, js] = await Promise.all([
+  readFile(new URL('public/index.html',root),'utf8'),
+  readFile(new URL('public/styles.css',root),'utf8'),
+  readFile(new URL('public/app.js',root),'utf8')
+]);
+
+test('UI contains the complete requested creative workflow',()=>{
+  for (const id of [
+    'productImage','productName','description','language','audience',
+    'hookOutput','scriptOutput','shotsOutput','screenTextOutput',
+    'captionOutput','ctaOutput','ideasOutput'
+  ]) assert.match(html,new RegExp(`id=["']${id}["']`));
+  assert.match(html,/data-mode="ad"/);
+  assert.match(html,/data-mode="reel"/);
+  assert.match(html,/data-generation-cost/);
+});
+
+test('frontend is mobile-first, self-contained and does not contain provider secrets',()=>{
+  assert.match(html,/viewport-fit=cover/);
+  assert.match(css,/@media \(max-width: 860px\)/);
+  assert.match(css,/@media \(max-width: 540px\)/);
+  assert.doesNotMatch(html,/<script[^>]+https?:\/\//i);
+  assert.doesNotMatch(html,/<link[^>]+https?:\/\//i);
+  assert.doesNotMatch(html+js,/OPENAI_API_KEY|sk-[A-Za-z0-9_-]{12,}/);
+  assert.match(js,/fetch\('\/api\/generate'/);
+  assert.match(js,/textContent/);
+});

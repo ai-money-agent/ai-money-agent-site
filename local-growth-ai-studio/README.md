@@ -11,11 +11,13 @@ cd local-growth-ai-studio
 npm start
 ```
 
-Open http://localhost:8787. Demo mode uses clearly labeled sample templates; it does **not** analyze the uploaded image or generate AI content. The image preview, product form, bilingual outputs, Ad/Reel flows, copy action, validation, and persistent demo credit ledger all work locally.
+Open http://localhost:8787. Demo mode uses clearly labeled sample templates; it does **not** analyze the uploaded image or generate AI content. The image preview, product form, language/audience controls, bilingual outputs, Ad/Reel flows, copy action, validation, configurable credits and persistent ledger all work locally.
 
 ```sh
 npm test
 ```
+
+The test suite covers the credit ledger, provider adapter contract, future video request contract, UI structure/mobile breakpoints, authentication, CSRF/origin checks, image validation, retry/idempotency behavior, persistent credits and protected server files. GitHub Actions also runs these tests on the Studio branch and relevant pull requests.
 
 ## Live generation is deliberately disabled
 
@@ -28,9 +30,18 @@ Adding a key alone does not activate billable requests. Live generation requires
 - A private `STUDIO_ACCESS_CODE` at least 24 characters long.
 - An HTTPS `APP_ORIGIN` matching the application's public URL.
 
-Never paste a provider key into chat, browser code, or GitHub. `.env` and local data are excluded from Git. `.env.example` contains configuration names only. Use the secure OpenAI setup flow for provisioning a key.
+Never paste a provider key into chat, browser code, or GitHub. `.env` and local data are excluded from Git. `.env.example` contains configuration names only. Use a secure server environment for provisioning secrets.
 
-The adapter uses the [OpenAI Responses structured-output format](https://developers.openai.com/api/docs/guides/structured-outputs), limits output tokens, imposes a timeout, validates all seven fields, and does not expose provider errors or credentials. No live provider call was made during development verification.
+The adapter uses the OpenAI Responses structured-output format, limits output tokens, imposes a timeout, validates all seven creative fields, and does not expose provider errors or credentials. No live provider call is required for development verification.
+
+## Credits
+
+Credits are owned by the server, not the browser. The private beta defaults to 100 credits and one credit per creative generation. Both can be changed without touching frontend code:
+
+- `INITIAL_CREDITS`
+- `GENERATION_CREDIT_COST`
+
+The UI reads the generation cost from the backend. Reservations happen before provider work, duplicate request IDs cannot double-charge, completed requests replay safely, and failed generations return the reserved Studio credit.
 
 ## Hosting
 
@@ -38,7 +49,7 @@ GitHub Pages hosts static files and cannot run this Node backend. Uploading this
 
 Deploy the included Dockerfile to a Node/container host with HTTPS and a persistent volume at `/app/data`, or run Node 24 behind an HTTPS reverse proxy. Bind `HOST=0.0.0.0` when needed by the host. Configure environment values on that server; `APP_ORIGIN` controls same-origin requests and secure session cookies. Do not use an ephemeral filesystem for credits.
 
-Before choosing a paid host or enabling paid AI, obtain the owner's approval. No hosting service, domain change, or paid provider has been purchased or enabled by this code.
+Before choosing a paid host or enabling paid AI, obtain the owner's approval. No hosting service, domain change, paid provider or API spend is enabled by this repository.
 
 ## Beta scope
 
@@ -49,4 +60,4 @@ Before choosing a paid host or enabling paid AI, obtain the owner's approval. No
 - Pending jobs after an abrupt crash stay reserved. The owner must reconcile them against provider records; automatic retry/refund could otherwise duplicate cost.
 - Outputs are retained locally for retry recovery. Uploaded images are not stored; only a request fingerprint is retained.
 - This is **not yet a multi-customer credit-selling service**. Add individual accounts, provisioning, quotas, purchase fulfillment, retention policy and operational monitoring before selling customer credit balances.
-- Video generation remains unavailable and never charges credits. The provider selection and real video price remain undecided.
+- Video generation remains unavailable and never charges credits. The backend now validates a future video job shape (script, duration, aspect ratio), but no provider or video credit price has been selected.
