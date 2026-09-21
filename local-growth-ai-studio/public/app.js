@@ -1,5 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const state = { imageDataUrl: '', lastResult: null, busy: false, imageVersion: 0, request: null, resultLanguage: 'en', generationCost: 1 };
+const DRAFT_KEY = 'local-growth-studio-draft-v1';
 
 const els = {
   form: $('studioForm'),
@@ -125,6 +126,29 @@ els.removeImage.addEventListener('click', (event) => {
   els.dropzone.classList.remove('dragover');
 }));
 els.dropzone.addEventListener('drop', (event) => readImage(event.dataTransfer?.files?.[0]));
+function saveDraft() {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      productName: els.productName.value,
+      description: els.description.value,
+      language: els.language.value,
+      audience: els.audience.value
+    }));
+  } catch {}
+}
+function restoreDraft() {
+  try {
+    const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+    if (!draft || typeof draft !== 'object') return;
+    if (typeof draft.productName === 'string') els.productName.value = draft.productName.slice(0, 120);
+    if (typeof draft.description === 'string') els.description.value = draft.description.slice(0, 1800);
+    if (['en','ar','bilingual'].includes(draft.language)) els.language.value = draft.language;
+    if (typeof draft.audience === 'string') els.audience.value = draft.audience.slice(0, 240);
+    els.descriptionCount.textContent = String(els.description.value.length);
+  } catch {}
+}
+[els.productName, els.description, els.audience].forEach((el) => el.addEventListener('input', saveDraft));
+els.language.addEventListener('change', saveDraft);
 els.description.addEventListener('input', () => { els.descriptionCount.textContent = String(els.description.value.length); });
 
 async function refreshStatus() {
@@ -175,7 +199,8 @@ $('accessForm').addEventListener('submit', async event => {
     if (!response.ok) throw new Error('Access code not accepted.');
     $('accessCode').value = '';
     $('accessMessage').textContent = '';
-    await refreshStatus();
+    await restoreDraft();
+refreshStatus();
   } catch(error) {
     $('accessMessage').textContent = error.message;
   }
