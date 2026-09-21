@@ -27,10 +27,11 @@ Adding a key alone does not activate billable requests. Live generation requires
 - An OpenAI project key delivered through secure setup to the server environment.
 - An explicitly selected `OPENAI_MODEL` that supports images and structured outputs.
 - `ENABLE_LIVE_AI=1`.
+- `OPENAI_PROVIDER_ENABLED=1` as a second, explicit billing/provider gate. Keep this at `0` while OpenAI billing is postponed.
 - A private `STUDIO_ACCESS_CODE` at least 24 characters long.
 - An HTTPS `APP_ORIGIN` matching the application's public URL.
 
-Never paste a provider key into chat, browser code, or GitHub. `.env` and local data are excluded from Git. `.env.example` contains configuration names only. Use a secure server environment for provisioning secrets.
+With `OPENAI_PROVIDER_ENABLED=0`, the Studio stays in template mode even if `ENABLE_LIVE_AI=1`; no OpenAI request is sent. Never paste a provider key into chat, browser code, or GitHub. `.env` and local data are excluded from Git. `.env.example` contains configuration names only. Use a secure server environment for provisioning secrets.
 
 The adapter uses the OpenAI Responses structured-output format, limits output tokens, imposes a timeout, validates all seven creative fields, and does not expose provider errors or credentials. No live provider call is required for development verification.
 
