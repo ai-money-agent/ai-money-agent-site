@@ -52,12 +52,15 @@ try {
   await start();
   assert.equal((await get('/api/credits')).status,401);
   assert.equal((await get('/api/generations/test-request-000001')).status,401);
+  const readyBefore = await (await get('/api/health/ready')).json();
+  assert.equal(readyBefore.status,'ready');
   const healthBefore = await (await get('/api/health')).json();
   assert.equal(healthBefore.version,'0.5.0');
   assert.equal(healthBefore.generationCost,2);
   assert.equal(healthBefore.demoGenerationCost,0);
   assert.equal(healthBefore.demoAvailable,true);
   assert.equal(healthBefore.liveAvailable,false);
+  assert.equal(healthBefore.storageReady,true);
   assert.equal(healthBefore.providerPaused,true);
   assert.equal(healthBefore.aiConnected,false);
   assert.equal(healthBefore.video.providerConnected,false);
