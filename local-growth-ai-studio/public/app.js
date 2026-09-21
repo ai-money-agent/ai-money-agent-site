@@ -347,7 +347,7 @@ async function recoverResult() {
   if (!saved || !/^[A-Za-z0-9_-]{16,100}$/.test(saved.id)) return forgetRequest();
   setBusy(true);
   try {
-    const mode = saved.mode === 'live' ? 'live' : 'demo';
+    const mode = saved.mode === 'live' || saved.mode === 'demo' ? saved.mode : (state.health?.liveAvailable ? 'live' : 'demo');
     const response = await fetch(`/api/generations/${saved.id}?mode=${mode}`, { signal: AbortSignal.timeout(10000) });
     const data = await response.json();
     if (response.status === 404) forgetRequest();
