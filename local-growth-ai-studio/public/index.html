@@ -56,7 +56,8 @@
           </div>
           <div id="uploadPreviewWrap" class="upload-preview-wrap hidden">
             <img id="uploadPreview" class="upload-preview" alt="Selected product preview" />
-            <button id="removeImage" class="remove-image" type="button" aria-label="Remove image">×</button>
+            <div id="imageMeta" class="image-meta" aria-live="polite"></div>
+            <button id="removeImage" class="remove-image" type="button" aria-label="Remove selected product image">×</button>
           </div>
         </label>
 
@@ -87,6 +88,19 @@
           </label>
         </div>
 
+        <fieldset id="generationModeFieldset" class="mode-picker" aria-describedby="generationModeHelp">
+          <legend>Generation mode</legend>
+          <label class="mode-option">
+            <input id="generationDemo" type="radio" name="generationMode" value="demo" checked />
+            <span><strong>Demo</strong><small>No provider API calls · 0 credits</small></span>
+          </label>
+          <label class="mode-option">
+            <input id="generationLive" type="radio" name="generationMode" value="live" />
+            <span><strong>Live AI</strong><small>Uses connected provider and Studio credits</small></span>
+          </label>
+        </fieldset>
+        <p id="generationModeHelp" class="mode-help">Demo mode is safe for testing and never calls Claude or OpenAI.</p>
+
         <div class="generate-actions">
           <button class="primary" type="button" data-mode="ad">
             <span>Generate Ad</span><small><span data-generation-cost>1</span> credit</small>
@@ -115,13 +129,14 @@
           <p>Complete the product brief, then choose Ad or Reel Script.</p>
         </div>
 
-        <div id="loadingState" class="loading-state hidden">
+        <div id="loadingState" class="loading-state hidden" role="status" aria-live="polite">
           <div class="loader"></div>
           <h3>Building your creative pack…</h3>
           <p>Hook, script, shots and conversion angles are being structured.</p>
         </div>
 
         <div id="results" class="results hidden">
+          <div id="resultMeta" class="result-meta" role="status"></div>
           <article class="result-card highlight"><span>HOOK</span><p id="hookOutput"></p></article>
           <article class="result-card"><span>REEL SCRIPT</span><p id="scriptOutput"></p></article>
           <article class="result-card"><span>SHOT LIST</span><ol id="shotsOutput"></ol></article>
