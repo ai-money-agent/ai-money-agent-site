@@ -18,15 +18,23 @@ body{margin:0;background:var(--cream);color:var(--ink);font-family:Arial,sans-se
 .price{font-size:36px;font-weight:800;margin:24px 0 4px}
 .small{font-size:13px;color:#6b625e}
 .btn{display:inline-block;background:var(--ink);color:white;text-decoration:none;padding:16px 25px;border-radius:999px;font-weight:800;margin:18px 0}
+.payment-note{background:#fff7f1;border:1px solid var(--line);border-radius:16px;padding:15px 17px;margin-top:8px;font-size:14px}
 .proof{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:5px 0 70px}
 .card{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:24px}
 .card b{display:block;font-size:26px;font-family:Georgia,serif}
 .section{padding:68px 0}
 .section h2{font-family:Georgia,serif;font-size:42px;line-height:1.05}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.preview-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.preview-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:0 12px 28px #463a3012}
+.preview-card .tag{display:inline-block;background:#f3ddd7;color:#79524c;padding:5px 10px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:1px;margin-bottom:12px}
+.preview-card h3{font-family:Georgia,serif;font-size:24px;margin:0 0 12px}
+.preview-card p{margin:8px 0;color:#5f5652}
+.preview-card strong{color:#6d4c47}
 .quote{font-size:19px}
-.steps{counter-reset:s}
-.step:before{counter-increment:s;content:"0" counter(s);color:var(--rose);font-weight:800}
+.steps{}
+.step:before{content:none}
+.stepnum{color:var(--rose);font-weight:800;margin-bottom:8px}
 .faq details{background:var(--paper);border:1px solid var(--line);padding:18px 22px;margin:10px 0;border-radius:14px}
 .cta{text-align:center;background:var(--ink);color:white;border-radius:26px;padding:60px 24px;margin:50px 0}
 .cta .btn{background:var(--rose)}
@@ -40,7 +48,7 @@ footer{text-align:center;padding:30px;font-size:13px}
 @media(max-width:760px){
 .hero,.grid{grid-template-columns:1fr}
 .hero{padding:35px 0}
-.proof{grid-template-columns:1fr}
+.proof,.preview-grid{grid-template-columns:1fr}
 .hero h1{font-size:48px}
 .section h2{font-size:35px}
 .product-mockup{min-height:430px}
@@ -61,9 +69,10 @@ footer{text-align:center;padding:30px;font-size:13px}
 <h1>Turn salon clips into booking conversations.</h1>
 <p class="lead">A complete 30-day Reel system you can film without showing your face—each day includes the hook, shots, screen text, caption and call to action.</p>
 <div class="price">Launch price: $9</div>
-<div class="small">One-time payment • Instant digital delivery after payment confirmation</div>
+<div class="small">One-time payment • Digital delivery after payment confirmation</div>
 <a class="btn" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%20want%20the%20No-Face%20Salon%20Reels%20Kit.%20Please%20send%20payment%20details.">ORDER VIA WHATSAPP</a>
-<p class="small">Lebanon: pay through Whish Money or OMT. We confirm payment in chat and send the files.</p>
+    <a class="cta" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">PAY $9 NOW</a>
+<div class="payment-note"><strong>Worldwide:</strong> ask for a secure payment link after we confirm your order. <strong>Lebanon:</strong> Whish Money or OMT are also available. We confirm payment in chat and then send the digital files.</div>
 </div>
 
 <div class="product-mockup">
@@ -111,21 +120,53 @@ Includes inquiry and WhatsApp replies, plus a sales tracker.
 </section>
 
 <section class="section">
+<div class="eyebrow">SAMPLE PREVIEW</div>
+<h2>See the exact structure before you buy.</h2>
+<div class="preview-grid">
+<div class="preview-card">
+<span class="tag">SAMPLE REEL 01</span>
+<h3>Result reveal</h3>
+<p><strong>Hook:</strong> “The part clients never see before the final reveal.”</p>
+<p><strong>Shots:</strong> tools → process close-up → finished result.</p>
+<p><strong>On-screen text:</strong> “Small details. Big difference.”</p>
+<p><strong>CTA:</strong> “Message us ‘BOOK’ for available appointments.”</p>
+</div>
+<div class="preview-card">
+<span class="tag">SAMPLE REEL 02</span>
+<h3>Trust builder</h3>
+<p><strong>Hook:</strong> “3 things we check before starting your service.”</p>
+<p><strong>Shots:</strong> consultation details → products → preparation.</p>
+<p><strong>On-screen text:</strong> “A better result starts before the appointment.”</p>
+<p><strong>CTA:</strong> “Send us your question before booking.”</p>
+</div>
+<div class="preview-card">
+<span class="tag">SAMPLE REEL 03</span>
+<h3>Booking push</h3>
+<p><strong>Hook:</strong> “If you’ve been waiting for a sign to book, this is it.”</p>
+<p><strong>Shots:</strong> salon space → service moment → final detail.</p>
+<p><strong>On-screen text:</strong> “Appointments open this week.”</p>
+<p><strong>CTA:</strong> “DM ‘TIME’ and we’ll send the next openings.”</p>
+</div>
+</div>
+<p class="small" style="margin-top:14px;">These previews show the format and level of detail used throughout the kit. Customize service names, timings and offers to match your salon.</p>
+</section>
+
+<section class="section">
 <div class="eyebrow">HOW IT WORKS</div>
 <div class="grid">
-<div class="card step">
+<div class="card step"><div class="stepnum">01</div>
 <h3>Pick today’s Reel</h3>
 <p>Choose from transformation, education, trust, urgency or direct-offer formats.</p>
 </div>
-<div class="card step">
+<div class="card step"><div class="stepnum">02</div>
 <h3>Film faceless clips</h3>
 <p>Use the listed salon shots. Most take only a few minutes.</p>
 </div>
-<div class="card step">
+<div class="card step"><div class="stepnum">03</div>
 <h3>Paste and customize</h3>
 <p>Replace brackets with your real service, opening, price or timing.</p>
 </div>
-<div class="card step">
+<div class="card step"><div class="stepnum">04</div>
 <h3>Track inquiries</h3>
 <p>Measure DMs and bookings—not vanity views alone.</p>
 </div>
@@ -133,13 +174,23 @@ Includes inquiry and WhatsApp replies, plus a sales tracker.
 </section>
 
 <section class="section ar">
-<div class="eyebrow">مناسب للبيع المحلي</div>
+<div class="eyebrow">مناسب للبيع المحلي والعالمي</div>
 <h2>ما بدك تطلعي بوجهك حتى تصنعي محتوى يفتح محادثات حجز.</h2>
-<p class="quote">الحزمة تتضمن ملحقًا عربيًا لرسائل السعر، المواعيد، المتابعة، والاستشارة السريعة. الدفع في لبنان عبر Whish Money أو OMT، وتسليم الملفات بعد تأكيد الدفع.</p>
+<p class="quote">الحزمة تتضمن ملحقًا عربيًا لرسائل السعر، المواعيد، المتابعة، والاستشارة السريعة. داخل لبنان يتوفر الدفع عبر Whish Money أو OMT، وللعملاء خارج لبنان نرسل رابط دفع بعد تأكيد الطلب. يتم إرسال الملفات الرقمية بعد تأكيد الدفع.</p>
 </section>
 
 <section class="section faq">
 <h2>Before you order</h2>
+
+<details>
+<summary>How do I pay?</summary>
+<p>For customers outside Lebanon, we send a secure payment link after confirming your order in WhatsApp. In Lebanon, Whish Money or OMT are also available.</p>
+</details>
+
+<details>
+<summary>When do I receive the files?</summary>
+<p>The digital files are sent after your payment is confirmed. Delivery is handled electronically through the agreed channel.</p>
+</details>
 
 <details>
 <summary>Is this a Canva template pack?</summary>
@@ -161,6 +212,7 @@ Includes inquiry and WhatsApp replies, plus a sales tracker.
 <div class="eyebrow">START WITH THE NEXT 30 DAYS</div>
 <h2>Film without the pressure.<br>Post with a booking goal.</h2>
 <a class="btn" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%20want%20the%20No-Face%20Salon%20Reels%20Kit.%20Please%20send%20payment%20details.">MESSAGE “REELS” TO ORDER</a>
+<p class="small" style="color:#e8d8d3;">Worldwide payment link available after order confirmation.</p>
 </section>
 </div>
 
