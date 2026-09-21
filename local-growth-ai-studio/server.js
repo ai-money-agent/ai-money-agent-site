@@ -2,7 +2,7 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
 import { Ledger } from './lib/ledger.js';
 import { generate } from './lib/generator.js';
 import { prepareVideoRequest, videoCapability } from './lib/video.js';
@@ -30,7 +30,8 @@ const config = {
   providerEnabled,
   liveEnabled: liveRequested && providerEnabled,
   initialCredits: intEnv('INITIAL_CREDITS', 100, 0, 1000000),
-  generationCost: intEnv('GENERATION_CREDIT_COST', 1, 1, 1000)
+  generationCost: intEnv('GENERATION_CREDIT_COST', 1, 1, 1000),
+  demoGenerationCost: 0
 };
 const ACCESS_CODE = process.env.STUDIO_ACCESS_CODE || '';
 const ORIGIN = process.env.APP_ORIGIN || '';
@@ -57,6 +58,22 @@ const equal = (a, b) => {
   return timingSafeEqual(x, y);
 };
 const sign = value => createHmac('sha256', ACCESS_CODE).update(value).digest('hex');
+const runtimeMode = () => config.liveEnabled ? 'live' : 'demo';
+function generationMode(value, fallback = runtimeMode()) {
+  if (value == null || value === '') return fallback;
+  if (!['demo','live'].includes(value)) throw failure('Choose Demo or Live AI.',422);
+  return value;
+}
+function ensureModeAvailable(mode) {
+  if (mode === 'demo' && !config.allowDemo) throw failure('Demo mode is disabled.',503);
+  if (mode === 'live' && !config.liveEnabled) throw failure('Live AI is not enabled yet.',503);
+}
+const accountFor = mode => mode === 'demo' ? accounts.demo : accounts.live;
+const costFor = mode => mode === 'demo' ? config.demoGenerationCost : config.generationCost;
+function logEvent(level,event,details={}) {
+  const payload = { time:new Date().toISOString(), event, ...details };
+  console[level](JSON.stringify(payload));
+}
 
 function authenticated(req) {
   if (!ACCESS_CODE) return true;
@@ -71,6 +88,7 @@ function headers(res) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data: blob:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
+  if (ORIGIN.startsWith('https://')) res.setHeader('Strict-Transport-Security','max-age=31536000; includeSubDomains');
 }
 function json(res, status, body) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -149,6 +167,11 @@ async function api(req, res, url) {
       providerPaused:config.liveRequested && !config.liveEnabled,
       video:videoCapability(),
       generationCost:config.generationCost,
+      demoGenerationCost:config.demoGenerationCost,
+      demoAvailable:config.allowDemo,
+      liveAvailable:config.liveEnabled,
+      provider:config.provider,
+      uptimeSeconds:Math.floor(process.uptime()),
       requiresLogin:!authenticated(req)
     });
   }
@@ -161,8 +184,10 @@ async function api(req, res, url) {
   }
   if (!authenticated(req)) throw failure('Enter your Studio access code first.',401);
 
-  const accountId = config.liveEnabled ? accounts.live : accounts.demo;
   if (req.method === 'GET' && url.pathname.startsWith('/api/generations/')) {
+    const mode = generationMode(url.searchParams.get('mode'));
+    ensureModeAvailable(mode);
+    const accountId = accountFor(mode);
     const id = url.pathname.slice('/api/generations/'.length);
     if (!/^[A-Za-z0-9_-]{16,100}$/.test(id)) throw failure('Invalid request ID.',400);
     const job = ledger.job(accountId,id);
@@ -170,11 +195,15 @@ async function api(req, res, url) {
     return json(res,200,{
       ok:true,status:job.status,
       ...(job.status === 'completed' ? JSON.parse(job.output) : {}),
-      credits:ledger.account(accountId)
+      credits:ledger.account(accountId),
+      generationMode:mode
     });
   }
   if (req.method === 'GET' && url.pathname === '/api/credits') {
-    return json(res,200,{ok:true,...ledger.account(accountId),generationCost:config.generationCost,videoCostEstimate:null});
+    const mode = generationMode(url.searchParams.get('mode'));
+    ensureModeAvailable(mode);
+    const accountId = accountFor(mode);
+    return json(res,200,{ok:true,...ledger.account(accountId),generationCost:costFor(mode),generationMode:mode,videoCostEstimate:null});
   }
   if (req.method === 'POST' && url.pathname === '/api/video/prepare') {
     const spec = prepareVideoRequest(await readBody(req));
@@ -186,25 +215,29 @@ async function api(req, res, url) {
     });
   }
   if (req.method === 'POST' && url.pathname === '/api/generate') {
-    const input = validateInput(await readBody(req));
-    if (!config.liveEnabled && !config.allowDemo) throw failure('Live AI is not enabled yet.',503);
+    const body = await readBody(req);
+    const mode = generationMode(body.generationMode);
+    ensureModeAvailable(mode);
+    const input = validateInput(body);
+    const accountId = accountFor(mode);
+    const generationCost = costFor(mode);
     const id = req.headers['idempotency-key'];
     if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{16,100}$/.test(id)) throw failure('A valid request ID is required.',400);
     const fingerprint = createHash('sha256').update(JSON.stringify(input)).digest('hex');
-    const reserved = ledger.reserve(accountId,id,fingerprint,config.generationCost);
+    const reserved = ledger.reserve(accountId,id,fingerprint,generationCost);
     if (reserved.conflict) throw failure('Request ID belongs to a different brief.',409);
     if (reserved.status === 'completed') return json(res,200,{ok:true,...JSON.parse(reserved.output),credits:ledger.account(accountId),replayed:true});
     if (reserved.status === 'insufficient') throw failure('Not enough credits.',402);
     if (reserved.status === 'pending') throw failure('This request is still pending. Retry the same brief later; if it remains pending, contact the owner.',409);
     if (reserved.status === 'failed') return json(res,502,{ok:false,error:'The previous attempt failed. Change the brief or start a new attempt.',retryWithNewId:true});
     try {
-      const output = await generate(input,config);
+      const output = await generate(input,{...config,liveEnabled:mode === 'live'});
       ledger.complete(accountId,id,output);
-      return json(res,200,{ok:true,...output,credits:ledger.account(accountId)});
+      return json(res,200,{ok:true,...output,credits:ledger.account(accountId),generationMode:mode});
     } catch (error) {
-      console.error('[generation]', error?.message || 'unknown error');
+      logEvent('error','generation_failed',{ requestId:String(res.getHeader('X-Request-Id') || ''), generationId:id, mode, provider:mode === 'live' ? config.provider : 'demo', message:String(error?.message || 'unknown error').slice(0,700) });
       ledger.fail(accountId,id);
-      return json(res,502,{ok:false,error:'Generation did not complete. Your Studio credit was returned.',retryWithNewId:true});
+      return json(res,502,{ok:false,error:generationCost > 0 ? 'Generation did not complete. Your Studio credit was returned.' : 'Generation did not complete. No Studio credits were charged.',retryWithNewId:true});
     }
   }
   throw failure('API route not found.',404);
@@ -214,6 +247,8 @@ const assets = { '/':'index.html', '/index.html':'index.html', '/styles.css':'st
 const mime = { html:'text/html', css:'text/css', js:'text/javascript' };
 const server = http.createServer(async (req,res) => {
   headers(res);
+  const requestId = randomUUID();
+  res.setHeader('X-Request-Id',requestId);
   try {
     const url = new URL(req.url,'http://localhost');
     if (url.pathname.startsWith('/api/')) return await api(req,res,url);
@@ -224,7 +259,9 @@ const server = http.createServer(async (req,res) => {
     res.writeHead(200,{'Content-Type':`${mime[asset.split('.').pop()]}; charset=utf-8`});
     res.end(req.method === 'HEAD' ? undefined : body);
   } catch (error) {
-    if (!res.headersSent && !res.destroyed) json(res,error.status || 500,{ok:false,error:error.status ? error.message : 'Server error. Please try again.'});
+    const status = error.status || 500;
+    if (status >= 500) logEvent('error','request_failed',{ requestId, method:req.method, path:String(req.url || '').split('?')[0], status, message:String(error?.message || 'unknown error').slice(0,700) });
+    if (!res.headersSent && !res.destroyed) json(res,status,{ok:false,error:error.status ? error.message : 'Server error. Please try again.'});
   }
 });
 server.requestTimeout = 60000;
