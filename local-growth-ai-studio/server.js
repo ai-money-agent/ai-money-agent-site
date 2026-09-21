@@ -110,9 +110,11 @@ async function readBody(req) {
   if (!body || Array.isArray(body) || typeof body !== 'object') throw failure('JSON object required.', 400);
   return body;
 }
-function text(value, length, label) {
-  if (typeof value !== 'string' || !value.trim() || value.length > length) throw failure(`${label} is required and must be under ${length} characters.`);
-  return value.trim();
+function text(value, length, label, min = 1) {
+  if (typeof value !== 'string') throw failure(`${label} is required.`);
+  const trimmed = value.trim();
+  if (trimmed.length < min || trimmed.length > length) throw failure(`${label} must be ${min}-${length} characters.`);
+  return trimmed;
 }
 function validateInput(body) {
   if (!['ad', 'reel'].includes(body.mode)) throw failure('Choose Ad or Reel Script.');
@@ -135,9 +137,9 @@ function validateInput(body) {
   return {
     mode: body.mode,
     language: body.language,
-    productName: text(body.productName,120,'Product name'),
-    description: text(body.description,1800,'Description'),
-    audience: text(body.audience,240,'Audience'),
+    productName: text(body.productName,120,'Product name',2),
+    description: text(body.description,1800,'Description',10),
+    audience: text(body.audience,240,'Audience',3),
     imageDataUrl
   };
 }
@@ -161,7 +163,7 @@ async function api(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/health') {
     return json(res,200,{
       ok:true,
-      version:'0.4.0',
+      version:'0.5.0',
       engine:config.liveEnabled ? config.provider : config.allowDemo ? 'demo' : 'disabled',
       aiConnected:config.liveEnabled,
       providerPaused:config.liveRequested && !config.liveEnabled,
@@ -265,5 +267,6 @@ const server = http.createServer(async (req,res) => {
   }
 });
 server.requestTimeout = 60000;
-server.listen(PORT,process.env.HOST || '127.0.0.1',() => console.log(`Local Growth Studio ready on port ${PORT}; ${config.liveEnabled ? config.provider : 'demo/disabled'}`));
+server.listen(PORT,process.env.HOST || '127.0.0.1',() => logEvent('log','server_ready',{ port:PORT, mode:config.liveEnabled ? 'live' : config.allowDemo ? 'demo' : 'disabled', provider:config.provider }));
+process.on('unhandledRejection',(reason) => logEvent('error','unhandled_rejection',{ message:String(reason?.message || reason || 'unknown').slice(0,700) }));
 process.on('SIGTERM',() => server.close(() => {ledger.close(); process.exit(0);}));
