@@ -48,6 +48,15 @@ test('reload recovery renders the saved pack via GET without generation',async()
   assert.ok(app.calls.some(x=>x.url==='/api/generations/saved-request-000001?mode=demo'));
   assert.ok(app.calls.every(x=>!x.options?.method || x.options.method==='GET'));
 });
+test('legacy recovery without a stored mode uses Live when Live is available',async()=>{
+  const result={hook:'Legacy',reelScript:'Script',shotList:['Shot'],onScreenText:['Text'],caption:'Caption',cta:'CTA',adIdeas:['Idea']};
+  const app=boot({recovery:{id:'legacy-request-0001',language:'en'},job:{status:'completed',result,credits:{balance:8}},liveAvailable:true});
+  await settle();
+  await app.node('recoverResult').listeners.click();
+  assert.ok(app.calls.some(x=>x.url==='/api/generations/legacy-request-0001?mode=live'));
+  assert.equal(app.node('hookOutput').textContent,'Legacy');
+});
+
 test('disabled provider notice does not promise active template generation',async()=>{
   const app=boot({engine:'disabled',demoAvailable:false,liveAvailable:false});await settle();
   assert.match(app.node('modeNotice').textContent,/not available/);
