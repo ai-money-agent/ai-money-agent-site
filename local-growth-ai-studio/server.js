@@ -24,8 +24,13 @@ const config = {
 const ACCESS_CODE = process.env.STUDIO_ACCESS_CODE || '';
 const ORIGIN = process.env.APP_ORIGIN || '';
 const PORT = Number(process.env.PORT || 8787);
-if (config.liveEnabled && (!config.apiKey || !config.model || ACCESS_CODE.length < 24 || !ORIGIN.startsWith('https://'))) {
-  throw new Error('Live AI requires a server key, model, strong access code and HTTPS APP_ORIGIN.');
+if (config.liveEnabled) {
+  const missing = [];
+  if (!config.apiKey) missing.push('OPENAI_API_KEY');
+  if (!config.model) missing.push('OPENAI_MODEL');
+  if (ACCESS_CODE.length < 24) missing.push('STUDIO_ACCESS_CODE(24+ chars)');
+  if (!ORIGIN.startsWith('https://')) missing.push('APP_ORIGIN(https://...)');
+  if (missing.length) throw new Error(`Live AI config invalid: ${missing.join(', ')}`);
 }
 const ledger = new Ledger(process.env.CREDIT_DB || join(ROOT, 'data', 'credits.sqlite'), config.initialCredits);
 const accounts = { demo: 'demo-shared', live: 'beta-owner' };
