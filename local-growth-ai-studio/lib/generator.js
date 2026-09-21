@@ -23,7 +23,7 @@ function buildPrompt(input) {
   return `You are the creative engine for Local Growth AI Studio. Create conversion-focused social media material for a real product without inventing guarantees, fake scarcity, fake testimonials, or unsupported earnings claims.\n\nMode: ${input.mode}. ${input.mode === 'ad' ? 'Lead with a direct-response ad caption and a benefit-led offer angle.' : 'Lead with a timed 20-35 second Reel script, matching each shot to the narration.'}\nProduct: ${input.productName}\nDescription: ${input.description}\nTarget audience: ${input.audience}\n${languageInstruction(input.language)}\n\nReturn a strong hook, a short vertical Reel script, 5-7 practical shot-list items, 4-6 short on-screen text lines, a caption, one CTA, and 4 distinct ad angles. Keep the Reel around 20-35 seconds. If an image is provided, use visible product details only when clear.`;
 }
 
-function extractResponseText(data) {
+function extractOpenAIText(data) {
   if (typeof data.output_text === 'string' && data.output_text.trim()) return data.output_text.trim();
   const parts = [];
   for (const item of data.output || []) {
@@ -34,6 +34,14 @@ function extractResponseText(data) {
   return parts.join('\n').trim();
 }
 
+function extractAnthropicText(data) {
+  return (data?.content || [])
+    .filter(block => block?.type === 'text' && typeof block.text === 'string')
+    .map(block => block.text)
+    .join('\n')
+    .trim();
+}
+
 async function generateWithOpenAI(input, config) {
   const content = [{ type: 'input_text', text: buildPrompt(input) }];
   if (input.imageDataUrl) content.push({ type: 'input_image', image_url: input.imageDataUrl });
@@ -42,11 +50,11 @@ async function generateWithOpenAI(input, config) {
     method: 'POST',
     signal: AbortSignal.timeout(45_000),
     headers: {
-      'Authorization': `Bearer ${config.apiKey}`,
+      'Authorization': `Bearer ${config.openaiApiKey}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: config.model,
+      model: config.openaiModel,
       store: false,
       max_output_tokens: 3000,
       input: [{ role: 'user', content }],
@@ -64,15 +72,72 @@ async function generateWithOpenAI(input, config) {
   const data = await response.json();
   if (!response.ok) {
     const errorCode = typeof data?.error?.code === 'string' ? data.error.code : 'unknown';
-    throw new Error(`AI provider HTTP ${response.status}; code=${errorCode}`);
+    throw new Error(`OpenAI HTTP ${response.status}; code=${errorCode}`);
   }
 
-  const raw = extractResponseText(data);
-  if (!raw) throw new Error('AI returned an empty response.');
+  const raw = extractOpenAIText(data);
+  if (!raw) throw new Error('OpenAI returned an empty response.');
   try {
     return validateOutput(JSON.parse(raw));
   } catch {
-    throw new Error('AI response could not be parsed as structured content.');
+    throw new Error('OpenAI response could not be parsed as structured content.');
+  }
+}
+
+function anthropicImageBlock(dataUrl) {
+  const match = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})$/.exec(dataUrl || '');
+  if (!match) return null;
+  return {
+    type: 'image',
+    source: {
+      type: 'base64',
+      media_type: match[1],
+      data: match[2]
+    }
+  };
+}
+
+async function generateWithAnthropic(input, config) {
+  const content = [];
+  if (input.imageDataUrl) {
+    const image = anthropicImageBlock(input.imageDataUrl);
+    if (image) content.push(image);
+  }
+  content.push({ type: 'text', text: buildPrompt(input) });
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    signal: AbortSignal.timeout(45_000),
+    headers: {
+      'Authorization': `Bearer ${config.anthropicApiKey}`,
+      'anthropic-version': '2023-06-01',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: config.anthropicModel,
+      max_tokens: 3000,
+      messages: [{ role: 'user', content }],
+      output_config: {
+        format: {
+          type: 'json_schema',
+          schema: outputSchema
+        }
+      }
+    })
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    const errorCode = typeof data?.error?.type === 'string' ? data.error.type : 'unknown';
+    throw new Error(`Anthropic HTTP ${response.status}; code=${errorCode}`);
+  }
+
+  const raw = extractAnthropicText(data);
+  if (!raw) throw new Error('Anthropic returned an empty response.');
+  try {
+    return validateOutput(JSON.parse(raw));
+  } catch {
+    throw new Error('Anthropic response could not be parsed as structured content.');
   }
 }
 
@@ -139,7 +204,11 @@ export function validateOutput(result) {
 }
 
 export async function generate(input, config) {
-  if (config.liveEnabled) return { result: await generateWithOpenAI(input, config), engine: 'openai' };
+  if (config.liveEnabled) {
+    const provider = config.provider || 'openai';
+    if (provider === 'anthropic') return { result: await generateWithAnthropic(input, config), engine: 'anthropic' };
+    return { result: await generateWithOpenAI(input, config), engine: 'openai' };
+  }
   if (!config.allowDemo) throw new Error('Live AI is not enabled yet.');
   return { result: validateOutput(mockGenerate(input)), engine: 'demo' };
 }
