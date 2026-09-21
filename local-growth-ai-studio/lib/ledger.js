@@ -52,5 +52,6 @@ export class Ledger {
       this.db.prepare('UPDATE accounts SET balance=balance+? WHERE id=?').run(job.cost,account);
     });
   }
+  ping() { return this.db.prepare('SELECT 1 AS ok').get().ok === 1; }
   close() { this.db.close(); }
 }
