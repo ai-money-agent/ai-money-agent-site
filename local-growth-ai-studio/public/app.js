@@ -134,12 +134,20 @@ async function refreshStatus() {
     const health = await healthRes.json();
     setGenerationCost(health.generationCost);
     $('accessPanel').classList.toggle('hidden', !health.requiresLogin);
-    els.engine.textContent = health.engine === 'openai' ? 'Live AI' : health.engine === 'demo' ? 'Demo · sample output' : 'AI not connected';
-    $('modeNotice').textContent = health.engine === 'demo'
-      ? 'Demo mode: sample templates only. Your image is previewed, but not analyzed by AI. Demo credits are shared.'
-      : health.engine === 'openai'
-        ? 'Live AI is enabled. Review the generated claims before publishing.'
-        : 'Live generation is not connected yet.';
+    els.engine.textContent = health.engine === 'openai'
+      ? 'Live AI'
+      : health.providerPaused
+        ? 'OpenAI paused'
+        : health.engine === 'demo'
+          ? 'Template mode'
+          : 'AI not connected';
+    $('modeNotice').textContent = health.providerPaused
+      ? 'OpenAI is postponed. The Studio is running in template mode and will not call the OpenAI API or create API charges.'
+      : health.engine === 'demo'
+        ? 'Template mode: sample output only. Your image is previewed, but not analyzed by AI.'
+        : health.engine === 'openai'
+          ? 'Live AI is enabled. Review the generated claims before publishing.'
+          : 'Live generation is not connected yet.';
     if (health.requiresLogin) {
       els.credits.textContent = 'Sign in';
       return;
