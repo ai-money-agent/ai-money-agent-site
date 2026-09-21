@@ -11,7 +11,7 @@ cd local-growth-ai-studio
 npm start
 ```
 
-Open http://localhost:8787. Demo mode uses clearly labeled sample templates; it does **not** analyze the uploaded image or generate AI content. The image preview, product form, language/audience controls, bilingual outputs, Ad/Reel flows, copy action, validation, configurable credits and persistent ledger all work locally.
+Open http://localhost:8787. Demo mode uses clearly labeled sample templates; it does **not** analyze the uploaded image or generate AI content. The image preview, product form, language/audience controls, bilingual outputs, Ad/Reel flows, copy/export actions, validation, recovery and persistent ledger all work locally. The UI now has an explicit **Demo / Live AI** selector; Demo always costs 0 Studio credits and never calls a provider.
 
 ```sh
 npm test
@@ -19,30 +19,30 @@ npm test
 
 The test suite covers the credit ledger, provider adapter contract, future video request contract, UI structure/mobile breakpoints, authentication, CSRF/origin checks, image validation, retry/idempotency behavior, persistent credits and protected server files. GitHub Actions also runs these tests on the Studio branch and relevant pull requests.
 
-## Live generation is deliberately disabled
+## Live generation and provider gates
 
-Adding a key alone does not activate billable requests. Live generation requires all of:
+Provider credentials remain server-only. The Studio supports both Anthropic/Claude and OpenAI adapters; the current provider choice is controlled by server environment configuration and is never exposed as a secret to the browser.
 
-- Owner approval of API use and a spending budget.
-- An OpenAI project key delivered through secure setup to the server environment.
-- An explicitly selected `OPENAI_MODEL` that supports images and structured outputs.
+Live execution still requires the existing safety gates:
+
 - `ENABLE_LIVE_AI=1`.
-- `OPENAI_PROVIDER_ENABLED=1` as a second, explicit billing/provider gate. Keep this at `0` while OpenAI billing is postponed.
+- The selected provider gate (`ANTHROPIC_PROVIDER_ENABLED=1` or `OPENAI_PROVIDER_ENABLED=1`).
+- The selected provider API key and model in server environment variables.
 - A private `STUDIO_ACCESS_CODE` at least 24 characters long.
-- An HTTPS `APP_ORIGIN` matching the application's public URL.
+- An HTTPS `APP_ORIGIN` matching the public application URL.
 
-With `OPENAI_PROVIDER_ENABLED=0`, the Studio stays in template mode even if `ENABLE_LIVE_AI=1`; no OpenAI request is sent. Never paste a provider key into chat, browser code, or GitHub. `.env` and local data are excluded from Git. `.env.example` contains configuration names only. Use a secure server environment for provisioning secrets.
+The browser can explicitly select **Demo** even when Live AI is configured. Demo never calls Claude or OpenAI, which allows full UI and workflow testing while provider billing is unavailable. Selecting **Live AI** is the only path that can send a provider request.
 
-The adapter uses the OpenAI Responses structured-output format, limits output tokens, imposes a timeout, validates all seven creative fields, and does not expose provider errors or credentials. No live provider call is required for development verification.
+Do not put API keys in frontend files, GitHub, localStorage, sessionStorage or generated output. Provider errors are logged server-side with bounded messages; the browser receives a generic failure and refund message.
 
 ## Credits
 
-Credits are owned by the server, not the browser. The private beta defaults to 100 credits and one credit per creative generation. Both can be changed without touching frontend code:
+Credits are owned by the server, not the browser. The private beta defaults to 100 Live AI credits and one credit per Live AI creative generation. Demo generation is always 0 credits. Both can be changed without touching frontend code:
 
 - `INITIAL_CREDITS`
 - `GENERATION_CREDIT_COST`
 
-The UI reads the generation cost from the backend. Reservations happen before provider work, duplicate request IDs cannot double-charge, completed requests replay safely, and failed generations return the reserved Studio credit.
+The UI reads the selected mode's cost from the backend. Demo and Live AI use separate ledger accounts. Reservations happen before provider work, duplicate request IDs cannot double-charge, completed requests replay safely, and failed Live AI generations return the reserved Studio credit exactly once.
 
 ## Hosting
 
@@ -65,6 +65,6 @@ Before choosing a paid host or enabling paid AI, obtain the owner's approval. No
 
 ## Mobile recovery and export
 
-The text brief is restored from this browser's local storage on page load. Product images are intentionally not saved there. The current tab remembers only the last generation's random ID and output language in session storage. After a reload or connection loss, **Recover last result** reads the existing server job without running the provider or reserving another credit. Pending jobs remain pending; failed jobs show that the Studio credit was returned. Recovery requires the same authenticated beta account and the original database. Closing the tab or clearing browser storage can remove the recovery pointer.
+The text brief is restored from this browser's local storage on page load. Product images are intentionally not saved there. The current tab remembers only the last generation's random ID, output language and Demo/Live mode in session storage. After a reload or connection loss, **Recover last result** reads the existing server job without running the provider or reserving another credit. Pending jobs remain pending; failed jobs show that the Studio credit was returned. Recovery requires the same authenticated beta account and the original database. Closing the tab or clearing browser storage can remove the recovery pointer.
 
 **Download .txt** exports all seven creative sections as UTF-8 text (including Arabic). **Copy all** remains available. Starting another generation is a new credit-bearing action.
