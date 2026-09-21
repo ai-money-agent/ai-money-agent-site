@@ -160,6 +160,10 @@ async function api(req, res, url) {
     const expected = ORIGIN || `http://${req.headers.host}`;
     if ((req.headers.origin && req.headers.origin !== expected) || req.headers['sec-fetch-site'] === 'cross-site') throw failure('Cross-site request blocked.',403);
   }
+  if (req.method === 'GET' && url.pathname === '/api/health/ready') {
+    const storageReady = ledger.ping();
+    return json(res,storageReady ? 200 : 503,{ok:storageReady,status:storageReady ? 'ready' : 'not_ready',version:'0.5.0'});
+  }
   if (req.method === 'GET' && url.pathname === '/api/health') {
     return json(res,200,{
       ok:true,
@@ -174,6 +178,7 @@ async function api(req, res, url) {
       liveAvailable:config.liveEnabled,
       provider:config.provider,
       uptimeSeconds:Math.floor(process.uptime()),
+      storageReady:ledger.ping(),
       requiresLogin:!authenticated(req)
     });
   }
