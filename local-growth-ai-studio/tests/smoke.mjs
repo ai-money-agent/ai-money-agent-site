@@ -53,8 +53,11 @@ try {
   assert.equal((await get('/api/credits')).status,401);
   assert.equal((await get('/api/generations/test-request-000001')).status,401);
   const healthBefore = await (await get('/api/health')).json();
-  assert.equal(healthBefore.version,'0.4.0');
+  assert.equal(healthBefore.version,'0.5.0');
   assert.equal(healthBefore.generationCost,2);
+  assert.equal(healthBefore.demoGenerationCost,0);
+  assert.equal(healthBefore.demoAvailable,true);
+  assert.equal(healthBefore.liveAvailable,false);
   assert.equal(healthBefore.providerPaused,true);
   assert.equal(healthBefore.aiConnected,false);
   assert.equal(healthBefore.video.providerConnected,false);
@@ -67,19 +70,22 @@ try {
   assert.equal((await (await get('/api/health')).json()).engine,'demo');
   const initialCredits = await (await get('/api/credits')).json();
   assert.equal(initialCredits.balance,7);
-  assert.equal(initialCredits.generationCost,2);
+  assert.equal(initialCredits.generationCost,0);
+  assert.equal(initialCredits.generationMode,'demo');
 
   assert.equal((await post('/api/generate',brief,undefined,{origin:'https://evil.example'})).status,403);
   assert.equal((await post('/api/generate',null)).status,400);
   assert.equal((await post('/api/generate',{mode:'ad'})).status,422);
   assert.equal((await post('/api/generate',{...brief,imageDataUrl:'data:image/png;base64,aGVsbG8='})).status,422);
 
-  const responses = await Promise.all([post('/api/generate',brief),post('/api/generate',brief)]);
+  assert.equal((await post('/api/generate',{...brief,generationMode:'live'},'live-request-000001')).status,503);
+
+  const responses = await Promise.all([post('/api/generate',{...brief,generationMode:'demo'}),post('/api/generate',{...brief,generationMode:'demo'})]);
   const outputs = await Promise.all(responses.map(r=>r.json()));
   assert.ok(outputs.every(o=>o.ok));
   assert.deepEqual(outputs[0].result,outputs[1].result);
-  assert.equal((await (await get('/api/credits?userId=attacker')).json()).balance,5);
-  assert.equal((await post('/api/generate',{...brief,productName:'Other product'})).status,409);
+  assert.equal((await (await get('/api/credits?userId=attacker')).json()).balance,7);
+  assert.equal((await post('/api/generate',{...brief,productName:'Other product',generationMode:'demo'})).status,409);
 
   const badVideo = await post('/api/video/prepare',{script:'Test',aspectRatio:'4:3',durationSeconds:20},'video-request-00001');
   assert.equal(badVideo.status,422);
@@ -88,7 +94,7 @@ try {
   const videoBody = await video.json();
   assert.equal(videoBody.status,'provider_not_connected');
   assert.equal(videoBody.spec.aspectRatio,'9:16');
-  assert.equal((await (await get('/api/credits')).json()).balance,5);
+  assert.equal((await (await get('/api/credits')).json()).balance,7);
 
   assert.equal((await get('/.env')).status,404);
   assert.equal((await get('/server.js')).status,404);
@@ -98,18 +104,18 @@ try {
 
   await stop();
   await start();
-  assert.equal((await (await get('/api/credits')).json()).balance,5);
-  const replay = await (await post('/api/generate',brief)).json();
+  assert.equal((await (await get('/api/credits')).json()).balance,7);
+  const replay = await (await post('/api/generate',{...brief,generationMode:'demo'})).json();
   assert.equal(replay.replayed,true);
-  assert.equal(replay.credits.balance,5);
+  assert.equal(replay.credits.balance,7);
   const recovered = await (await get('/api/generations/test-request-000001')).json();
   assert.equal(recovered.status,'completed');
   assert.deepEqual(recovered.result,replay.result);
-  assert.equal(recovered.credits.balance,5);
+  assert.equal(recovered.credits.balance,7);
   assert.equal((await get('/api/generations/missing-request-0001')).status,404);
   assert.equal((await get('/api/generations/invalid')).status,400);
   assert.equal((await (await get('/api/credits')).json()).balance,5);
-  console.log('PASS: auth, CSRF, validation, configurable credits, image rejection, retry safety, persistence, protected files, video contract and UI.');
+  console.log('PASS: auth, CSRF, Demo/Live isolation, zero-cost Demo, validation, retry safety, persistence, protected files, video contract and UI.');
 } finally {
   await stop();
   await rm(dir,{recursive:true,force:true});
