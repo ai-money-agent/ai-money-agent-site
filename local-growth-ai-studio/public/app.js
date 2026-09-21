@@ -1,5 +1,5 @@
 const $ = (id) => document.getElementById(id);
-const state = { imageDataUrl: '', lastResult: null, busy: false, imageVersion: 0, request: null, resultLanguage: 'en', generationCost: 1, imageLoading: false };
+const state = { imageDataUrl: '', lastResult: null, busy: false, imageVersion: 0, request: null, resultLanguage: 'en', generationCost: 0, imageLoading: false, generationMode: 'demo', health: null, lastEngine: '' };
 const RECOVERY_KEY = 'local-growth-studio-recovery-v1';
 const DRAFT_KEY = 'local-growth-studio-draft-v1';
 
@@ -29,7 +29,12 @@ const els = {
   screenText: $('screenTextOutput'),
   caption: $('captionOutput'),
   cta: $('ctaOutput'),
-  ideas: $('ideasOutput')
+  ideas: $('ideasOutput'),
+  generationDemo: $('generationDemo'),
+  generationLive: $('generationLive'),
+  generationModeHelp: $('generationModeHelp'),
+  resultMeta: $('resultMeta'),
+  imageMeta: $('imageMeta')
 };
 
 function setMessage(text = '', type = 'error') {
@@ -37,7 +42,7 @@ function setMessage(text = '', type = 'error') {
   els.formMessage.className = text ? `message ${type}` : 'message hidden';
 }
 function setGenerationCost(value) {
-  const cost = Number.isInteger(value) && value > 0 ? value : 1;
+  const cost = Number.isInteger(value) && value >= 0 ? value : 0;
   state.generationCost = cost;
   document.querySelectorAll('[data-generation-cost]').forEach((el) => {
     el.textContent = String(cost);
@@ -80,6 +85,7 @@ function render(result) {
   applyDirection();
   els.copyAll.disabled = false;
   $('downloadResult').disabled = false;
+  els.resultMeta.textContent = `${state.generationMode === 'demo' ? 'Demo' : 'Live AI'} · ${state.lastEngine || 'generated'} · ${state.resultLanguage === 'ar' ? 'العربية' : state.resultLanguage === 'bilingual' ? 'العربية + English' : 'English'}`;
 }
 function readImage(file) {
   if (!file || state.busy) return;
@@ -102,6 +108,7 @@ function readImage(file) {
     state.imageLoading = false;
     state.imageDataUrl = String(reader.result || '');
     els.preview.src = state.imageDataUrl;
+    els.imageMeta.textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(file.size >= 1024 * 1024 ? 1 : 2)} MB`;
     els.previewWrap.classList.remove('hidden');
     els.uploadEmpty.classList.add('hidden');
     setMessage('');
@@ -123,6 +130,7 @@ els.removeImage.addEventListener('click', (event) => {
   state.imageDataUrl = '';
   els.image.value = '';
   els.preview.removeAttribute('src');
+  els.imageMeta.textContent = '';
   els.previewWrap.classList.add('hidden');
   els.uploadEmpty.classList.remove('hidden');
 });
@@ -160,12 +168,44 @@ function restoreDraft() {
 els.language.addEventListener('change', saveDraft);
 els.description.addEventListener('input', () => { els.descriptionCount.textContent = String(els.description.value.length); });
 
+function selectedMode() { return els.generationLive.checked ? 'live' : 'demo'; }
+function applyModeUi() {
+  const health = state.health;
+  if (!health) return;
+  state.generationMode = selectedMode();
+  const isDemo = state.generationMode === 'demo';
+  setGenerationCost(isDemo ? (health.demoGenerationCost ?? 0) : health.generationCost);
+  els.generationModeHelp.textContent = isDemo
+    ? 'Demo mode never calls Claude or OpenAI and is safe for free testing.'
+    : `Live AI uses ${health.provider === 'anthropic' ? 'Claude' : 'OpenAI'} and may consume provider/API credit.`;
+  $('modeNotice').textContent = isDemo
+    ? 'Demo mode is active: sample output only. Your image is previewed locally and is not sent to an AI provider.'
+    : health.liveAvailable
+      ? `Live AI is selected with ${health.provider === 'anthropic' ? 'Claude' : 'OpenAI'}. Provider/API credit may be used.`
+      : 'Live AI is not available on the server right now.';
+}
+async function refreshCredits() {
+  const mode = selectedMode();
+  try {
+    const response = await fetch(`/api/credits?mode=${mode}`, { signal:AbortSignal.timeout(10000) });
+    if (response.status === 401) { els.credits.textContent = 'Sign in'; return; }
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Credits unavailable');
+    setGenerationCost(data.generationCost);
+    els.credits.textContent = mode === 'demo' ? 'Demo · free' : `${data.balance} credits`;
+  } catch { els.credits.textContent = '— credits'; }
+}
 async function refreshStatus() {
   try {
     const healthRes = await fetch('/api/health', { signal: AbortSignal.timeout(10000) });
     if (!healthRes.ok) throw new Error('Server unavailable');
     const health = await healthRes.json();
-    setGenerationCost(health.generationCost);
+    state.health = health;
+    els.generationDemo.disabled = !health.demoAvailable;
+    els.generationLive.disabled = !health.liveAvailable;
+    if (!health.demoAvailable && health.liveAvailable) els.generationLive.checked = true;
+    else if (health.demoAvailable && !els.generationLive.checked) els.generationDemo.checked = true;
+    applyModeUi();
     $('accessPanel').classList.toggle('hidden', !health.requiresLogin);
     els.engine.textContent = ['openai','anthropic'].includes(health.engine)
       ? (health.engine === 'anthropic' ? 'Live AI · Claude' : 'Live AI · OpenAI')
@@ -174,24 +214,12 @@ async function refreshStatus() {
         : health.engine === 'demo'
           ? 'Template mode'
           : 'AI not connected';
-    $('modeNotice').textContent = health.providerPaused
-      ? health.engine === 'demo'
-        ? 'Template mode: sample output only. Your image is previewed, but not analyzed by AI.'
-        : 'Generation is currently paused. Your saved results can still be recovered.'
-      : health.engine === 'demo'
-        ? 'Template mode: sample output only. Your image is previewed, but not analyzed by AI.'
-        : ['openai','anthropic'].includes(health.engine)
-          ? `Live AI is enabled with ${health.engine === 'anthropic' ? 'Claude' : 'OpenAI'}. Review the generated claims before publishing.`
-          : 'Live generation is not connected yet.';
+    applyModeUi();
     if (health.requiresLogin) {
       els.credits.textContent = 'Sign in';
       return;
     }
-    const creditsRes = await fetch('/api/credits', { signal: AbortSignal.timeout(10000) });
-    if (!creditsRes.ok) throw new Error('Credits unavailable');
-    const creditData = await creditsRes.json();
-    setGenerationCost(creditData.generationCost);
-    els.credits.textContent = `${creditData.balance} credits`;
+    await refreshCredits();
   } catch {
     els.engine.textContent = 'Server unavailable';
     els.credits.textContent = '— credits';
@@ -216,10 +244,14 @@ $('accessForm').addEventListener('submit', async event => {
   }
 });
 
+function invalidate(el, invalid) { el.setAttribute('aria-invalid', invalid ? 'true' : 'false'); }
 function validateForm() {
-  if (!els.productName.value.trim()) return 'Add the product name.';
-  if (!els.description.value.trim()) return 'Add the product description.';
-  if (!els.audience.value.trim()) return 'Add the target audience.';
+  [els.productName, els.description, els.audience].forEach(el => invalidate(el,false));
+  if (els.productName.value.trim().length < 2) { invalidate(els.productName,true); els.productName.focus?.(); return 'Add a product name with at least 2 characters.'; }
+  if (els.description.value.trim().length < 10) { invalidate(els.description,true); els.description.focus?.(); return 'Add a clearer product description with at least 10 characters.'; }
+  if (els.audience.value.trim().length < 3) { invalidate(els.audience,true); els.audience.focus?.(); return 'Add a target audience with at least 3 characters.'; }
+  if (selectedMode() === 'live' && !state.health?.liveAvailable) return 'Live AI is not available. Choose Demo mode.';
+  if (selectedMode() === 'demo' && !state.health?.demoAvailable) return 'Demo mode is not available.';
   return '';
 }
 async function runGeneration(mode) {
@@ -237,11 +269,12 @@ async function runGeneration(mode) {
       description: els.description.value.trim(),
       language: els.language.value,
       audience: els.audience.value.trim(),
-      imageDataUrl: state.imageDataUrl || null
+      imageDataUrl: state.imageDataUrl || null,
+      generationMode: selectedMode()
     };
     const body = JSON.stringify(payload);
     if (!state.request || state.request.body !== body) state.request = { body, id: crypto.randomUUID() };
-    rememberRequest(state.request.id, payload.language);
+    rememberRequest(state.request.id, payload.language, payload.generationMode);
     const response = await fetch('/api/generate', {
       method: 'POST',
       signal: AbortSignal.timeout(55000),
@@ -258,8 +291,10 @@ async function runGeneration(mode) {
     }
     state.request = null;
     state.resultLanguage = payload.language;
+    state.generationMode = payload.generationMode;
+    state.lastEngine = data.engine || payload.generationMode;
     render(data.result);
-    els.credits.textContent = `${data.credits.balance} credits`;
+    els.credits.textContent = payload.generationMode === 'demo' ? 'Demo · free' : `${data.credits.balance} credits`;
     setMessage(data.engine === 'demo' ? 'Sample template generated — not live AI. Review and adapt it before use.' : 'Creative pack generated.', 'success');
   } catch (error) {
     setMessage(error.name === 'TimeoutError' || error instanceof TypeError
@@ -298,8 +333,8 @@ els.copyAll.addEventListener('click', async () => {
 });
 
 
-function rememberRequest(id, language) {
-  try { sessionStorage.setItem(RECOVERY_KEY, JSON.stringify({ id, language })); } catch {}
+function rememberRequest(id, language, mode) {
+  try { sessionStorage.setItem(RECOVERY_KEY, JSON.stringify({ id, language, mode })); } catch {}
   $('recoverResult').classList.remove('hidden');
 }
 function forgetRequest() {
@@ -313,14 +348,19 @@ async function recoverResult() {
   if (!saved || !/^[A-Za-z0-9_-]{16,100}$/.test(saved.id)) return forgetRequest();
   setBusy(true);
   try {
-    const response = await fetch(`/api/generations/${saved.id}`, { signal: AbortSignal.timeout(10000) });
+    const mode = saved.mode === 'live' ? 'live' : 'demo';
+    const response = await fetch(`/api/generations/${saved.id}?mode=${mode}`, { signal: AbortSignal.timeout(10000) });
     const data = await response.json();
     if (response.status === 404) forgetRequest();
     if (response.status === 401) await refreshStatus();
     if (!response.ok) throw new Error(data.error || 'Could not recover the result.');
-    els.credits.textContent = `${data.credits.balance} credits`;
+    els.credits.textContent = mode === 'demo' ? 'Demo · free' : `${data.credits.balance} credits`;
     if (data.status === 'completed') {
       state.resultLanguage = saved.language;
+      state.generationMode = mode;
+      state.lastEngine = mode === 'demo' ? 'demo' : (state.health?.provider || 'live');
+      if (mode === 'live') els.generationLive.checked = true; else els.generationDemo.checked = true;
+      applyModeUi();
       render(data.result);
       state.request = null;
       setMessage('Last creative pack recovered. No extra credits used.', 'success');
@@ -347,6 +387,9 @@ $('downloadResult').addEventListener('click', () => {
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
+els.generationDemo.addEventListener('change', async () => { applyModeUi(); await refreshCredits(); });
+els.generationLive.addEventListener('change', async () => { applyModeUi(); await refreshCredits(); });
+[els.productName, els.description, els.audience].forEach(el => el.addEventListener('input', () => invalidate(el,false)));
 restoreDraft();
 try {
   if (sessionStorage.getItem(RECOVERY_KEY)) $('recoverResult').classList.remove('hidden');
