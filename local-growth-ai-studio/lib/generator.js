@@ -63,7 +63,7 @@ async function generateWithOpenAI(input, config) {
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error('AI provider could not complete the request. Please try again later.');
+    throw new Error(`AI provider HTTP ${response.status}`);
   }
 
   const raw = extractResponseText(data);
