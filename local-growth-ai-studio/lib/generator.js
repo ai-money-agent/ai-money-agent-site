@@ -129,7 +129,8 @@ async function generateWithAnthropic(input, config) {
   const data = await response.json();
   if (!response.ok) {
     const errorCode = typeof data?.error?.type === 'string' ? data.error.type : 'unknown';
-    throw new Error(`Anthropic HTTP ${response.status}; code=${errorCode}`);
+    const errorMessage = typeof data?.error?.message === 'string' ? data.error.message.replace(/[\r\n]+/g, ' ').slice(0, 500) : 'no message';
+    throw new Error(`Anthropic HTTP ${response.status}; code=${errorCode}; message=${errorMessage}`);
   }
 
   const raw = extractAnthropicText(data);
