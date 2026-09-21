@@ -33,10 +33,12 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 18px;
       border-bottom: 1px solid #e7e7e7;
       position: sticky;
       top: 0;
       z-index: 10;
+      direction: ltr;
     }
 
     .logo {
@@ -44,10 +46,24 @@
       font-weight: 800;
       color: #111;
       direction: ltr;
+      white-space: nowrap;
     }
 
     .logo span {
       color: #0d9b61;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      direction: ltr;
+    }
+
+    .global-link {
+      color: #087849;
+      font-weight: bold;
+      white-space: nowrap;
     }
 
     .top-button {
@@ -56,6 +72,7 @@
       padding: 10px 18px;
       border-radius: 30px;
       font-weight: bold;
+      white-space: nowrap;
     }
 
     .hero {
@@ -142,7 +159,7 @@
 
     .section-title {
       text-align: center;
-      max-width: 700px;
+      max-width: 760px;
       margin: 0 auto 40px;
     }
 
@@ -153,6 +170,10 @@
 
     .section-title p {
       color: #69716d;
+    }
+
+    .products {
+      background: #ffffff;
     }
 
     .cards {
@@ -171,6 +192,10 @@
       box-shadow: 0 8px 30px rgba(0,0,0,.04);
     }
 
+    .products .card {
+      background: #f9fbfa;
+    }
+
     .icon {
       font-size: 32px;
       margin-bottom: 12px;
@@ -184,6 +209,42 @@
     .card p {
       color: #65706a;
       font-size: 16px;
+    }
+
+    .price {
+      font-size: 29px;
+      font-weight: 900;
+      color: #0b9159;
+      margin: 14px 0;
+      direction: ltr;
+      text-align: right;
+    }
+
+    .product-button {
+      display: inline-block;
+      background: #10a864;
+      color: white;
+      font-weight: 800;
+      padding: 11px 18px;
+      border-radius: 999px;
+      margin-top: 10px;
+    }
+
+    .product-note {
+      font-size: 13px !important;
+      margin-top: 12px;
+      color: #74807a !important;
+    }
+
+    .payment-strip {
+      max-width: 900px;
+      margin: 30px auto 0;
+      text-align: center;
+      background: #edf9f3;
+      border: 1px solid #cfeadb;
+      border-radius: 18px;
+      padding: 16px 20px;
+      color: #35604b;
     }
 
     .paths {
@@ -286,6 +347,7 @@
 
       .hero {
         padding: 55px 20px;
+        min-height: auto;
       }
 
       .hero p {
@@ -306,16 +368,46 @@
       }
 
       header {
-        padding: 15px 20px;
+        padding: 12px 14px;
+        gap: 10px;
       }
 
       .logo {
-        font-size: 21px;
+        font-size: 19px;
+      }
+
+      .header-actions {
+        gap: 8px;
+      }
+
+      .global-link {
+        font-size: 12px;
       }
 
       .top-button {
-        font-size: 13px;
-        padding: 9px 13px;
+        font-size: 12px;
+        padding: 8px 10px;
+      }
+    }
+
+    @media(max-width: 430px) {
+      header {
+        flex-wrap: wrap;
+      }
+
+      .logo {
+        width: 100%;
+        text-align: left;
+      }
+
+      .header-actions {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .global-link,
+      .top-button {
+        font-size: 12px;
       }
     }
   </style>
@@ -328,13 +420,15 @@
     Local <span>Growth</span>
   </div>
 
-  <a href="/global.html" style="color:#087849;font-weight:bold;margin-left:12px;">English / Global</a>
+  <div class="header-actions">
+    <a class="global-link" href="/global.html">English / Global</a>
 
-  <a class="top-button"
-     href="https://wa.me/96171226625"
-     target="_blank">
-    تواصل عبر WhatsApp
-  </a>
+    <a class="top-button"
+       href="https://wa.me/96171226625"
+       target="_blank">
+      WhatsApp
+    </a>
+  </div>
 </header>
 
 <div class="hero">
@@ -380,6 +474,93 @@
   </div>
 
 </div>
+
+<section class="products">
+  <div class="section-title">
+    <h2>منتجاتنا وخدماتنا</h2>
+    <p>
+      اختر ما يناسبك: منتج رقمي جاهز، موقع لمشروعك، محتوى وإعلانات، أو إدارة كاملة لمسار البيع.
+    </p>
+  </div>
+
+  <div class="cards">
+
+    <div class="card">
+      <div class="icon">🌐</div>
+      <h3>موقع إلكتروني لمشروعك</h3>
+      <p>موقع احترافي ومتوافق مع الهاتف لعرض خدماتك أو منتجاتك، مع إمكانية الطلب والتواصل مباشرة عبر WhatsApp.</p>
+      <div class="price">ابتداءً من $100</div>
+      <a class="product-button"
+         href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%27m%20interested%20in%20the%20Business%20Website%20offer."
+         target="_blank">اطلب موقعك</a>
+      <a class="product-button" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">الدفع عبر Payment Link</a>
+    </div>
+
+    <div class="card">
+      <div class="icon">📘</div>
+      <h3>دليل بدء المنتج الرقمي</h3>
+      <p>دليل عملي يساعدك على إنشاء منتج رقمي باستخدام أدوات الذكاء الاصطناعي وتجهيزه للبيع عبر الإنترنت.</p>
+      <div class="price">$15</div>
+      <a class="product-button"
+         href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%20want%20the%20%2415%20Digital%20Product%20Starter%20Guide."
+         target="_blank">اطلب الدليل</a>
+      <a class="product-button"
+         href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile"
+         target="_blank" rel="noopener">ادفع $15 عبر Payment Link</a>
+      <p class="product-note">بعد الدفع أرسل لنا تأكيد العملية عبر WhatsApp لتسليم الملف.</p>
+    </div>
+
+    <div class="card">
+      <div class="icon">🎥</div>
+      <h3>No-Face Salon Reels Kit</h3>
+      <p>خطة 30 يومًا من أفكار Reels وHooks وCaptions وCTA وردود جاهزة للصالونات بدون الحاجة للظهور بالوجه.</p>
+      <div class="price">$9</div>
+      <a class="product-button" href="/salon-reels.html">شاهد الحزمة</a>
+      <a class="product-button" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">ادفع $9 عبر Payment Link</a>
+      <p class="product-note">متاح للبيع محليًا وعالميًا.</p>
+    </div>
+
+    <div class="card">
+      <div class="icon">📣</div>
+      <h3>إعداد وإدارة الإعلانات</h3>
+      <p>نساعدك في هيكلة الحملة، الاستهداف، المحتوى الإعلاني، المتابعة والتحسين المستمر.</p>
+      <div class="price">حسب المشروع</div>
+      <a class="product-button"
+         href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%27m%20interested%20in%20advertising%20management."
+         target="_blank">اطلب عرضًا</a>
+      <a class="product-button" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">الدفع عبر Payment Link</a>
+      <p class="product-note">استخدم رابط الدفع بعد الاتفاق على السعر النهائي.</p>
+    </div>
+
+    <div class="card">
+      <div class="icon">🧠</div>
+      <h3>محتوى وReel Scripts بالذكاء الاصطناعي</h3>
+      <p>Hooks، Scripts، Shot Lists، Captions وCTA مصممة بحسب منتجك وجمهورك ولغتك.</p>
+      <div class="price">اسألنا</div>
+      <a class="product-button"
+         href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%20need%20AI%20content%20and%20Reel%20scripts."
+         target="_blank">اطلب محتوى</a>
+      <a class="product-button" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">الدفع عبر Payment Link</a>
+    </div>
+
+    <div class="card">
+      <div class="icon">💬</div>
+      <h3>دعم مسار البيع</h3>
+      <p>ننظم لك المسار من الإعلان أو المنشور إلى WhatsApp ثم الدفع والتسليم والمتابعة.</p>
+      <div class="price">حسب المشروع</div>
+      <a class="product-button"
+         href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%20need%20help%20with%20my%20sales%20funnel."
+         target="_blank">تحدث معنا</a>
+      <a class="product-button" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">الدفع عبر Payment Link</a>
+      <p class="product-note">استخدم رابط الدفع بعد الاتفاق على السعر النهائي.</p>
+    </div>
+
+  </div>
+
+  <div class="payment-strip">
+    داخل لبنان: Whish Money أو OMT حسب المنتج. للطلبات من خارج لبنان: نرسل رابط الدفع أو تعليمات الدفع المتاحة بعد تأكيد الطلب.
+  </div>
+</section>
 
 <section>
 
