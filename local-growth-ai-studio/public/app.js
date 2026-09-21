@@ -175,6 +175,11 @@ function applyModeUi() {
   state.generationMode = selectedMode();
   const isDemo = state.generationMode === 'demo';
   setGenerationCost(isDemo ? (health.demoGenerationCost ?? 0) : health.generationCost);
+  els.engine.textContent = isDemo
+    ? 'Demo · no API'
+    : health.liveAvailable
+      ? `Live AI · ${health.provider === 'anthropic' ? 'Claude' : 'OpenAI'}`
+      : 'Live AI unavailable';
   els.generationModeHelp.textContent = isDemo
     ? 'Demo mode never calls Claude or OpenAI and is safe for free testing.'
     : `Live AI uses ${health.provider === 'anthropic' ? 'Claude' : 'OpenAI'} and may consume provider/API credit.`;
@@ -207,15 +212,7 @@ async function refreshStatus() {
     els.generationLive.disabled = !health.liveAvailable;
     if (!health.demoAvailable && health.liveAvailable) els.generationLive.checked = true;
     else if (health.demoAvailable && !els.generationLive.checked) els.generationDemo.checked = true;
-    applyModeUi();
     $('accessPanel').classList.toggle('hidden', !health.requiresLogin);
-    els.engine.textContent = ['openai','anthropic'].includes(health.engine)
-      ? (health.engine === 'anthropic' ? 'Live AI · Claude' : 'Live AI · OpenAI')
-      : health.providerPaused
-        ? 'AI provider paused'
-        : health.engine === 'demo'
-          ? 'Template mode'
-          : 'AI not connected';
     applyModeUi();
     if (health.requiresLogin) {
       els.credits.textContent = 'Sign in';
