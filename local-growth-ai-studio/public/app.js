@@ -167,10 +167,10 @@ async function refreshStatus() {
     const health = await healthRes.json();
     setGenerationCost(health.generationCost);
     $('accessPanel').classList.toggle('hidden', !health.requiresLogin);
-    els.engine.textContent = health.engine === 'openai'
-      ? 'Live AI'
+    els.engine.textContent = ['openai','anthropic'].includes(health.engine)
+      ? (health.engine === 'anthropic' ? 'Live AI · Claude' : 'Live AI · OpenAI')
       : health.providerPaused
-        ? 'OpenAI paused'
+        ? 'AI provider paused'
         : health.engine === 'demo'
           ? 'Template mode'
           : 'AI not connected';
@@ -180,8 +180,8 @@ async function refreshStatus() {
         : 'Generation is currently paused. Your saved results can still be recovered.'
       : health.engine === 'demo'
         ? 'Template mode: sample output only. Your image is previewed, but not analyzed by AI.'
-        : health.engine === 'openai'
-          ? 'Live AI is enabled. Review the generated claims before publishing.'
+        : ['openai','anthropic'].includes(health.engine)
+          ? `Live AI is enabled with ${health.engine === 'anthropic' ? 'Claude' : 'OpenAI'}. Review the generated claims before publishing.`
           : 'Live generation is not connected yet.';
     if (health.requiresLogin) {
       els.credits.textContent = 'Sign in';
