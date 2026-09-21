@@ -109,7 +109,7 @@ async function generateWithAnthropic(input, config) {
     method: 'POST',
     signal: AbortSignal.timeout(45_000),
     headers: {
-      'Authorization': `Bearer ${config.anthropicApiKey}`,
+      'x-api-key': config.anthropicApiKey,
       'anthropic-version': '2023-06-01',
       'Content-Type': 'application/json'
     },
