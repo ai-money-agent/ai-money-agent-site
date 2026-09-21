@@ -13,11 +13,18 @@ const intEnv = (name, fallback, min, max) => {
   if (!Number.isInteger(value) || value < min || value > max) throw new Error(`${name} must be an integer from ${min} to ${max}.`);
   return value;
 };
+const provider = (process.env.AI_PROVIDER || 'openai').trim().toLowerCase();
+if (!['openai', 'anthropic'].includes(provider)) throw new Error('AI_PROVIDER must be openai or anthropic.');
 const liveRequested = process.env.ENABLE_LIVE_AI === '1';
-const providerEnabled = process.env.OPENAI_PROVIDER_ENABLED === '1';
+const providerEnabled = provider === 'anthropic'
+  ? process.env.ANTHROPIC_PROVIDER_ENABLED === '1'
+  : process.env.OPENAI_PROVIDER_ENABLED === '1';
 const config = {
-  apiKey: process.env.OPENAI_API_KEY || '',
-  model: process.env.OPENAI_MODEL || '',
+  provider,
+  openaiApiKey: process.env.OPENAI_API_KEY || '',
+  openaiModel: process.env.OPENAI_MODEL || '',
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
+  anthropicModel: process.env.ANTHROPIC_MODEL || '',
   allowDemo: process.env.ALLOW_MOCK_GENERATION !== '0',
   liveRequested,
   providerEnabled,
@@ -30,8 +37,13 @@ const ORIGIN = process.env.APP_ORIGIN || '';
 const PORT = Number(process.env.PORT || 8787);
 if (config.liveEnabled) {
   const missing = [];
-  if (!config.apiKey) missing.push('OPENAI_API_KEY');
-  if (!config.model) missing.push('OPENAI_MODEL');
+  if (config.provider === 'anthropic') {
+    if (!config.anthropicApiKey) missing.push('ANTHROPIC_API_KEY');
+    if (!config.anthropicModel) missing.push('ANTHROPIC_MODEL');
+  } else {
+    if (!config.openaiApiKey) missing.push('OPENAI_API_KEY');
+    if (!config.openaiModel) missing.push('OPENAI_MODEL');
+  }
   if (ACCESS_CODE.length < 24) missing.push('STUDIO_ACCESS_CODE(24+ chars)');
   if (!ORIGIN.startsWith('https://')) missing.push('APP_ORIGIN(https://...)');
   if (missing.length) throw new Error(`Live AI config invalid: ${missing.join(', ')}`);
@@ -112,7 +124,6 @@ function validateInput(body) {
   };
 }
 function rateLimit(req, path) {
-  // Never trust client-supplied forwarding headers. A proxy shares one bucket.
   const key = `${req.socket.remoteAddress}:${path === '/api/session' ? 'login' : 'api'}`;
   const now = Date.now();
   for (const [storedKey,bucket] of rates) if (bucket.until <= now) rates.delete(storedKey);
@@ -132,8 +143,8 @@ async function api(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/health') {
     return json(res,200,{
       ok:true,
-      version:'0.3.0',
-      engine:config.liveEnabled ? 'openai' : config.allowDemo ? 'demo' : 'disabled',
+      version:'0.4.0',
+      engine:config.liveEnabled ? config.provider : config.allowDemo ? 'demo' : 'disabled',
       aiConnected:config.liveEnabled,
       providerPaused:config.liveRequested && !config.liveEnabled,
       video:videoCapability(),
@@ -217,5 +228,5 @@ const server = http.createServer(async (req,res) => {
   }
 });
 server.requestTimeout = 60000;
-server.listen(PORT,process.env.HOST || '127.0.0.1',() => console.log(`Local Growth Studio ready on port ${PORT}; ${config.liveEnabled ? 'live' : 'demo/disabled'}`));
+server.listen(PORT,process.env.HOST || '127.0.0.1',() => console.log(`Local Growth Studio ready on port ${PORT}; ${config.liveEnabled ? config.provider : 'demo/disabled'}`));
 process.on('SIGTERM',() => server.close(() => {ledger.close(); process.exit(0);}));
