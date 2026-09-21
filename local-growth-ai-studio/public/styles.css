@@ -136,3 +136,6 @@ button:focus-visible, a:focus-visible, .upload:focus-within { outline: 2px solid
 .upload-preview-wrap { pointer-events: none; }
 .remove-image { pointer-events: auto; min-width: 44px; min-height: 44px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+.output-actions { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+.output-panel > .panel-heading { flex-wrap:wrap; gap:12px; }

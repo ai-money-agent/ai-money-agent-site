@@ -22,6 +22,9 @@ export class Ledger {
     try { const result = fn(); this.db.exec('COMMIT'); return result; }
     catch (error) { this.db.exec('ROLLBACK'); throw error; }
   }
+  job(account, id) {
+    return this.db.prepare('SELECT status,output FROM jobs WHERE account=? AND id=?').get(account,id);
+  }
   reserve(account, id, fingerprint, cost) {
     return this.transaction(() => {
       this.account(account);

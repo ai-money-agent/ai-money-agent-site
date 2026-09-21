@@ -1,5 +1,6 @@
 const $ = (id) => document.getElementById(id);
-const state = { imageDataUrl: '', lastResult: null, busy: false, imageVersion: 0, request: null, resultLanguage: 'en', generationCost: 1 };
+const state = { imageDataUrl: '', lastResult: null, busy: false, imageVersion: 0, request: null, resultLanguage: 'en', generationCost: 1, imageLoading: false };
+const RECOVERY_KEY = 'local-growth-studio-recovery-v1';
 const DRAFT_KEY = 'local-growth-studio-draft-v1';
 
 const els = {
@@ -49,6 +50,8 @@ function setBusy(isBusy) {
   els.form.setAttribute('aria-busy', String(isBusy));
   els.form.querySelectorAll('input, textarea, select, button').forEach(el => el.disabled = isBusy);
   els.copyAll.disabled = isBusy || !state.lastResult;
+  $('downloadResult').disabled = isBusy || !state.lastResult;
+  $('recoverResult').disabled = isBusy;
   document.querySelectorAll('[data-mode]').forEach((button) => { button.disabled = isBusy; });
   els.empty.classList.toggle('hidden', isBusy || Boolean(state.lastResult));
   els.results.classList.toggle('hidden', isBusy || !state.lastResult);
@@ -76,10 +79,12 @@ function render(result) {
   safeList(els.ideas, result.adIdeas);
   applyDirection();
   els.copyAll.disabled = false;
+  $('downloadResult').disabled = false;
 }
 function readImage(file) {
   if (!file || state.busy) return;
   const version = ++state.imageVersion;
+  state.imageLoading = false;
   if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
     setMessage('Use a PNG, JPG, or WebP image.');
     els.image.value = '';
@@ -90,9 +95,11 @@ function readImage(file) {
     els.image.value = '';
     return;
   }
+  state.imageLoading = true;
   const reader = new FileReader();
   reader.onload = () => {
     if (version !== state.imageVersion) return;
+    state.imageLoading = false;
     state.imageDataUrl = String(reader.result || '');
     els.preview.src = state.imageDataUrl;
     els.previewWrap.classList.remove('hidden');
@@ -101,6 +108,7 @@ function readImage(file) {
   };
   reader.onerror = () => {
     if (version !== state.imageVersion) return;
+    state.imageLoading = false;
     setMessage('Could not read that image.');
   };
   reader.readAsDataURL(file);
@@ -111,6 +119,7 @@ els.removeImage.addEventListener('click', (event) => {
   event.preventDefault();
   event.stopPropagation();
   ++state.imageVersion;
+  state.imageLoading = false;
   state.imageDataUrl = '';
   els.image.value = '';
   els.preview.removeAttribute('src');
@@ -166,7 +175,9 @@ async function refreshStatus() {
           ? 'Template mode'
           : 'AI not connected';
     $('modeNotice').textContent = health.providerPaused
-      ? 'OpenAI is postponed. The Studio is running in template mode and will not call the OpenAI API or create API charges.'
+      ? health.engine === 'demo'
+        ? 'Template mode: sample output only. Your image is previewed, but not analyzed by AI.'
+        : 'Generation is currently paused. Your saved results can still be recovered.'
       : health.engine === 'demo'
         ? 'Template mode: sample output only. Your image is previewed, but not analyzed by AI.'
         : health.engine === 'openai'
@@ -199,8 +210,7 @@ $('accessForm').addEventListener('submit', async event => {
     if (!response.ok) throw new Error('Access code not accepted.');
     $('accessCode').value = '';
     $('accessMessage').textContent = '';
-    await restoreDraft();
-refreshStatus();
+    await refreshStatus();
   } catch(error) {
     $('accessMessage').textContent = error.message;
   }
@@ -214,6 +224,7 @@ function validateForm() {
 }
 async function runGeneration(mode) {
   if (state.busy) return;
+  if (state.imageLoading) return setMessage('Please wait for the image preview to finish loading.');
   const validation = validateForm();
   if (validation) return setMessage(validation);
 
@@ -230,6 +241,7 @@ async function runGeneration(mode) {
     };
     const body = JSON.stringify(payload);
     if (!state.request || state.request.body !== body) state.request = { body, id: crypto.randomUUID() };
+    rememberRequest(state.request.id, payload.language);
     const response = await fetch('/api/generate', {
       method: 'POST',
       signal: AbortSignal.timeout(55000),
@@ -237,8 +249,9 @@ async function runGeneration(mode) {
       body
     });
     const data = await response.json();
-    if (data.retryWithNewId) state.request = null;
+    if (data.retryWithNewId) { state.request = null; forgetRequest(); }
     if (!response.ok || !data.ok) {
+      if ([400,401,402,403,413,415,422,429,503].includes(response.status)) forgetRequest();
       if (response.status === 401) await refreshStatus();
       if (response.status === 402) await refreshStatus();
       throw new Error(data.error || 'Generation failed.');
@@ -261,10 +274,9 @@ els.form.addEventListener('submit', event => { event.preventDefault(); runGenera
 document.querySelectorAll('[data-mode]').forEach((button) => {
   button.addEventListener('click', () => runGeneration(button.dataset.mode));
 });
-els.copyAll.addEventListener('click', async () => {
-  if (!state.lastResult) return;
+function resultText() {
   const r = state.lastResult;
-  const text = [
+  return [
     `HOOK\n${r.hook}`,
     `REEL SCRIPT\n${r.reelScript}`,
     `SHOT LIST\n${(r.shotList || []).map((v, i) => `${i + 1}. ${v}`).join('\n')}`,
@@ -273,8 +285,11 @@ els.copyAll.addEventListener('click', async () => {
     `CTA\n${r.cta}`,
     `AD IDEAS\n${(r.adIdeas || []).map((v) => `• ${v}`).join('\n')}`
   ].join('\n\n');
+}
+els.copyAll.addEventListener('click', async () => {
+  if (!state.lastResult) return;
   try {
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(resultText());
     els.copyAll.textContent = 'Copied';
     setTimeout(() => { els.copyAll.textContent = 'Copy all'; }, 1400);
   } catch {
@@ -282,4 +297,58 @@ els.copyAll.addEventListener('click', async () => {
   }
 });
 
+
+function rememberRequest(id, language) {
+  try { sessionStorage.setItem(RECOVERY_KEY, JSON.stringify({ id, language })); } catch {}
+  $('recoverResult').classList.remove('hidden');
+}
+function forgetRequest() {
+  try { sessionStorage.removeItem(RECOVERY_KEY); } catch {}
+  $('recoverResult').classList.add('hidden');
+}
+async function recoverResult() {
+  if (state.busy) return;
+  let saved;
+  try { saved = JSON.parse(sessionStorage.getItem(RECOVERY_KEY) || 'null'); } catch {}
+  if (!saved || !/^[A-Za-z0-9_-]{16,100}$/.test(saved.id)) return forgetRequest();
+  setBusy(true);
+  try {
+    const response = await fetch(`/api/generations/${saved.id}`, { signal: AbortSignal.timeout(10000) });
+    const data = await response.json();
+    if (response.status === 404) forgetRequest();
+    if (response.status === 401) await refreshStatus();
+    if (!response.ok) throw new Error(data.error || 'Could not recover the result.');
+    els.credits.textContent = `${data.credits.balance} credits`;
+    if (data.status === 'completed') {
+      state.resultLanguage = saved.language;
+      render(data.result);
+      state.request = null;
+      setMessage('Last creative pack recovered. No extra credits used.', 'success');
+    } else if (data.status === 'failed') {
+      forgetRequest();
+      state.request = null;
+      setMessage('The last generation failed and its Studio credit was returned. You can start a new attempt.');
+    } else {
+      setMessage('The last request is still pending. Recover it again shortly; if it remains pending, contact the Studio owner.');
+    }
+  } catch (error) {
+    setMessage(error.name === 'TimeoutError' || error instanceof TypeError
+      ? 'Connection interrupted. Use Recover last result again when connected.' : error.message);
+  } finally { setBusy(false); }
+}
+$('recoverResult').addEventListener('click', recoverResult);
+$('downloadResult').addEventListener('click', () => {
+  if (!state.lastResult || state.busy) return;
+  const blob = new Blob(['\uFEFF' + resultText()], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'local-growth-creative-pack.txt';
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+restoreDraft();
+try {
+  if (sessionStorage.getItem(RECOVERY_KEY)) $('recoverResult').classList.remove('hidden');
+} catch {}
 refreshStatus();

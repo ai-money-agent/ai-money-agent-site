@@ -151,6 +151,17 @@ async function api(req, res, url) {
   if (!authenticated(req)) throw failure('Enter your Studio access code first.',401);
 
   const accountId = config.liveEnabled ? accounts.live : accounts.demo;
+  if (req.method === 'GET' && url.pathname.startsWith('/api/generations/')) {
+    const id = url.pathname.slice('/api/generations/'.length);
+    if (!/^[A-Za-z0-9_-]{16,100}$/.test(id)) throw failure('Invalid request ID.',400);
+    const job = ledger.job(accountId,id);
+    if (!job) throw failure('Generation not found.',404);
+    return json(res,200,{
+      ok:true,status:job.status,
+      ...(job.status === 'completed' ? JSON.parse(job.output) : {}),
+      credits:ledger.account(accountId)
+    });
+  }
   if (req.method === 'GET' && url.pathname === '/api/credits') {
     return json(res,200,{ok:true,...ledger.account(accountId),generationCost:config.generationCost,videoCostEstimate:null});
   }

@@ -19,7 +19,8 @@ async function start() {
       HOST:'127.0.0.1',
       CREDIT_DB:join(dir,'test.sqlite'),
       OPENAI_API_KEY:'',
-      ENABLE_LIVE_AI:'0',
+      ENABLE_LIVE_AI:'1',
+      OPENAI_PROVIDER_ENABLED:'0',
       APP_ORIGIN:'',
       STUDIO_ACCESS_CODE:accessCode,
       ALLOW_MOCK_GENERATION:'1',
@@ -50,9 +51,12 @@ const brief = {mode:'reel',productName:'Mini Blender',description:'USB-C recharg
 try {
   await start();
   assert.equal((await get('/api/credits')).status,401);
+  assert.equal((await get('/api/generations/test-request-000001')).status,401);
   const healthBefore = await (await get('/api/health')).json();
   assert.equal(healthBefore.version,'0.3.0');
   assert.equal(healthBefore.generationCost,2);
+  assert.equal(healthBefore.providerPaused,true);
+  assert.equal(healthBefore.aiConnected,false);
   assert.equal(healthBefore.video.providerConnected,false);
 
   const session = await post('/api/session',{accessCode});
@@ -98,6 +102,13 @@ try {
   const replay = await (await post('/api/generate',brief)).json();
   assert.equal(replay.replayed,true);
   assert.equal(replay.credits.balance,5);
+  const recovered = await (await get('/api/generations/test-request-000001')).json();
+  assert.equal(recovered.status,'completed');
+  assert.deepEqual(recovered.result,replay.result);
+  assert.equal(recovered.credits.balance,5);
+  assert.equal((await get('/api/generations/missing-request-0001')).status,404);
+  assert.equal((await get('/api/generations/invalid')).status,400);
+  assert.equal((await (await get('/api/credits')).json()).balance,5);
   console.log('PASS: auth, CSRF, validation, configurable credits, image rejection, retry safety, persistence, protected files, video contract and UI.');
 } finally {
   await stop();

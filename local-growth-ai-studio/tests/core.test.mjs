@@ -58,3 +58,20 @@ test('future video contract validates supported job shapes without choosing a pr
   assert.equal(videoCapability().providerConnected,false);
   assert.equal(videoCapability().creditCost,null);
 });
+
+
+test('job recovery is account-scoped and read-only for every status',()=>{
+  const db = new Ledger(':memory:',3);
+  try {
+    db.reserve('owner','request','fingerprint',1);
+    assert.equal(db.job('owner','request').status,'pending');
+    assert.equal(db.job('other','request'),undefined);
+    db.complete('owner','request',{result:'saved'});
+    assert.deepEqual(JSON.parse(db.job('owner','request').output),{result:'saved'});
+    assert.equal(db.account('owner').balance,2);
+    db.reserve('owner','failed','another',1);
+    db.fail('owner','failed');
+    assert.equal(db.job('owner','failed').status,'failed');
+    assert.equal(db.account('owner').balance,2);
+  } finally { db.close(); }
+});

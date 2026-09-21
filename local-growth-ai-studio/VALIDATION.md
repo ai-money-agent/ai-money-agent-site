@@ -17,3 +17,12 @@ The repository test suite is designed to run in Node 24 without provider credent
 GitHub Actions runs `npm test` for Studio branch changes and relevant pull requests.
 
 Live OpenAI generation and external hosting require separate configuration and are intentionally not enabled by this code. Browser visual certification still depends on a real browser runtime; the source contains responsive breakpoints at 860px and 540px and uses 16px form controls to avoid mobile zoom behavior.
+
+## Continuation verification — 2026-09-21
+
+- `npm test`: 10 passing unit/static/frontend-execution tests plus HTTP integration smoke suite.
+- Added checks: initial-load draft restoration, image-read generation guard, read-only result recovery, account isolation, unchanged credit balance, restart recovery and disabled-provider notice.
+- The smoke server explicitly requests live mode with the provider gate OFF and no API key; template generation succeeds without a provider request.
+- `node --check public/app.js` and `git diff --check`: passed.
+- Visual browser test was attempted but could not run: no Chromium installed and its download timed out. No new visual/mobile screenshot verification is claimed.
+- Read-only Render health returned disabled generation, paused provider and required login. No production generation or billable API request was made.
