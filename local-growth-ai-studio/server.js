@@ -228,7 +228,7 @@ async function api(req, res, url) {
     const fingerprint = createHash('sha256').update(JSON.stringify(input)).digest('hex');
     const reserved = ledger.reserve(accountId,id,fingerprint,generationCost);
     if (reserved.conflict) throw failure('Request ID belongs to a different brief.',409);
-    if (reserved.status === 'completed') return json(res,200,{ok:true,...JSON.parse(reserved.output),credits:ledger.account(accountId),replayed:true});
+    if (reserved.status === 'completed') return json(res,200,{ok:true,...JSON.parse(reserved.output),credits:ledger.account(accountId),replayed:true,generationMode:mode});
     if (reserved.status === 'insufficient') throw failure('Not enough credits.',402);
     if (reserved.status === 'pending') throw failure('This request is still pending. Retry the same brief later; if it remains pending, contact the owner.',409);
     if (reserved.status === 'failed') return json(res,502,{ok:false,error:'The previous attempt failed. Change the brief or start a new attempt.',retryWithNewId:true});
