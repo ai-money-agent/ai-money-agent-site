@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Digital Product Starter Guide — $15 | Local Growth</title>
+<meta name="description" content="A practical digital guide for turning an idea into a sellable digital product with AI, a clear offer, a simple sales page, payment and delivery plan.">
+<style>
+:root{--bg:#f7f5ef;--ink:#1f1d1a;--muted:#6e6962;--accent:#0d9b61;--accent2:#087849;--card:#fff;--line:#e8e1d7;--dark:#161916;--soft:#e7f7ee;--rose:#c78376}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink);line-height:1.65}a{text-decoration:none}
+.wrap{max-width:1120px;margin:auto;padding:0 22px}
+header{background:rgba(255,255,255,.96);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.nav{min-height:74px;display:flex;justify-content:space-between;align-items:center;gap:18px}
+.brand{font-size:23px;font-weight:900;color:#111}.brand span{color:var(--accent)}
+.navlinks{display:flex;align-items:center;gap:14px}.navlinks a{color:var(--accent2);font-weight:800;font-size:14px}
+.btn{display:inline-block;background:var(--accent);color:#fff;padding:14px 22px;border-radius:999px;font-weight:900;box-shadow:0 10px 25px rgba(13,155,97,.18)}
+.btn:hover{background:var(--accent2)}.btn.secondary{background:#fff;color:var(--accent2);border:1px solid #bcdcc9;box-shadow:none}.btn.dark{background:var(--dark)}
+.hero{padding:72px 0 56px;background:radial-gradient(circle at top right,#dff7e9,transparent 35%),linear-gradient(135deg,#fff,#f6f2ea)}
+.hero-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:54px;align-items:center}
+.eyebrow{display:inline-block;background:var(--soft);color:var(--accent2);padding:8px 14px;border-radius:999px;font-weight:900;font-size:13px;letter-spacing:.02em}
+h1{font-family:Georgia,serif;font-size:clamp(44px,6vw,70px);line-height:1.02;letter-spacing:-2px;margin:18px 0 18px}
+.hero p{font-size:20px;color:var(--muted);max-width:690px}
+.price-line{display:flex;align-items:baseline;gap:10px;margin:22px 0}.price{font-size:40px;font-weight:950;color:var(--accent2)}.once{color:var(--muted);font-weight:700}
+.actions{display:flex;gap:12px;flex-wrap:wrap}.trust{font-size:13px;color:var(--muted);margin-top:14px}
+.book{min-height:500px;border-radius:28px;background:linear-gradient(145deg,#1e2420,#3b4a40 58%,#7a554d);color:#fff;padding:34px;box-shadow:0 28px 60px rgba(33,35,32,.18);display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.book:after{content:"";position:absolute;width:220px;height:220px;border:1px solid rgba(255,255,255,.12);border-radius:50%;right:-80px;top:-60px}
+.book-kicker{letter-spacing:.28em;font-size:12px;color:#b9e7cc;font-weight:800}.book h2{font-family:Georgia,serif;font-size:50px;line-height:1.02;margin:15px 0}.book .big{font-size:92px;font-weight:900;color:#e3a095;line-height:.9}.book p{color:#e7ebe8;font-size:16px}
+section{padding:68px 0}.section-title{text-align:center;max-width:760px;margin:0 auto 36px}.section-title h2{font-family:Georgia,serif;font-size:42px;line-height:1.1;margin:0 0 12px}.section-title p{color:var(--muted);font-size:18px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:26px;box-shadow:0 8px 28px rgba(44,39,34,.04)}.card h3{font-size:20px;margin:8px 0}.card p{margin:0;color:var(--muted)}
+.icon{font-size:30px}.who{background:#fff}.who-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.checklist{background:#fbfaf7;border:1px solid var(--line);border-radius:22px;padding:28px}.checklist h3{font-family:Georgia,serif;font-size:28px;margin:0 0 16px}.checklist ul{list-style:none;padding:0;margin:0}.checklist li{padding:10px 0;border-bottom:1px solid #eee6dc}.checklist li:last-child{border:0}.checklist li:before{content:"✓";color:var(--accent);font-weight:900;margin-right:10px}
+.preview{background:var(--dark);color:#fff}.preview .section-title p{color:#c4cbc6}.preview-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.preview-card{background:#222824;border:1px solid #344039;border-radius:20px;padding:24px}.preview-card .num{font-size:12px;color:#8dd8af;font-weight:900;letter-spacing:.15em}.preview-card h3{font-family:Georgia,serif;font-size:27px;margin:8px 0}.preview-card p{color:#cbd3ce;margin:0}
+.order{padding:70px 0}.orderbox{max-width:900px;margin:auto;background:#fff;border:1px solid var(--line);border-radius:28px;padding:38px;text-align:center;box-shadow:0 18px 50px rgba(44,39,34,.07)}.orderbox h2{font-family:Georgia,serif;font-size:42px;margin:0 0 10px}.orderbox p{color:var(--muted);font-size:18px;max-width:690px;margin:0 auto 22px}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:28px 0}.step{background:#f8faf8;border:1px solid #dcebe1;border-radius:18px;padding:20px}.step strong{display:block;color:var(--accent2);margin-bottom:6px}
+.faq{max-width:850px;margin:auto}.faq details{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:11px 0}.faq summary{cursor:pointer;font-weight:900}.faq p{color:var(--muted)}
+.ar{background:#efe7dc}.arbox{max-width:900px;margin:auto;text-align:right;direction:rtl}.arbox h2{font-size:34px;margin-bottom:12px}.arbox p{color:#5f5a54;font-size:18px}.arbox .actions{justify-content:flex-start}
+footer{text-align:center;padding:36px 20px;background:#fff;color:var(--muted);font-size:14px}.policy{margin-top:12px}.policy a{color:var(--accent2);font-weight:800;margin:0 5px}
+@media(max-width:850px){.hero-grid,.who-grid{grid-template-columns:1fr}.cards,.preview-grid,.steps{grid-template-columns:1fr}.hero{padding-top:45px}.book{min-height:420px}.navlinks a:first-child{display:none}}
+@media(max-width:520px){.wrap{padding:0 18px}.nav{min-height:66px}.brand{font-size:19px}.navlinks .btn{padding:10px 14px;font-size:13px}h1{letter-spacing:-1px}.hero p{font-size:18px}.book h2{font-size:42px}.book .big{font-size:78px}.section-title h2,.orderbox h2{font-size:34px}.orderbox{padding:28px 20px}.actions{display:grid}.actions .btn{text-align:center}}
+</style>
+</head>
+<body>
+<header><div class="wrap nav">
+  <a class="brand" href="/global.html">Local <span>Growth</span></a>
+  <div class="navlinks">
+    <a href="/global.html">All offers</a>
+    <a class="btn" href="#buy">Get the Guide — $15</a>
+  </div>
+</div></header>
+
+<main>
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">DIGITAL PRODUCT STARTER GUIDE</span>
+      <h1>Turn an idea into a digital product you can actually sell.</h1>
+      <p>A practical starter guide for creators, freelancers and small business owners who want a clearer path from idea → product → offer → payment → delivery.</p>
+      <div class="price-line"><span class="price">$15</span><span class="once">one-time purchase</span></div>
+      <div class="actions">
+        <a class="btn" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">Pay $15 Now</a>
+        <a class="btn secondary" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%20want%20the%20Digital%20Product%20Starter%20Guide." target="_blank">Ask on WhatsApp</a>
+      </div>
+      <div class="trust">Digital product • Worldwide orders supported • Files are delivered after payment confirmation.</div>
+    </div>
+    <div class="book">
+      <div><div class="book-kicker">LOCAL GROWTH</div><h2>DIGITAL PRODUCT<br>STARTER GUIDE</h2></div>
+      <div><div class="big">01</div><p>From idea to a simple, sellable digital offer.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-title"><h2>A simple path instead of scattered advice.</h2><p>The guide is designed to help you organize the key steps of launching a small digital product without needing a complicated store or large team.</p></div>
+    <div class="cards">
+      <div class="card"><div class="icon">💡</div><h3>Choose a focused idea</h3><p>Narrow your product around a clear problem, audience and useful outcome.</p></div>
+      <div class="card"><div class="icon">🤖</div><h3>Use AI with purpose</h3><p>Speed up research, outlines, drafting and refinement without turning the product into generic filler.</p></div>
+      <div class="card"><div class="icon">📦</div><h3>Package the product</h3><p>Turn your knowledge or process into a simple digital format a buyer can understand and receive.</p></div>
+      <div class="card"><div class="icon">🎯</div><h3>Build the offer</h3><p>Clarify who it is for, what it helps with, what is included and why someone should care.</p></div>
+      <div class="card"><div class="icon">🛒</div><h3>Prepare the sales flow</h3><p>Organize a simple path from sales page or message to payment confirmation and delivery.</p></div>
+      <div class="card"><div class="icon">🚀</div><h3>Plan the first launch</h3><p>Focus on getting the product in front of real people, learning from responses and improving the offer.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="who">
+  <div class="wrap">
+    <div class="section-title"><h2>Who this guide is for</h2><p>Built for people who want to start small, validate faster and avoid getting stuck in endless setup.</p></div>
+    <div class="who-grid">
+      <div class="checklist"><h3>A good fit if you are…</h3><ul>
+        <li>Starting your first digital product</li>
+        <li>A freelancer who wants a small product alongside services</li>
+        <li>A creator with knowledge but no clear product structure</li>
+        <li>A small business owner exploring digital income</li>
+        <li>Using AI but unsure how to turn outputs into an offer</li>
+      </ul></div>
+      <div class="checklist"><h3>What you are buying</h3><ul>
+        <li>A digital guide — not a physical book</li>
+        <li>A practical starting framework</li>
+        <li>A one-time $15 purchase</li>
+        <li>Digital delivery after payment confirmation</li>
+        <li>No subscription required</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<section class="preview">
+  <div class="wrap">
+    <div class="section-title"><h2>What the framework helps you think through</h2><p>A preview of the decisions you should have clear before you spend money trying to scale.</p></div>
+    <div class="preview-grid">
+      <div class="preview-card"><div class="num">STEP 01</div><h3>Product</h3><p>What are you selling, who is it for, and what useful result does it help create?</p></div>
+      <div class="preview-card"><div class="num">STEP 02</div><h3>Offer</h3><p>Why should a buyer care now, what do they receive, and how will you explain the value simply?</p></div>
+      <div class="preview-card"><div class="num">STEP 03</div><h3>Sales flow</h3><p>Where does the buyer discover you, how do they pay, and what happens immediately after payment?</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="order" id="buy">
+  <div class="wrap">
+    <div class="orderbox">
+      <span class="eyebrow">GET STARTED</span>
+      <h2>Get the Digital Product Starter Guide for $15.</h2>
+      <p>Pay through the available payment link, then send your payment confirmation to Local Growth on WhatsApp so we can verify it and deliver the digital files.</p>
+      <div class="steps">
+        <div class="step"><strong>1. Pay</strong>Open the secure payment link and complete the payment.</div>
+        <div class="step"><strong>2. Confirm</strong>Send your payment confirmation to us on WhatsApp.</div>
+        <div class="step"><strong>3. Receive</strong>We verify the payment and send the guide digitally.</div>
+      </div>
+      <div class="actions" style="justify-content:center">
+        <a class="btn" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">Pay $15 Now</a>
+        <a class="btn dark" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%20paid%20for%20the%20%2415%20Digital%20Product%20Starter%20Guide.%20Here%20is%20my%20payment%20confirmation." target="_blank">I Paid — Send Confirmation</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap faq">
+    <div class="section-title"><h2>FAQ</h2></div>
+    <details><summary>Is this a physical book?</summary><p>No. This is a digital product delivered electronically after payment confirmation.</p></details>
+    <details><summary>Do I need to own a business already?</summary><p>No. The guide is aimed at beginners as well as small business owners who want to add a simple digital offer.</p></details>
+    <details><summary>Does buying the guide guarantee sales?</summary><p>No. It gives you a practical framework and starting process. Sales depend on the offer, audience, execution and market response.</p></details>
+    <details><summary>How do I receive the files?</summary><p>After payment, message Local Growth on WhatsApp with your payment confirmation. Once verified, we send the digital files.</p></details>
+    <details><summary>Can I resell or redistribute the guide?</summary><p>No. Your purchase is for your own use. Reselling or redistributing the original files is not permitted.</p></details>
+  </div>
+</section>
+
+<section class="ar">
+  <div class="wrap arbox">
+    <h2>لعملائنا العرب</h2>
+    <p>هذا دليل رقمي عملي يساعدك على تنظيم طريقك من فكرة منتج رقمي إلى عرض واضح ومسار بيع ودفع وتسليم بسيط. السعر 15$ مرة واحدة. بعد الدفع أرسل لنا تأكيد العملية عبر WhatsApp ليتم التحقق وإرسال الملف.</p>
+    <div class="actions">
+      <a class="btn" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">ادفع 15$ الآن</a>
+      <a class="btn secondary" href="https://wa.me/96171226625?text=مرحباً%20Local%20Growth،%20أريد%20دليل%20بدء%20المنتج%20الرقمي%20بسعر%2015%20دولار." target="_blank">اسأل عبر WhatsApp</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <strong>Local Growth</strong><br>Grow Local • Reach More
+  <div class="policy"><a href="/terms.html">Terms</a> • <a href="/refund-policy.html">Refund Policy</a> • <a href="/privacy-policy.html">Privacy</a> • <a href="/delivery-policy.html">Delivery</a></div>
+  <div style="margin-top:10px">© 2026 Local Growth</div>
+</footer>
+</body>
+</html>
