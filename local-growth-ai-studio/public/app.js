@@ -179,7 +179,9 @@ function applyModeUi() {
     ? 'Demo mode never calls Claude or OpenAI and is safe for free testing.'
     : `Live AI uses ${health.provider === 'anthropic' ? 'Claude' : 'OpenAI'} and may consume provider/API credit.`;
   $('modeNotice').textContent = isDemo
-    ? 'Demo mode is active: sample output only. Your image is previewed locally and is not sent to an AI provider.'
+    ? health.demoAvailable
+      ? 'Demo mode is active: sample output only. Your image is previewed locally and is not sent to an AI provider.'
+      : 'Demo mode is not available on the server right now.'
     : health.liveAvailable
       ? `Live AI is selected with ${health.provider === 'anthropic' ? 'Claude' : 'OpenAI'}. Provider/API credit may be used.`
       : 'Live AI is not available on the server right now.';
