@@ -53,7 +53,7 @@ try {
   assert.equal((await get('/api/credits')).status,401);
   assert.equal((await get('/api/generations/test-request-000001')).status,401);
   const healthBefore = await (await get('/api/health')).json();
-  assert.equal(healthBefore.version,'0.3.0');
+  assert.equal(healthBefore.version,'0.4.0');
   assert.equal(healthBefore.generationCost,2);
   assert.equal(healthBefore.providerPaused,true);
   assert.equal(healthBefore.aiConnected,false);
