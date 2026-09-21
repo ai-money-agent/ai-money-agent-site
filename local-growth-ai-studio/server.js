@@ -13,11 +13,15 @@ const intEnv = (name, fallback, min, max) => {
   if (!Number.isInteger(value) || value < min || value > max) throw new Error(`${name} must be an integer from ${min} to ${max}.`);
   return value;
 };
+const liveRequested = process.env.ENABLE_LIVE_AI === '1';
+const providerEnabled = process.env.OPENAI_PROVIDER_ENABLED === '1';
 const config = {
   apiKey: process.env.OPENAI_API_KEY || '',
   model: process.env.OPENAI_MODEL || '',
   allowDemo: process.env.ALLOW_MOCK_GENERATION !== '0',
-  liveEnabled: process.env.ENABLE_LIVE_AI === '1',
+  liveRequested,
+  providerEnabled,
+  liveEnabled: liveRequested && providerEnabled,
   initialCredits: intEnv('INITIAL_CREDITS', 100, 0, 1000000),
   generationCost: intEnv('GENERATION_CREDIT_COST', 1, 1, 1000)
 };
@@ -131,6 +135,7 @@ async function api(req, res, url) {
       version:'0.3.0',
       engine:config.liveEnabled ? 'openai' : config.allowDemo ? 'demo' : 'disabled',
       aiConnected:config.liveEnabled,
+      providerPaused:config.liveRequested && !config.liveEnabled,
       video:videoCapability(),
       generationCost:config.generationCost,
       requiresLogin:!authenticated(req)
