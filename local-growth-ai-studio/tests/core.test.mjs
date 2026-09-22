@@ -130,3 +130,39 @@ test('stale pending reservations are refunded exactly once',()=>{
     assert.equal(db.account('owner').balance,5);
   } finally { db.close(); }
 });
+
+
+test('Anthropic 200 responses with incomplete stop reasons are rejected before parsing',async()=>{
+  const original=globalThis.fetch;
+  try {
+    globalThis.fetch=async()=>({
+      ok:true,
+      json:async()=>({
+        stop_reason:'max_tokens',
+        content:[{type:'text',text:'{"hook":"partial"'}]
+      })
+    });
+    await assert.rejects(
+      ()=>generate(
+        {mode:'ad',productName:'Product',description:'Description long enough',audience:'Adults',language:'en',imageDataUrl:null},
+        {liveEnabled:true,provider:'anthropic',anthropicApiKey:'server-secret-test',anthropicModel:'claude-haiku-4-5-20251001'}
+      ),
+      /max_tokens/
+    );
+
+    globalThis.fetch=async()=>({
+      ok:true,
+      json:async()=>({
+        stop_reason:'refusal',
+        content:[{type:'text',text:'Request refused'}]
+      })
+    });
+    await assert.rejects(
+      ()=>generate(
+        {mode:'ad',productName:'Product',description:'Description long enough',audience:'Adults',language:'en',imageDataUrl:null},
+        {liveEnabled:true,provider:'anthropic',anthropicApiKey:'server-secret-test',anthropicModel:'claude-haiku-4-5-20251001'}
+      ),
+      /refused/
+    );
+  } finally { globalThis.fetch=original; }
+});
