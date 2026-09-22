@@ -26,3 +26,15 @@ Live OpenAI generation and external hosting require separate configuration and a
 - `node --check public/app.js` and `git diff --check`: passed.
 - Visual browser test was attempted but could not run: no Chromium installed and its download timed out. No new visual/mobile screenshot verification is claimed.
 - Read-only Render health returned disabled generation, paused provider and required login. No production generation or billable API request was made.
+
+
+## Credit recovery hardening — 2026-09-23
+
+- Studio version advanced to 0.6.0.
+- Added timestamp migration for existing SQLite jobs without discarding prior balances or results.
+- Pending reservations older than the configurable safety window are marked failed and refunded exactly once; they are never automatically retried against the AI provider.
+- Completed Live results remain recoverable even when the provider is later paused or billing is unavailable.
+- Added regression coverage for stale reservation refunds and paused-provider result recovery.
+- Fixed the browser busy-state cleanup so an unavailable Live provider cannot be accidentally re-enabled after a generation.
+- GitHub Actions now runs the Studio test suite on `main` as well as the Studio branch and pull requests.
+- After correcting the version expectation, the 0.6.0 code and new frontend regression test passed GitHub Actions on `main`.
