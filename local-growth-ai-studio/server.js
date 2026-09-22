@@ -31,6 +31,7 @@ const config = {
   liveEnabled: liveRequested && providerEnabled,
   initialCredits: intEnv('INITIAL_CREDITS', 100, 0, 1000000),
   generationCost: intEnv('GENERATION_CREDIT_COST', 1, 1, 1000),
+  pendingJobTimeoutMinutes: intEnv('PENDING_JOB_TIMEOUT_MINUTES', 15, 2, 1440),
   demoGenerationCost: 0
 };
 const ACCESS_CODE = process.env.STUDIO_ACCESS_CODE || '';
@@ -74,6 +75,12 @@ function logEvent(level,event,details={}) {
   const payload = { time:new Date().toISOString(), event, ...details };
   console[level](JSON.stringify(payload));
 }
+function refundStaleReservations() {
+  const recovered = ledger.refundStalePending(config.pendingJobTimeoutMinutes * 60000);
+  if (recovered.jobs) logEvent('warn','stale_reservations_refunded',{ jobs:recovered.jobs, credits:recovered.credits });
+  return recovered;
+}
+refundStaleReservations();
 
 function authenticated(req) {
   if (!ACCESS_CODE) return true;
@@ -162,12 +169,12 @@ async function api(req, res, url) {
   }
   if (req.method === 'GET' && url.pathname === '/api/health/ready') {
     const storageReady = ledger.ping();
-    return json(res,storageReady ? 200 : 503,{ok:storageReady,status:storageReady ? 'ready' : 'not_ready',version:'0.5.0'});
+    return json(res,storageReady ? 200 : 503,{ok:storageReady,status:storageReady ? 'ready' : 'not_ready',version:'0.6.0'});
   }
   if (req.method === 'GET' && url.pathname === '/api/health') {
     return json(res,200,{
       ok:true,
-      version:'0.5.0',
+      version:'0.6.0',
       engine:config.liveEnabled ? config.provider : config.allowDemo ? 'demo' : 'disabled',
       aiConnected:config.liveEnabled,
       providerPaused:config.liveRequested && !config.liveEnabled,
@@ -177,6 +184,7 @@ async function api(req, res, url) {
       demoAvailable:config.allowDemo,
       liveAvailable:config.liveEnabled,
       provider:config.provider,
+      pendingJobTimeoutMinutes:config.pendingJobTimeoutMinutes,
       uptimeSeconds:Math.floor(process.uptime()),
       storageReady:ledger.ping(),
       requiresLogin:!authenticated(req)
@@ -193,7 +201,7 @@ async function api(req, res, url) {
 
   if (req.method === 'GET' && url.pathname.startsWith('/api/generations/')) {
     const mode = generationMode(url.searchParams.get('mode'));
-    ensureModeAvailable(mode);
+    refundStaleReservations();
     const accountId = accountFor(mode);
     const id = url.pathname.slice('/api/generations/'.length);
     if (!/^[A-Za-z0-9_-]{16,100}$/.test(id)) throw failure('Invalid request ID.',400);
@@ -231,6 +239,7 @@ async function api(req, res, url) {
     const id = req.headers['idempotency-key'];
     if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{16,100}$/.test(id)) throw failure('A valid request ID is required.',400);
     const fingerprint = createHash('sha256').update(JSON.stringify(input)).digest('hex');
+    refundStaleReservations();
     const reserved = ledger.reserve(accountId,id,fingerprint,generationCost);
     if (reserved.conflict) throw failure('Request ID belongs to a different brief.',409);
     if (reserved.status === 'completed') return json(res,200,{ok:true,...JSON.parse(reserved.output),credits:ledger.account(accountId),replayed:true,generationMode:mode});
