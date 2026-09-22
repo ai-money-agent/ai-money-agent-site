@@ -54,6 +54,8 @@ function setBusy(isBusy) {
   state.busy = isBusy;
   els.form.setAttribute('aria-busy', String(isBusy));
   els.form.querySelectorAll('input, textarea, select, button').forEach(el => el.disabled = isBusy);
+  els.generationDemo.disabled = isBusy || Boolean(state.health && !state.health.demoAvailable);
+  els.generationLive.disabled = isBusy || Boolean(state.health && !state.health.liveAvailable);
   els.copyAll.disabled = isBusy || !state.lastResult;
   $('downloadResult').disabled = isBusy || !state.lastResult;
   $('recoverResult').disabled = isBusy;
