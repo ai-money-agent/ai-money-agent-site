@@ -3,6 +3,7 @@ name: Local Growth AI Studio tests
 on:
   push:
     branches:
+      - main
       - codex/local-growth-studio
     paths:
       - "local-growth-ai-studio/**"
