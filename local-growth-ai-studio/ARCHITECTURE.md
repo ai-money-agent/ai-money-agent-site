@@ -12,11 +12,11 @@ Image input is bounded at 5 MB and checked for MIME, canonical base64 and file s
 
 ## Credits and retry behavior
 
-SQLite tables: `accounts(id,balance,used)` and `jobs(account,id,fingerprint,status,cost,output)`. `BEGIN IMMEDIATE` ensures atomic reservation and a nonnegative balance. Client request IDs are bound to a normalized-brief hash. A repeated completed request returns its stored result; a pending request cannot start a second provider job. Changed content under the same ID is rejected. Failed jobs refund once.
+SQLite tables: `accounts(id,balance,used)` and `jobs(account,id,fingerprint,status,cost,output,created_at,updated_at)`. `BEGIN IMMEDIATE` ensures atomic reservation and a nonnegative balance. Client request IDs are bound to a normalized-brief hash. A repeated completed request returns its stored result; a pending request cannot start a second provider job. Changed content under the same ID is rejected. Failed jobs refund once.
 
-The initial private-beta balance and creative generation cost are server configuration (`INITIAL_CREDITS`, `GENERATION_CREDIT_COST`). The browser reads the current generation cost from the API rather than trusting a hard-coded price.
+The initial private-beta balance, creative generation cost and stale-reservation timeout are server configuration (`INITIAL_CREDITS`, `GENERATION_CREDIT_COST`, `PENDING_JOB_TIMEOUT_MINUTES`). The browser reads the current generation cost from the API rather than trusting a hard-coded price.
 
-SQLite must live on persistent local storage. Do not run independent replicas with separate databases. Pending jobs after a crash are held for manual provider reconciliation. Successful creative outputs remain stored for idempotent recovery; images and raw briefs are not persisted. Add retention and deletion controls before broad customer launch.
+SQLite must live on persistent local storage. Do not run independent replicas with separate databases. Pending jobs are never automatically retried against the provider; if they remain pending beyond the configured safety timeout, the ledger marks them failed and refunds the reservation exactly once. Successful creative outputs remain stored for idempotent recovery even if the provider is later paused; images and raw briefs are not persisted. Add retention and deletion controls before broad customer launch.
 
 ## Generation
 
