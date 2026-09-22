@@ -133,6 +133,13 @@ async function generateWithAnthropic(input, config) {
     throw new Error(`Anthropic HTTP ${response.status}; code=${errorCode}; message=${errorMessage}`);
   }
 
+  const stopReason = typeof data?.stop_reason === 'string' ? data.stop_reason : '';
+  if (stopReason && stopReason !== 'end_turn') {
+    if (stopReason === 'max_tokens') throw new Error('Anthropic reached max_tokens before completing structured content.');
+    if (stopReason === 'refusal') throw new Error('Anthropic refused before completing structured content.');
+    throw new Error(`Anthropic stopped before completing structured content; reason=${stopReason}.`);
+  }
+
   const raw = extractAnthropicText(data);
   if (!raw) throw new Error('Anthropic returned an empty response.');
   try {
