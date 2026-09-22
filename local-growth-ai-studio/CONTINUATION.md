@@ -31,3 +31,19 @@ Live provider operation still requires owner-approved API billing/configuration;
 ## Read-only production check
 
 Render /api/health responded with engine=disabled, aiConnected=false, providerPaused=true and requiresLogin=true. To enable existing sample templates without API billing, set ALLOW_MOCK_GENERATION=1 on the host while keeping OPENAI_PROVIDER_ENABLED=0. The UI notice now distinguishes paused-and-disabled from active template mode. No host setting was changed.
+
+
+## 2026-09-23 continuation
+
+Work continued on the current `main` state; the old `codex/local-growth-studio` branch was confirmed to be behind `main` and contained no newer Studio commits.
+
+Completed without paid API calls:
+- Added automatic, one-time refunds for stale `pending` credit reservations after `PENDING_JOB_TIMEOUT_MINUTES` (default 15 minutes).
+- Added backward-compatible SQLite timestamp migration for existing job rows.
+- Made stored Live results readable even when the provider is currently paused/disabled.
+- Kept Demo/Live availability controls correct after loading/generation states.
+- Enabled GitHub Actions for Studio changes pushed to `main`.
+- Added and ran regression tests for stale credits, paused-provider recovery and UI provider-state handling.
+- Updated README, architecture and environment documentation for Studio 0.6.0.
+
+External blocker remains unchanged: real Claude generation requires provider billing/credit to be active. No provider key, billing setting or paid service was changed.
