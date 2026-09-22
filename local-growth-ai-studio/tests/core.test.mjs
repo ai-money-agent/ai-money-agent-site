@@ -114,3 +114,19 @@ test('Anthropic adapter sends schema and image server-side without exposing cred
     assert.deepEqual(output.result,good);
   } finally { globalThis.fetch=original; }
 });
+
+
+test('stale pending reservations are refunded exactly once',()=>{
+  const db = new Ledger(':memory:',5);
+  try {
+    assert.equal(db.reserve('owner','stale-request','fingerprint',2).status,'reserved');
+    const pending = db.job('owner','stale-request');
+    assert.equal(db.account('owner').balance,3);
+    const recovered = db.refundStalePending(1000,pending.updated_at + 1001);
+    assert.deepEqual(recovered,{jobs:1,credits:2});
+    assert.equal(db.job('owner','stale-request').status,'failed');
+    assert.equal(db.account('owner').balance,5);
+    assert.deepEqual(db.refundStalePending(1000,pending.updated_at + 5000),{jobs:0,credits:0});
+    assert.equal(db.account('owner').balance,5);
+  } finally { db.close(); }
+});
