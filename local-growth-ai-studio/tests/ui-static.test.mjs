@@ -41,5 +41,5 @@ test('frontend is mobile-first, self-contained and does not contain provider sec
 test('deployment config uses the readiness endpoint and matching app version',()=>{
   assert.match(dockerfile,/HEALTHCHECK[\s\S]*\/api\/health\/ready/);
   const pkg=JSON.parse(packageText);
-  assert.equal(pkg.version,'0.5.0');
+  assert.equal(pkg.version,'0.6.0');
 });
