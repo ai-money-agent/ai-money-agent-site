@@ -193,7 +193,9 @@ async function api(req, res, url) {
 
   if (req.method === 'GET' && url.pathname.startsWith('/api/generations/')) {
     const mode = generationMode(url.searchParams.get('mode'));
-    ensureModeAvailable(mode);
+    // Recovery only reads stored jobs; it must remain usable while AI is paused.
+    // Historical Live jobs must never become public if the access code is removed.
+    if (mode === 'live' && !ACCESS_CODE) throw failure('Live result recovery requires Studio access protection.',503);
     const accountId = accountFor(mode);
     const id = url.pathname.slice('/api/generations/'.length);
     if (!/^[A-Za-z0-9_-]{16,100}$/.test(id)) throw failure('Invalid request ID.',400);

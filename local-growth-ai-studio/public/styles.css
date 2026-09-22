@@ -171,3 +171,6 @@ button, .mode-option > span { -webkit-tap-highlight-color: transparent; }
   .text-button { padding: 8px 6px; }
   .result-card { padding: 14px; }
 }
+
+.result-meta { scroll-margin-top: 120px; }
+.result-meta:focus-visible { outline: 2px solid #c5baff; outline-offset: 3px; }

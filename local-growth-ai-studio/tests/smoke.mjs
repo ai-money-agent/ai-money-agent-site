@@ -4,13 +4,14 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
+import { Ledger } from '../lib/ledger.js';
 
 const dir = await mkdtemp(join(tmpdir(),'studio-test-'));
 const base = 'http://127.0.0.1:8799';
 const accessCode = 'test-only-access-code-123456789';
 let child;
 
-async function start() {
+async function start(overrides = {}) {
   child = spawn(process.execPath,['server.js'], {
     cwd:new URL('..',import.meta.url),
     env:{
@@ -18,6 +19,9 @@ async function start() {
       PORT:'8799',
       HOST:'127.0.0.1',
       CREDIT_DB:join(dir,'test.sqlite'),
+      AI_PROVIDER:'openai',
+      ANTHROPIC_API_KEY:'',
+      ANTHROPIC_PROVIDER_ENABLED:'0',
       OPENAI_API_KEY:'',
       ENABLE_LIVE_AI:'1',
       OPENAI_PROVIDER_ENABLED:'0',
@@ -25,7 +29,8 @@ async function start() {
       STUDIO_ACCESS_CODE:accessCode,
       ALLOW_MOCK_GENERATION:'1',
       INITIAL_CREDITS:'7',
-      GENERATION_CREDIT_COST:'2'
+      GENERATION_CREDIT_COST:'2',
+      ...overrides
     },
     stdio:'ignore'
   });
@@ -49,6 +54,15 @@ const post = (path,body,id='test-request-000001',extra={}) => fetch(base+path,{
 const brief = {mode:'reel',productName:'Mini Blender',description:'USB-C rechargeable blender.',language:'bilingual',audience:'busy students'};
 
 try {
+  // Seed historical Live jobs without calling a provider or enabling billing.
+  const history = new Ledger(join(dir,'test.sqlite'),7);
+  history.reserve('beta-owner','saved-live-request-01','history',2);
+  history.complete('beta-owner','saved-live-request-01',{engine:'anthropic',result:{hook:'Historical result'}});
+  history.reserve('beta-owner','pending-live-request','pending',2);
+  history.reserve('beta-owner','failed-live-request-1','failed',2);
+  history.fail('beta-owner','failed-live-request-1');
+  const liveCredits = history.account('beta-owner');
+  history.close();
   await start();
   assert.equal((await get('/api/credits')).status,401);
   assert.equal((await get('/api/generations/test-request-000001')).status,401);
@@ -118,6 +132,30 @@ try {
   assert.equal((await get('/api/generations/missing-request-0001')).status,404);
   assert.equal((await get('/api/generations/invalid')).status,400);
   assert.equal((await (await get('/api/credits')).json()).balance,7);
+  // Pausing all generation must not hide existing results or reserve more credits.
+  await stop();
+  await start({ALLOW_MOCK_GENERATION:'0'});
+  assert.equal((await post('/api/generate',{...brief,generationMode:'demo'},'paused-demo-request')).status,503);
+  const savedDemo = await (await get('/api/generations/test-request-000001?mode=demo')).json();
+  assert.equal(savedDemo.status,'completed');
+  const savedLive = await (await get('/api/generations/saved-live-request-01?mode=live')).json();
+  assert.equal(savedLive.status,'completed');
+  assert.equal(savedLive.engine,'anthropic');
+  assert.equal(savedLive.result.hook,'Historical result');
+  assert.deepEqual(savedLive.credits,{...liveCredits});
+  for (const [id,status] of [['pending-live-request','pending'],['failed-live-request-1','failed']]) {
+    const saved = await (await get(`/api/generations/${id}?mode=live`)).json();
+    assert.equal(saved.status,status);
+    assert.deepEqual(saved.credits,{...liveCredits});
+  }
+  assert.equal((await get('/api/generations/saved-live-request-01?mode=demo')).status,404);
+  const signedCookie = cookie;
+  cookie='';
+  assert.equal((await get('/api/generations/saved-live-request-01?mode=live')).status,401);
+  cookie=signedCookie;
+  await stop();
+  await start({STUDIO_ACCESS_CODE:''});
+  assert.equal((await get('/api/generations/saved-live-request-01?mode=live')).status,503);
   console.log('PASS: auth, CSRF, Demo/Live isolation, zero-cost Demo, validation, retry safety, persistence, protected files, video contract and UI.');
 } finally {
   await stop();
