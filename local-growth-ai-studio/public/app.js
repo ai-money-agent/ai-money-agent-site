@@ -1,5 +1,5 @@
 const $ = (id) => document.getElementById(id);
-const state = { imageDataUrl: '', lastResult: null, busy: false, imageVersion: 0, request: null, resultLanguage: 'en', generationCost: 0, imageLoading: false, generationMode: 'demo', health: null, lastEngine: '' };
+const state = { imageDataUrl: '', lastResult: null, busy: false, imageVersion: 0, request: null, resultLanguage: 'en', generationCost: 0, imageLoading: false, generationMode: 'demo', health: null, lastEngine: '', resultMode: 'demo', creditVersion: 0, focusResult: false };
 const RECOVERY_KEY = 'local-growth-studio-recovery-v1';
 const DRAFT_KEY = 'local-growth-studio-draft-v1';
 
@@ -61,6 +61,13 @@ function setBusy(isBusy) {
   els.empty.classList.toggle('hidden', isBusy || Boolean(state.lastResult));
   els.results.classList.toggle('hidden', isBusy || !state.lastResult);
   els.loading.classList.toggle('hidden', !isBusy);
+  els.generationDemo.disabled = isBusy || !state.health?.demoAvailable;
+  els.generationLive.disabled = isBusy || !state.health?.liveAvailable;
+  if (!isBusy && state.focusResult) {
+    state.focusResult = false;
+    els.resultMeta.focus?.({ preventScroll: true });
+    els.resultMeta.scrollIntoView?.({ block: 'start', behavior: 'instant' });
+  }
 }
 function safeList(target, values = []) {
   target.replaceChildren(...values.map((value) => {
@@ -85,7 +92,7 @@ function render(result) {
   applyDirection();
   els.copyAll.disabled = false;
   $('downloadResult').disabled = false;
-  els.resultMeta.textContent = `${state.generationMode === 'demo' ? 'Demo' : 'Live AI'} · ${state.lastEngine || 'generated'} · ${state.resultLanguage === 'ar' ? 'العربية' : state.resultLanguage === 'bilingual' ? 'العربية + English' : 'English'}`;
+  els.resultMeta.textContent = `${state.resultMode === 'demo' ? 'Demo' : 'Live AI'} · ${state.lastEngine || 'generated'} · ${state.resultLanguage === 'ar' ? 'العربية' : state.resultLanguage === 'bilingual' ? 'العربية + English' : 'English'}`;
 }
 function readImage(file) {
   if (!file || state.busy) return;
@@ -193,14 +200,18 @@ function applyModeUi() {
 }
 async function refreshCredits() {
   const mode = selectedMode();
+  const version = ++state.creditVersion;
+  const current = () => version === state.creditVersion && mode === selectedMode();
   try {
     const response = await fetch(`/api/credits?mode=${mode}`, { signal:AbortSignal.timeout(10000) });
+    if (!current()) return;
     if (response.status === 401) { els.credits.textContent = 'Sign in'; return; }
     const data = await response.json();
+    if (!current()) return;
     if (!response.ok) throw new Error(data.error || 'Credits unavailable');
     setGenerationCost(data.generationCost);
     els.credits.textContent = mode === 'demo' ? 'Demo · free' : `${data.balance} credits`;
-  } catch { els.credits.textContent = '— credits'; }
+  } catch { if (current()) els.credits.textContent = '— credits'; }
 }
 async function refreshStatus() {
   try {
@@ -211,7 +222,7 @@ async function refreshStatus() {
     els.generationDemo.disabled = !health.demoAvailable;
     els.generationLive.disabled = !health.liveAvailable;
     if (!health.demoAvailable && health.liveAvailable) els.generationLive.checked = true;
-    else if (health.demoAvailable && !els.generationLive.checked) els.generationDemo.checked = true;
+    else if (health.demoAvailable && (!health.liveAvailable || !els.generationLive.checked)) { els.generationLive.checked = false; els.generationDemo.checked = true; }
     $('accessPanel').classList.toggle('hidden', !health.requiresLogin);
     applyModeUi();
     if (health.requiresLogin) {
@@ -290,14 +301,15 @@ async function runGeneration(mode) {
     }
     state.request = null;
     state.resultLanguage = payload.language;
-    state.generationMode = payload.generationMode;
+    state.resultMode = payload.generationMode;
     state.lastEngine = data.engine || payload.generationMode;
     render(data.result);
+    state.focusResult = true;
     els.credits.textContent = payload.generationMode === 'demo' ? 'Demo · free' : `${data.credits.balance} credits`;
     setMessage(data.engine === 'demo' ? 'Sample template generated — not live AI. Review and adapt it before use.' : 'Creative pack generated.', 'success');
   } catch (error) {
     setMessage(error.name === 'TimeoutError' || error instanceof TypeError
-      ? 'Connection interrupted. Retry the same brief to recover the result without a duplicate credit charge.'
+      ? 'Connection interrupted. Use Recover last result to check this request without starting a new generation or using extra credits.'
       : error.message || 'Something went wrong.');
   } finally {
     setBusy(false);
@@ -353,14 +365,14 @@ async function recoverResult() {
     if (response.status === 404) forgetRequest();
     if (response.status === 401) await refreshStatus();
     if (!response.ok) throw new Error(data.error || 'Could not recover the result.');
-    els.credits.textContent = mode === 'demo' ? 'Demo · free' : `${data.credits.balance} credits`;
     if (data.status === 'completed') {
       state.resultLanguage = saved.language;
-      state.generationMode = mode;
-      state.lastEngine = mode === 'demo' ? 'demo' : (state.health?.provider || 'live');
-      if (mode === 'live') els.generationLive.checked = true; else els.generationDemo.checked = true;
-      applyModeUi();
+      state.resultMode = mode;
+      state.lastEngine = data.engine || (mode === 'demo' ? 'demo' : 'live');
+      // A recovered result does not select a paid or disabled generation mode.
+      await refreshCredits();
       render(data.result);
+      state.focusResult = true;
       state.request = null;
       setMessage('Last creative pack recovered. No extra credits used.', 'success');
     } else if (data.status === 'failed') {

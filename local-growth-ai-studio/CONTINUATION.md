@@ -1,3 +1,13 @@
+# Latest continuation — 2026-09-22
+
+Repository: `ai-money-agent/ai-money-agent-site`. Latest baseline inspected: `main` at `0a39bc7` (includes Studio 0.5.0 and Anthropic support). This continuation uses `codex/studio-mobile-recovery-20260922`; retain the existing application and sales pages.
+
+Implemented: read-only result recovery while providers are paused; private Live history protection; preserve selected Demo/Live mode on recovery; prevent stale credit responses; keep unavailable modes disabled after requests; focus/scroll to completed results on mobile. See VALIDATION.md for 18 tests and HTTP verification.
+
+No provider keys, billing, production environment variables or deployment configuration changed. Real-browser visual checks remain incomplete. Previous checkpoint below is historical; Studio is now also present on main.
+
+---
+
 # Continuation checkpoint — 2026-09-21
 
 ## Source inspected

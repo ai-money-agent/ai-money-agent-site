@@ -26,3 +26,13 @@ Live OpenAI generation and external hosting require separate configuration and a
 - `node --check public/app.js` and `git diff --check`: passed.
 - Visual browser test was attempted but could not run: no Chromium installed and its download timed out. No new visual/mobile screenshot verification is claimed.
 - Read-only Render health returned disabled generation, paused provider and required login. No production generation or billable API request was made.
+
+## Continuation verification — 2026-09-22
+
+- Based on current GitHub `main` at `0a39bc7`, which already includes the Studio 0.5.0 Demo/Live and Anthropic changes.
+- `npm test`: 18 passing tests plus HTTP integration smoke suite.
+- New regression coverage checks disabled Live controls after generation, result focus, recovery without switching out of Demo, and out-of-order credit responses.
+- HTTP tests seed historical Live jobs directly in a temporary database (no provider calls), then verify completed/pending/failed recovery with all generation disabled, unchanged credits, account isolation, login enforcement and refusal to expose Live history when the access code is removed.
+- Smoke-test environment explicitly disables both providers and clears both keys; no production settings or API billing changed.
+- `git diff --check`: passed.
+- Browser visual verification remains incomplete: Playwright is installed, but its Chromium download returned an invalid archive. Focus and control behavior are covered by executed frontend tests, not a real-browser screenshot claim.

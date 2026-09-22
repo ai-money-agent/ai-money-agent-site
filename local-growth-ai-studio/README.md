@@ -68,3 +68,7 @@ Before choosing a paid host or enabling paid AI, obtain the owner's approval. No
 The text brief is restored from this browser's local storage on page load. Product images are intentionally not saved there. The current tab remembers only the last generation's random ID, output language and Demo/Live mode in session storage. After a reload or connection loss, **Recover last result** reads the existing server job without running the provider or reserving another credit. Pending jobs remain pending; failed jobs show that the Studio credit was returned. Recovery requires the same authenticated beta account and the original database. Closing the tab or clearing browser storage can remove the recovery pointer.
 
 **Download .txt** exports all seven creative sections as UTF-8 text (including Arabic). **Copy all** remains available. Starting another generation is a new credit-bearing action.
+
+### Recovery while generation is paused
+
+Saved Demo and Live results remain readable when their generation mode is disabled. Recovery never calls a provider or reserves credits. Live history still requires Studio access protection and an authenticated session; removing the access code does not make Live history public. Recovering a Live pack leaves the current generation choice unchanged, so a Demo session stays free. The result badge identifies the engine that originally produced the saved pack.

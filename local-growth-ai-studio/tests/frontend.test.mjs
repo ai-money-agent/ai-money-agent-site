@@ -4,12 +4,13 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 // Execute the actual browser script against a minimal DOM; no external dependencies.
-function boot({draft={}, recovery=null, job=null, engine='demo', demoAvailable=true, liveAvailable=false}={}) {
+function boot({draft={}, recovery=null, job=null, engine='demo', demoAvailable=true, liveAvailable=false, fetchImpl=null}={}) {
   const nodes=new Map();
   const element=()=>({value:'',textContent:'',disabled:false,hidden:false,checked:false,listeners:{},focus(){this.focused=true;},
     classList:{toggle(){},add(){},remove(){}},
     addEventListener(name,fn){this.listeners[name]=fn;},setAttribute(){},querySelectorAll(){return [];},replaceChildren(){}});
   const node=id=>{if(!nodes.has(id))nodes.set(id,element());return nodes.get(id);};
+  node('studioForm').querySelectorAll=()=>['productName','description','language','audience','generationDemo','generationLive'].map(node);
   const stored=new Map(recovery ? [['local-growth-studio-recovery-v1',JSON.stringify(recovery)]]:[]);
   const calls=[];
   const context=vm.createContext({
@@ -19,6 +20,7 @@ function boot({draft={}, recovery=null, job=null, engine='demo', demoAvailable=t
     AbortSignal,crypto:globalThis.crypto,Blob,URL,setTimeout,
     fetch:async(url,options)=>{
       calls.push({url,options});
+      if (fetchImpl) { const response = await fetchImpl(url,options); if (response) return response; }
       const body=url==='/api/health' ? {engine,providerPaused:true,requiresLogin:false,generationCost:1,demoGenerationCost:0,demoAvailable,liveAvailable,provider:'anthropic'}
         : url.startsWith('/api/credits') ? {balance:9,generationCost:url.includes('mode=demo') ? 0 : 1}
         : url.startsWith('/api/generations/') ? job
@@ -72,4 +74,39 @@ test('generation waits until the image reader finishes',async()=>{
   vm.runInContext('state.imageLoading = true; runGeneration("ad")',app.context);
   assert.match(app.node('formMessage').textContent,/image preview/);
   assert.ok(app.calls.every(x=>x.url!=='/api/generate'));
+});
+
+const completeJob = {ok:true,status:'completed',result:{hook:'Saved Live result',reelScript:'Script',shotList:['Shot'],onScreenText:['Text'],caption:'Caption',cta:'CTA',adIdeas:['Idea']},credits:{balance:8},engine:'anthropic'};
+test('finishing a request keeps unavailable Live disabled and focuses the result',async()=>{
+  const app=boot({draft:{productName:'Blender',description:'A portable USB blender',audience:'Students',language:'en'},job:{...completeJob,engine:'demo'}});
+  await settle();
+  await vm.runInContext('runGeneration("ad")',app.context);
+  assert.equal(app.node('generationLive').disabled,true);
+  assert.equal(app.node('generationDemo').disabled,false);
+  assert.equal(app.node('resultMeta').focused,true);
+});
+test('recovering Live output keeps Demo selected and labels the output accurately',async()=>{
+  const app=boot({recovery:{id:'saved-live-request-01',mode:'live',language:'en'},job:completeJob});
+  await settle();
+  await app.node('recoverResult').listeners.click();
+  assert.equal(app.node('generationDemo').checked,true);
+  assert.equal(app.node('generationLive').checked,false);
+  assert.equal(app.node('generationLive').disabled,true);
+  assert.equal(app.node('creditsBadge').textContent,'Demo · free');
+  assert.match(app.node('resultMeta').textContent,/^Live AI · anthropic/);
+  assert.ok(app.calls.every(x=>!x.options?.method || x.options.method==='GET'));
+});
+test('a stale Live credit response cannot overwrite the selected free Demo cost',async()=>{
+  let finishLive;
+  const app=boot({liveAvailable:true,fetchImpl:url=>url==='/api/credits?mode=live' ? new Promise(resolve=>{finishLive=resolve;}) : null});
+  await settle();
+  app.node('generationLive').checked=true;
+  const pending=app.node('generationLive').listeners.change();
+  app.node('generationLive').checked=false;
+  app.node('generationDemo').checked=true;
+  await app.node('generationDemo').listeners.change();
+  finishLive({ok:true,status:200,json:async()=>({balance:8,generationCost:2})});
+  await pending;
+  assert.equal(app.node('creditsBadge').textContent,'Demo · free');
+  assert.equal(vm.runInContext('state.generationCost',app.context),0);
 });
