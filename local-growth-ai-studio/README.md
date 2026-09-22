@@ -17,7 +17,7 @@ Open http://localhost:8787. Demo mode uses clearly labeled sample templates; it 
 npm test
 ```
 
-The test suite covers the credit ledger, provider adapter contract, future video request contract, UI structure/mobile breakpoints, authentication, CSRF/origin checks, image validation, retry/idempotency behavior, persistent credits and protected server files. GitHub Actions also runs these tests on the Studio branch and relevant pull requests.
+The test suite covers the credit ledger, provider adapter contract, future video request contract, UI structure/mobile breakpoints, authentication, CSRF/origin checks, image validation, retry/idempotency behavior, persistent credits and protected server files. GitHub Actions runs these tests on `main`, the Studio branch, and relevant pull requests.
 
 ## Live generation and provider gates
 
@@ -41,6 +41,7 @@ Credits are owned by the server, not the browser. The private beta defaults to 1
 
 - `INITIAL_CREDITS`
 - `GENERATION_CREDIT_COST`
+- `PENDING_JOB_TIMEOUT_MINUTES` — stale pending reservations are failed and refunded after this safety window.
 
 The UI reads the selected mode's cost from the backend. Demo and Live AI use separate ledger accounts. Reservations happen before provider work, duplicate request IDs cannot double-charge, completed requests replay safely, and failed Live AI generations return the reserved Studio credit exactly once.
 
@@ -58,13 +59,13 @@ Before choosing a paid host or enabling paid AI, obtain the owner's approval. No
 - One private beta account and one separate shared demo account; supplied `userId` values are ignored.
 - SQLite durable credit reservations and deduplicated request IDs survive restarts.
 - Failed operations return the Studio credit. Provider-side charges on a timeout may still occur; requests are not automatically retried against the provider.
-- Pending jobs after an abrupt crash stay reserved. The owner must reconcile them against provider records; automatic retry/refund could otherwise duplicate cost.
+- Pending jobs after an abrupt crash are not retried against the provider. Once they are older than `PENDING_JOB_TIMEOUT_MINUTES` (15 minutes by default), the reservation is marked failed and its Studio credit is refunded exactly once. This avoids permanent credit loss while still leaving a buffer beyond the provider request timeout.
 - Outputs are retained locally for retry recovery. Uploaded images are not stored; only a request fingerprint is retained.
 - This is **not yet a multi-customer credit-selling service**. Add individual accounts, provisioning, quotas, purchase fulfillment, retention policy and operational monitoring before selling customer credit balances.
 - Video generation remains unavailable and never charges credits. The backend now validates a future video job shape (script, duration, aspect ratio), but no provider or video credit price has been selected.
 
 ## Mobile recovery and export
 
-The text brief is restored from this browser's local storage on page load. Product images are intentionally not saved there. The current tab remembers only the last generation's random ID, output language and Demo/Live mode in session storage. After a reload or connection loss, **Recover last result** reads the existing server job without running the provider or reserving another credit. Pending jobs remain pending; failed jobs show that the Studio credit was returned. Recovery requires the same authenticated beta account and the original database. Closing the tab or clearing browser storage can remove the recovery pointer.
+The text brief is restored from this browser's local storage on page load. Product images are intentionally not saved there. The current tab remembers only the last generation's random ID, output language and Demo/Live mode in session storage. After a reload or connection loss, **Recover last result** reads the existing server job without running the provider or reserving another credit. Fresh pending jobs remain pending; stale reservations are automatically failed and refunded after the configured timeout. Failed jobs show that the Studio credit was returned. Recovery requires the same authenticated beta account and the original database. Closing the tab or clearing browser storage can remove the recovery pointer.
 
 **Download .txt** exports all seven creative sections as UTF-8 text (including Arabic). **Copy all** remains available. Starting another generation is a new credit-bearing action.
