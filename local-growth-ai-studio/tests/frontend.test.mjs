@@ -73,3 +73,11 @@ test('generation waits until the image reader finishes',async()=>{
   assert.match(app.node('formMessage').textContent,/image preview/);
   assert.ok(app.calls.every(x=>x.url!=='/api/generate'));
 });
+
+
+test('busy-state cleanup does not re-enable an unavailable Live provider',async()=>{
+  const app=boot({liveAvailable:false}); await settle();
+  app.node('generationLive').disabled=false;
+  vm.runInContext('setBusy(false)',app.context);
+  assert.equal(app.node('generationLive').disabled,true);
+});
