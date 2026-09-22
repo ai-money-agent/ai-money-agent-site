@@ -4,6 +4,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
+import { DatabaseSync } from 'node:sqlite';
 
 const dir = await mkdtemp(join(tmpdir(),'studio-test-'));
 const base = 'http://127.0.0.1:8799';
@@ -55,7 +56,7 @@ try {
   const readyBefore = await (await get('/api/health/ready')).json();
   assert.equal(readyBefore.status,'ready');
   const healthBefore = await (await get('/api/health')).json();
-  assert.equal(healthBefore.version,'0.5.0');
+  assert.equal(healthBefore.version,'0.6.0');
   assert.equal(healthBefore.generationCost,2);
   assert.equal(healthBefore.demoGenerationCost,0);
   assert.equal(healthBefore.demoAvailable,true);
@@ -69,6 +70,27 @@ try {
   assert.equal(session.status,200);
   assert.match(session.headers.get('set-cookie'),/HttpOnly/);
   cookie = session.headers.get('set-cookie').split(';')[0];
+
+  // Completed Live results remain readable even when the provider is paused,
+  // and stale Live reservations are refunded without any provider call.
+  const liveDb = new DatabaseSync(join(dir,'test.sqlite'));
+  const now = Date.now();
+  const savedLiveResult = {result:{hook:'Saved live hook',reelScript:'Saved script',shotList:['Shot'],onScreenText:['Text'],caption:'Caption',cta:'CTA',adIdeas:['Idea']},engine:'anthropic'};
+  liveDb.prepare('INSERT OR REPLACE INTO accounts(id,balance,used) VALUES(?,?,?)').run('beta-owner',5,0);
+  liveDb.prepare("INSERT INTO jobs(account,id,fingerprint,status,cost,output,created_at,updated_at) VALUES(?,?,?,'completed',?,?,?,?)")
+    .run('beta-owner','live-recovery-000001','saved-live',0,JSON.stringify(savedLiveResult),now,now);
+  const staleAt = now - 20*60*1000;
+  liveDb.prepare("INSERT INTO jobs(account,id,fingerprint,status,cost,output,created_at,updated_at) VALUES(?,?,?,'pending',?,NULL,?,?)")
+    .run('beta-owner','live-stale-00000001','stale-live',2,staleAt,staleAt);
+  liveDb.close();
+
+  const pausedLiveRecovery = await (await get('/api/generations/live-recovery-000001?mode=live')).json();
+  assert.equal(pausedLiveRecovery.status,'completed');
+  assert.equal(pausedLiveRecovery.result.hook,'Saved live hook');
+  assert.equal(pausedLiveRecovery.credits.balance,7);
+  const staleLiveRecovery = await (await get('/api/generations/live-stale-00000001?mode=live')).json();
+  assert.equal(staleLiveRecovery.status,'failed');
+  assert.equal(staleLiveRecovery.credits.balance,7);
 
   assert.equal((await (await get('/api/health')).json()).engine,'demo');
   const initialCredits = await (await get('/api/credits')).json();
@@ -118,7 +140,7 @@ try {
   assert.equal((await get('/api/generations/missing-request-0001')).status,404);
   assert.equal((await get('/api/generations/invalid')).status,400);
   assert.equal((await (await get('/api/credits')).json()).balance,7);
-  console.log('PASS: auth, CSRF, Demo/Live isolation, zero-cost Demo, validation, retry safety, persistence, protected files, video contract and UI.');
+  console.log('PASS: auth, CSRF, Demo/Live isolation, stale-credit recovery, paused-provider result recovery, validation, persistence, protected files, video contract and UI.');
 } finally {
   await stop();
   await rm(dir,{recursive:true,force:true});
