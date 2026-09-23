@@ -1,0 +1,144 @@
+name: MiniMax H3 Video Bridge
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  generate:
+    if: startsWith(github.event.issue.title, '[MINIMAX]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+      ISSUE_BODY: ${{ github.event.issue.body }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+
+    steps:
+      - name: Validate API key
+        run: |
+          if [ -z "$MINIMAX_API_KEY" ]; then
+            echo "MINIMAX_API_KEY secret is missing."
+            exit 1
+          fi
+
+      - name: Generate video with MiniMax H3
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os, time, requests
+
+          api_key = os.environ["MINIMAX_API_KEY"]
+          raw = os.environ.get("ISSUE_BODY", "").strip()
+          if not raw:
+              raise SystemExit("Issue body is empty. Expected JSON settings.")
+
+          try:
+              cfg = json.loads(raw)
+          except Exception as e:
+              raise SystemExit(f"Issue body must be valid JSON: {e}")
+
+          prompt = str(cfg.get("prompt", "")).strip()
+          if not prompt:
+              raise SystemExit("Missing 'prompt'.")
+
+          duration = int(cfg.get("duration", 5))
+          if duration < 4 or duration > 15:
+              raise SystemExit("duration must be 4-15 seconds.")
+
+          ratio = str(cfg.get("ratio", "9:16"))
+          resolution = str(cfg.get("resolution", "768P"))
+          model = str(cfg.get("model", "MiniMax-H3"))
+
+          if resolution not in ("768P", "2K"):
+              raise SystemExit("resolution must be 768P or 2K.")
+
+          headers = {
+              "Authorization": f"Bearer {api_key}",
+              "Content-Type": "application/json",
+          }
+          payload = {
+              "model": model,
+              "content": [{"type": "text", "text": prompt}],
+              "duration": duration,
+              "resolution": resolution,
+              "ratio": ratio,
+          }
+
+          create = requests.post(
+              "https://api.minimax.io/v2/video_generation",
+              headers=headers,
+              json=payload,
+              timeout=60,
+          )
+          create.raise_for_status()
+          data = create.json()
+          task_id = data.get("task_id")
+          if not task_id:
+              raise SystemExit(f"No task_id returned: {data}")
+
+          print(f"task_id={task_id}")
+
+          status_url = f"https://api.minimax.io/v2/query/video_generation/{task_id}"
+          deadline = time.time() + 20 * 60
+          download_url = None
+
+          while time.time() < deadline:
+              time.sleep(10)
+              r = requests.get(status_url, headers={"Authorization": f"Bearer {api_key}"}, timeout=60)
+              r.raise_for_status()
+              task = r.json().get("task", {})
+              status = task.get("status")
+              print(f"status={status}")
+
+              if status == "succeeded":
+                  download_url = (task.get("content") or {}).get("url")
+                  if not download_url:
+                      raise SystemExit(f"Task succeeded but no content.url: {task}")
+                  break
+              if status in ("failed", "cancelled"):
+                  raise SystemExit(f"MiniMax task {status}: {task.get('error')}")
+
+          if not download_url:
+              raise SystemExit("Timed out waiting for MiniMax video.")
+
+          video = requests.get(download_url, timeout=180)
+          video.raise_for_status()
+          with open("output.mp4", "wb") as f:
+              f.write(video.content)
+
+          with open("result.json", "w", encoding="utf-8") as f:
+              json.dump({
+                  "task_id": task_id,
+                  "model": model,
+                  "duration": duration,
+                  "resolution": resolution,
+                  "ratio": ratio,
+                  "download_url": download_url,
+              }, f, ensure_ascii=False, indent=2)
+          PY
+
+      - name: Upload generated video
+        uses: actions/upload-artifact@v4
+        with:
+          name: minimax-video-${{ github.event.issue.number }}
+          path: |
+            output.mp4
+            result.json
+          retention-days: 7
+
+      - name: Comment success
+        if: success()
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "✅ MiniMax video generated successfully. The MP4 is saved as a GitHub Actions artifact for this request."
+
+      - name: Comment failure
+        if: failure()
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "❌ MiniMax video generation failed. Open the linked Actions run logs to see the exact reason."
