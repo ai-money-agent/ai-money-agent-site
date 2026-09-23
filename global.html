@@ -169,42 +169,43 @@
 </div>
 
 <script>
-  const paymentModal = document.getElementById('paymentModal');
-  const paymentProduct = document.getElementById('paymentProduct');
-  const paymentPrice = document.getElementById('paymentPrice');
-  const whishConfirm = document.getElementById('whishConfirm');
+  var paymentModal = document.getElementById('paymentModal');
+  var paymentProduct = document.getElementById('paymentProduct');
+  var paymentPrice = document.getElementById('paymentPrice');
+  var whishConfirm = document.getElementById('whishConfirm');
 
-  function openPayment(button){
-    const product = button.dataset.product || 'Digital Product';
-    const price = button.dataset.price || '';
+  function openPayment(button) {
+    var product = button.getAttribute('data-product') || 'Digital Product';
+    var price = button.getAttribute('data-price') || '';
     paymentProduct.textContent = product;
-    paymentPrice.textContent = '
-</html> + price;
-    const msg = 'Hi Local Growth, I paid 
-</html> + price + ' via Whish Money for ' + product + '. I will send the payment confirmation here.';
+    paymentPrice.textContent = 'USD ' + price;
+    var msg = 'Hi Local Growth, I paid USD ' + price + ' via Whish Money for ' + product + '. I will send the payment confirmation here.';
     whishConfirm.href = 'https://wa.me/96171226625?text=' + encodeURIComponent(msg);
     paymentModal.classList.add('open');
-    paymentModal.setAttribute('aria-hidden','false');
+    paymentModal.setAttribute('aria-hidden', 'false');
   }
 
-  function closePayment(){
+  function closePayment() {
     paymentModal.classList.remove('open');
-    paymentModal.setAttribute('aria-hidden','true');
+    paymentModal.setAttribute('aria-hidden', 'true');
   }
 
-  function copyWhish(){
-    const number = '71226625';
+  function copyWhish() {
+    var number = '71226625';
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(number).then(()=>alert('Whish number copied: ' + number));
+      navigator.clipboard.writeText(number).then(function() {
+        alert('Whish number copied: ' + number);
+      });
     } else {
-      prompt('Copy Whish number:', number);
+      window.prompt('Copy Whish number:', number);
     }
   }
 
-  paymentModal.addEventListener('click', function(e){
+  paymentModal.addEventListener('click', function(e) {
     if (e.target === paymentModal) closePayment();
   });
-  document.addEventListener('keydown', function(e){
+
+  document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closePayment();
   });
 </script>
