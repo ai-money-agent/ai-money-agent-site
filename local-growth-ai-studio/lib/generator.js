@@ -130,7 +130,8 @@ async function generateWithAnthropic(input, config) {
   if (!response.ok) {
     const errorCode = typeof data?.error?.type === 'string' ? data.error.type : 'unknown';
     const errorMessage = typeof data?.error?.message === 'string' ? data.error.message.replace(/[\r\n]+/g, ' ').slice(0, 500) : 'no message';
-    throw new Error(`Anthropic HTTP ${response.status}; code=${errorCode}; message=${errorMessage}`);
+    const providerRequestId = typeof data?.request_id === 'string' ? data.request_id.slice(0, 120) : 'unknown';
+    throw new Error(`Anthropic HTTP ${response.status}; code=${errorCode}; request_id=${providerRequestId}; message=${errorMessage}`);
   }
 
   const stopReason = typeof data?.stop_reason === 'string' ? data.stop_reason : '';
