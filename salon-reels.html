@@ -54,6 +54,20 @@ footer{text-align:center;padding:30px;font-size:13px}
 .product-mockup{min-height:430px}
 .product-mockup strong{font-size:42px}
 }
+
+.pay-choice-btn{border:0;cursor:pointer;font:inherit}
+.pay-choice-modal{position:fixed;inset:0;background:rgba(5,18,12,.72);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}
+.pay-choice-modal.open{display:flex}
+.pay-choice-box{width:min(470px,100%);max-height:92vh;overflow:auto;background:#fff;color:#17201c;border-radius:24px;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.3);position:relative;text-align:left}
+.pay-choice-box h3{margin:0 42px 5px 0;font-size:25px}
+.pay-choice-sub{color:#68716d;margin-bottom:16px}
+.pay-choice-close{position:absolute;right:14px;top:12px;border:0;background:#edf4f0;width:36px;height:36px;border-radius:50%;font-size:22px;cursor:pointer}
+.pay-method{border:1px solid #dfe9e4;border-radius:18px;padding:16px;margin-top:12px;background:#fafcfb}
+.pay-method h4{margin:0 0 5px;font-size:18px}.pay-method p{margin:0 0 10px;color:#68716d;font-size:14px}
+.pay-whish{font-size:24px;font-weight:900;color:#087849;letter-spacing:.04em;margin:8px 0}
+.pay-method-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pay-copy{border:1px solid #0d9b61;background:#fff;color:#087849;padding:10px 14px;border-radius:999px;font-weight:800;cursor:pointer}
+@media(max-width:600px){.pay-choice-box{padding:21px 17px}.pay-choice-box h3{font-size:22px}}
 </style>
 </head>
 <body>
@@ -71,7 +85,7 @@ footer{text-align:center;padding:30px;font-size:13px}
 <div class="price">Launch price: $9</div>
 <div class="small">One-time payment • Digital delivery after payment confirmation</div>
 <a class="btn" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%20want%20the%20No-Face%20Salon%20Reels%20Kit.%20Please%20send%20payment%20details.">ORDER VIA WHATSAPP</a>
-    <a class="cta" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">PAY $9 NOW</a>
+    <button type="button" class="cta pay-choice-btn" data-product="No-Face Salon Reels Kit" data-price="9" onclick="openPaymentChoice(this)">PAY $9 NOW</button>
 <div class="payment-note"><strong>Worldwide:</strong> ask for a secure payment link after we confirm your order. <strong>Lebanon:</strong> Whish Money or OMT are also available. We confirm payment in chat and then send the digital files.</div>
 </div>
 
@@ -217,5 +231,68 @@ Includes inquiry and WhatsApp replies, plus a sales tracker.
 </div>
 
 <footer>© 2026 Local Growth • alocalgrowth.org</footer>
+
+<div class="pay-choice-modal" id="productPaymentModal" aria-hidden="true">
+  <div class="pay-choice-box" role="dialog" aria-modal="true" aria-labelledby="productPaymentTitle">
+    <button type="button" class="pay-choice-close" onclick="closePaymentChoice()" aria-label="Close">×</button>
+    <h3 id="productPaymentTitle">Choose payment method</h3>
+    <div class="pay-choice-sub"><span id="productPaymentName"></span> — <strong id="productPaymentPrice"></strong><br><span dir="rtl">اختر طريقة الدفع المناسبة</span></div>
+
+    <div class="pay-method">
+      <h4>🇱🇧 Whish Money — Lebanon</h4>
+      <p>Send the amount to the number below, then send your payment confirmation on WhatsApp.</p>
+      <div class="pay-whish">71 226 625</div>
+      <div class="pay-method-actions">
+        <button type="button" class="pay-copy" onclick="copyProductWhish()">Copy number</button>
+        <a class="btn" id="productWhishConfirm" href="#" target="_blank" rel="noopener">Send confirmation</a>
+      </div>
+    </div>
+
+    <div class="pay-method">
+      <h4>🌍 International Payment Link</h4>
+      <p>Use this option outside Lebanon or whenever you prefer the international payment link.</p>
+      <a class="btn" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">Open Payment Link</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  var productPaymentModal = document.getElementById('productPaymentModal');
+  var productPaymentName = document.getElementById('productPaymentName');
+  var productPaymentPrice = document.getElementById('productPaymentPrice');
+  var productWhishConfirm = document.getElementById('productWhishConfirm');
+
+  function openPaymentChoice(button){
+    var product = button.getAttribute('data-product') || 'Digital Product';
+    var price = button.getAttribute('data-price') || '';
+    productPaymentName.textContent = product;
+    productPaymentPrice.textContent = 'USD ' + price;
+    var message = 'Hi Local Growth, I paid USD ' + price + ' via Whish Money for ' + product + '. I will send the payment confirmation here.';
+    productWhishConfirm.href = 'https://wa.me/96171226625?text=' + encodeURIComponent(message);
+    productPaymentModal.classList.add('open');
+    productPaymentModal.setAttribute('aria-hidden','false');
+  }
+
+  function closePaymentChoice(){
+    productPaymentModal.classList.remove('open');
+    productPaymentModal.setAttribute('aria-hidden','true');
+  }
+
+  function copyProductWhish(){
+    var number = '71226625';
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(number).then(function(){ alert('Whish number copied: ' + number); });
+    } else {
+      window.prompt('Copy Whish number:', number);
+    }
+  }
+
+  productPaymentModal.addEventListener('click', function(e){
+    if (e.target === productPaymentModal) closePaymentChoice();
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') closePaymentChoice();
+  });
+</script>
 </body>
 </html>
