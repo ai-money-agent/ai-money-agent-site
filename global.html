@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Local Growth | Websites, Digital Products & Growth Services</title>
-  <meta name="description" content="Local Growth helps small businesses worldwide launch websites, digital products, content and advertising systems designed to turn attention into customers.">
+  <title>Local Growth | Practical Digital Products for Small Businesses & Creators</title>
+  <meta name="description" content="Practical digital guides and ready-to-use kits for small businesses and creators. Browse GuestFlow, digital product guides, Instagram & WhatsApp growth tools, and salon Reels kits.">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:Arial,Helvetica,sans-serif;background:#f5f7f6;color:#17201c;line-height:1.65}
@@ -38,6 +38,9 @@
     .whish-number{font-size:24px;font-weight:900;color:#087849;letter-spacing:.04em;margin:8px 0}
     .payment-actions{display:flex;gap:8px;flex-wrap:wrap}.payment-actions .btn{margin:0}
     .copy-btn{border:1px solid #0d9b61;background:#fff;color:#087849;padding:10px 14px;border-radius:999px;font-weight:800;cursor:pointer}
+    .product-desc{margin-bottom:12px}.product-desc p{margin-bottom:8px}
+    .lang-toggle{border:1px solid #b9d8c9;background:#fff;color:#087849;padding:7px 12px;border-radius:999px;font-weight:800;font-size:13px;cursor:pointer}
+    .desc-ar{text-align:right;direction:rtl;font-family:Arial,Helvetica,sans-serif}
     @media(max-width:800px){
       header{padding:14px 18px}.logo{font-size:20px}.navlink{display:none}.btn{font-size:14px;padding:10px 15px}
       .hero{padding:10px 10px 0}.hero-image-shell{border-radius:14px}
@@ -63,15 +66,19 @@
 
 <section id="products">
   <div class="section-title">
-    <h2>Choose what you need</h2>
-    <p>Simple offers for businesses and creators who want to start quickly without complicated setup.</p>
+    <h2>Choose your digital product</h2>
+    <p>Ready-to-use digital guides and kits designed to save time, simplify marketing and help you take action faster.</p>
   </div>
   <div class="cards">
     <div class="card featured" id="guestflow">
       <img class="product-image" src="/file_00000000127081f48200e88763586d40.png" alt="GuestFlow Short-Term Rental Host Communication Kit">
       <div class="featured-badge">NEW • FOR SHORT-TERM RENTAL HOSTS</div>
       <h3>GuestFlow — Host Communication Kit</h3>
-      <p>42 ready-to-edit guest messages, a welcome-book builder, AI prompts and editable templates for independent short-term rental hosts and small property managers.</p>
+      <div class="product-desc">
+        <p class="desc-en">42 ready-to-edit guest messages, a welcome-book builder, AI prompts and editable templates for independent short-term rental hosts and small property managers.</p>
+        <p class="desc-ar" dir="rtl" lang="ar" hidden>٤٢ رسالة جاهزة للتعديل للضيوف، ومنشئ دليل ترحيبي، وأوامر للذكاء الاصطناعي، وقوالب قابلة للتعديل، مخصصة لمضيفي الإيجارات قصيرة الأجل ومديري العقارات الصغيرة.</p>
+        <button class="lang-toggle" type="button" onclick="toggleDescription(this)">العربية</button>
+      </div>
       <div class="price">$15</div>
       <a class="btn" href="/guestflow.html">View GuestFlow</a>
       <button class="btn pay-btn" data-product="GuestFlow — Host Communication Kit" data-price="15" onclick="openPayment(this)">Buy Now — $15</button>
@@ -81,7 +88,11 @@
     <div class="card" id="digital-guide">
       <img class="product-image" src="/file_00000000e32082108ff8574e3a1cc7f8.png?v=1" alt="Digital Product Launch Guide — English and Arabic versions available">
       <h3>Digital Product Launch Guide</h3>
-      <p>A practical guide for creating your first digital product with AI and preparing it for online sales.</p>
+      <div class="product-desc">
+        <p class="desc-en">A practical guide for creating your first digital product with AI and preparing it for online sales.</p>
+        <p class="desc-ar" dir="rtl" lang="ar" hidden>دليل عملي يساعدك على إنشاء أول منتج رقمي باستخدام الذكاء الاصطناعي وتجهيزه للبيع عبر الإنترنت.</p>
+        <button class="lang-toggle" type="button" onclick="toggleDescription(this)">العربية</button>
+      </div>
       <div class="small" style="font-weight:900;color:#0b9159;margin:4px 0 10px">🌐 Available in English & Arabic</div>
       <div class="price">$15</div>
       <a class="btn" href="/digital-product-guide.html">English Version</a>
@@ -92,7 +103,11 @@
     <div class="card" id="instagram-kit">
       <img class="product-image" src="/file_00000000561482108621f030f8c50a24.png?v=1" alt="30-Day Instagram and WhatsApp Growth Kit cover">
       <h3>30-Day Instagram & WhatsApp Growth Kit</h3>
-      <p>A practical 30-day content and sales-conversation system with daily ideas, hooks, captions, WhatsApp replies, AI prompts and a simple ad test plan.</p>
+      <div class="product-desc">
+        <p class="desc-en">A practical 30-day content and sales-conversation system with daily ideas, hooks, captions, WhatsApp replies, AI prompts and a simple ad test plan.</p>
+        <p class="desc-ar" dir="rtl" lang="ar" hidden>نظام عملي لمدة 30 يومًا للمحتوى ومحادثات البيع، يتضمن أفكارًا يومية، وافتتاحيات قوية، ونصوص منشورات، وردود واتساب، وأوامر للذكاء الاصطناعي، وخطة بسيطة لاختبار الإعلانات.</p>
+        <button class="lang-toggle" type="button" onclick="toggleDescription(this)">العربية</button>
+      </div>
       <div class="price">$9</div>
       <a class="btn" href="/instagram-whatsapp-growth-kit.html">View the Kit</a>
       <button class="btn pay-btn" data-product="30-Day Instagram & WhatsApp Growth Kit" data-price="9" onclick="openPayment(this)">Pay $9 Now</button>
@@ -102,7 +117,11 @@
     <div class="card" id="salon-kit">
       <img class="product-image" src="/file_000000002d988210aa66797328080d80.png?v=1" alt="No-Face Salon Reels Kit cover">
       <h3>No-Face Salon Reels Kit</h3>
-      <p>30 days of Reel ideas, hooks, scripts, captions, CTAs and WhatsApp replies for salons that want content without showing their face.</p>
+      <div class="product-desc">
+        <p class="desc-en">30 days of Reel ideas, hooks, scripts, captions, CTAs and WhatsApp replies for salons that want content without showing their face.</p>
+        <p class="desc-ar" dir="rtl" lang="ar" hidden>30 يومًا من أفكار الريلز، والافتتاحيات، والسكريبتات، والكابتشن، وعبارات الحث على الإجراء، وردود واتساب للصالونات التي تريد صناعة محتوى من دون الظهور بالوجه.</p>
+        <button class="lang-toggle" type="button" onclick="toggleDescription(this)">العربية</button>
+      </div>
       <div class="price">$9</div>
       <a class="btn" href="/salon-reels.html">View the Kit</a>
       <button class="btn pay-btn" data-product="No-Face Salon Reels Kit" data-price="9" onclick="openPayment(this)">Pay $9 Now</button>
@@ -188,6 +207,16 @@
   function closePayment() {
     paymentModal.classList.remove('open');
     paymentModal.setAttribute('aria-hidden', 'true');
+  }
+
+  function toggleDescription(button) {
+    var box = button.closest('.product-desc');
+    var en = box.querySelector('.desc-en');
+    var ar = box.querySelector('.desc-ar');
+    var showArabic = ar.hidden;
+    ar.hidden = !showArabic;
+    en.hidden = showArabic;
+    button.textContent = showArabic ? 'English' : 'العربية';
   }
 
   function copyWhish() {
