@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GuestFlow — Short-Term Rental Host Communication Kit | $15</title>
+<meta name="description" content="GuestFlow gives short-term rental hosts 42 ready-to-edit guest messages, a welcome-book builder, check-in/out workflows, AI prompts and editable templates. Launch price: $15.">
+<style>
+:root{
+  --bg:#f6f2ea;--paper:#fffdf8;--ink:#152334;--muted:#657180;
+  --navy:#173b5a;--navy2:#102b43;--gold:#c8a55b;--line:#e5ddd1;
+  --soft:#edf3f6;--green:#1d7a5d;--white:#fff;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif;line-height:1.6}
+a{text-decoration:none}
+.wrap{max-width:1120px;margin:auto;padding:0 22px}
+header{position:sticky;top:0;z-index:20;background:rgba(255,253,248,.96);border-bottom:1px solid var(--line);backdrop-filter:blur(10px)}
+.nav{min-height:70px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.brand{font-size:22px;font-weight:900;color:var(--navy2)}
+.brand span{color:var(--gold)}
+.navlinks{display:flex;align-items:center;gap:14px}
+.navlinks a:not(.btn){color:var(--navy);font-weight:800;font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;background:var(--navy);color:#fff;padding:14px 22px;border-radius:999px;font-weight:900;box-shadow:0 10px 28px rgba(23,59,90,.18)}
+.btn:hover{background:var(--navy2)}
+.btn.gold{background:var(--gold);color:#17212b}
+.btn.secondary{background:#fff;color:var(--navy);border:1px solid #bfd0dc;box-shadow:none}
+.btn.dark{background:#0e1d2b}
+.hero{padding:72px 0 56px;background:
+  radial-gradient(circle at 88% 10%,rgba(200,165,91,.22),transparent 28%),
+  linear-gradient(135deg,#fffdf8,#eef4f7)}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:54px;align-items:center}
+.eyebrow{display:inline-block;background:#e9f0f4;color:var(--navy);padding:8px 13px;border-radius:999px;font-size:12px;font-weight:900;letter-spacing:.08em}
+h1{font-family:Georgia,serif;font-size:clamp(44px,6.4vw,72px);line-height:1.02;letter-spacing:-2px;margin:18px 0}
+.hero p{font-size:20px;color:var(--muted);max-width:690px}
+.price-line{display:flex;align-items:baseline;gap:10px;margin:22px 0}
+.price{font-size:42px;font-weight:950;color:var(--navy)}
+.once{color:var(--muted);font-weight:700}
+.actions{display:flex;gap:12px;flex-wrap:wrap}
+.trust{font-size:13px;color:var(--muted);margin-top:14px}
+.product-card{min-height:520px;border-radius:28px;background:
+  linear-gradient(160deg,#183d5d,#0f293f 63%,#7f6a3e);
+  color:#fff;padding:34px;box-shadow:0 28px 65px rgba(17,37,52,.23);
+  display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.product-card:before,.product-card:after{content:"";position:absolute;border:1px solid rgba(255,255,255,.14);border-radius:50%}
+.product-card:before{width:260px;height:260px;right:-105px;top:-80px}
+.product-card:after{width:180px;height:180px;left:-70px;bottom:-70px}
+.product-kicker{letter-spacing:.22em;font-size:12px;color:#ecd79f;font-weight:900}
+.product-card h2{font-family:Georgia,serif;font-size:52px;line-height:1.01;margin:18px 0}
+.product-card .stat{font-size:88px;line-height:.85;font-weight:950;color:#efdca7}
+.product-card p{color:#e5ebef;font-size:16px;margin:12px 0 0}
+section{padding:68px 0}
+.section-title{text-align:center;max-width:800px;margin:0 auto 36px}
+.section-title h2{font-family:Georgia,serif;font-size:42px;line-height:1.1;margin:0 0 12px}
+.section-title p{color:var(--muted);font-size:18px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:22px;padding:26px;box-shadow:0 8px 28px rgba(24,37,49,.05)}
+.card .icon{font-size:30px}
+.card h3{font-size:20px;margin:8px 0}
+.card p{margin:0;color:var(--muted)}
+.preview{background:var(--navy2);color:#fff}
+.preview .section-title p{color:#cbd7df}
+.preview-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.preview-card{background:#17354e;border:1px solid #31536d;border-radius:20px;padding:24px}
+.preview-label{font-size:11px;letter-spacing:.16em;color:#e7cc85;font-weight:900}
+.preview-card h3{font-family:Georgia,serif;font-size:28px;margin:8px 0 12px}
+.sample{background:#0f2739;border-left:4px solid var(--gold);padding:16px;border-radius:12px;color:#f6f7f8}
+.sample small{display:block;color:#9fb3c2;margin-top:10px}
+.who{background:#fff}
+.who-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.checklist{background:#fbfaf7;border:1px solid var(--line);border-radius:22px;padding:28px}
+.checklist h3{font-family:Georgia,serif;font-size:28px;margin:0 0 16px}
+.checklist ul{list-style:none;padding:0;margin:0}
+.checklist li{padding:10px 0;border-bottom:1px solid #eee6dc}
+.checklist li:last-child{border:0}
+.checklist li:before{content:"✓";color:var(--green);font-weight:900;margin-right:10px}
+.how{background:#eef3f6}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.step{background:#fff;border:1px solid #d7e2e8;border-radius:18px;padding:22px}
+.step strong{display:block;color:var(--navy);font-size:18px;margin-bottom:6px}
+.order{padding:72px 0}
+.orderbox{max-width:920px;margin:auto;background:#fff;border:1px solid var(--line);border-radius:28px;padding:40px;text-align:center;box-shadow:0 18px 50px rgba(24,37,49,.08)}
+.orderbox h2{font-family:Georgia,serif;font-size:44px;margin:0 0 10px}
+.orderbox p{color:var(--muted);font-size:18px;max-width:700px;margin:0 auto 22px}
+.faq{max-width:860px;margin:auto}
+.faq details{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:11px 0}
+.faq summary{cursor:pointer;font-weight:900}
+.faq p{color:var(--muted)}
+.disclaimer{background:#efe8dc}
+.disclaimer-box{max-width:880px;margin:auto;color:#5f5a54}
+.disclaimer-box h2{font-family:Georgia,serif;color:var(--navy2)}
+footer{text-align:center;padding:36px 20px;background:#fff;color:var(--muted);font-size:14px}
+.policy{margin-top:12px}
+.policy a{color:var(--navy);font-weight:800;margin:0 5px}
+@media(max-width:850px){
+  .hero-grid,.who-grid{grid-template-columns:1fr}
+  .cards,.steps{grid-template-columns:1fr}
+  .preview-grid{grid-template-columns:1fr}
+  .hero{padding-top:44px}
+  .product-card{min-height:430px}
+  .navlinks a:first-child{display:none}
+}
+@media(max-width:520px){
+  .wrap{padding:0 18px}
+  .nav{min-height:64px}
+  .brand{font-size:19px}
+  .navlinks .btn{padding:10px 14px;font-size:13px}
+  h1{letter-spacing:-1px}
+  .hero p{font-size:18px}
+  .product-card h2{font-size:42px}
+  .product-card .stat{font-size:74px}
+  .section-title h2,.orderbox h2{font-size:34px}
+  .orderbox{padding:28px 20px}
+  .actions{display:grid}
+  .actions .btn{text-align:center}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="/global.html">Local <span>Growth</span></a>
+    <div class="navlinks">
+      <a href="/global.html">All offers</a>
+      <a class="btn" href="#buy">Get GuestFlow — $15</a>
+    </div>
+  </div>
+</header>
+
+<main>
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">FOR SHORT-TERM RENTAL HOSTS</span>
+      <h1>Stop rewriting the same guest messages for every booking.</h1>
+      <p><strong>GuestFlow</strong> gives independent hosts and small property managers a ready-to-edit communication system for the guest journey — from booking confirmation to checkout and follow-up.</p>
+      <div class="price-line"><span class="price">$15</span><span class="once">launch price • one-time purchase</span></div>
+      <div class="actions">
+        <a class="btn gold" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">Get GuestFlow — $15</a>
+        <a class="btn secondary" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%20have%20a%20question%20about%20GuestFlow." target="_blank" rel="noopener">Ask on WhatsApp</a>
+      </div>
+      <div class="trust">Digital kit • English • Delivered after payment confirmation • Built for independent short-term rental hosts.</div>
+    </div>
+    <div class="product-card">
+      <div>
+        <div class="product-kicker">LOCAL GROWTH / GUESTFLOW</div>
+        <h2>SHORT-TERM RENTAL HOST COMMUNICATION KIT</h2>
+      </div>
+      <div>
+        <div class="stat">42</div>
+        <p>ready-to-edit guest messages + welcome-book builder + AI prompts + host checklists.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-title">
+      <h2>One communication system instead of scattered replies.</h2>
+      <p>GuestFlow is designed to help you set up a clearer, repeatable guest communication workflow without typing every message from a blank screen.</p>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="icon">💬</div><h3>42 guest messages</h3><p>Booking, pre-arrival, check-in, access, parking, Wi-Fi, common questions, issue responses, checkout and follow-up.</p></div>
+      <div class="card"><div class="icon">🏠</div><h3>Welcome-book builder</h3><p>A structured framework for arrival, Wi-Fi, house basics, rules, local tips, safety information and checkout.</p></div>
+      <div class="card"><div class="icon">🧭</div><h3>Guest journey flow</h3><p>A simple map showing what to communicate from reservation confirmation through departure.</p></div>
+      <div class="card"><div class="icon">🤖</div><h3>20 AI prompts</h3><p>Prompts for adapting tone, shortening messages, building FAQs, reviewing saved replies and personalizing without inventing property facts.</p></div>
+      <div class="card"><div class="icon">✅</div><h3>Host checklists</h3><p>Quick quality checks before saving a message, before arrival, during a stay and before checkout.</p></div>
+      <div class="card"><div class="icon">📝</div><h3>Editable templates</h3><p>A Word companion file you can customize with your own address, access method, Wi-Fi, parking, rules and support details.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="preview">
+  <div class="wrap">
+    <div class="section-title">
+      <h2>Real content from inside the kit.</h2>
+      <p>No vague mockups. These are examples of the kind of ready-to-edit material included in GuestFlow.</p>
+    </div>
+    <div class="preview-grid">
+      <div class="preview-card">
+        <div class="preview-label">PRE-ARRIVAL MESSAGE</div>
+        <h3>Pre-arrival essentials</h3>
+        <div class="sample">
+          “Hi [GUEST_FIRST_NAME] — your stay at [PROPERTY_NAME] is coming up. Address: [ADDRESS]. Check-in starts at [CHECK_IN_TIME]. Access: [ACCESS_METHOD]. Parking: [PARKING_INFO]...”
+          <small>Edit the placeholders with your verified property details before saving.</small>
+        </div>
+      </div>
+      <div class="preview-card">
+        <div class="preview-label">CHECK-IN MESSAGE</div>
+        <h3>Arrival instructions</h3>
+        <div class="sample">
+          “Address: [ADDRESS]<br>Access: [ACCESS_METHOD]<br>Code/key details: [ACCESS_CODE]<br>Parking: [PARKING_INFO]<br>Wi-Fi: [WIFI_NAME] / [WIFI_PASSWORD]”
+          <small>Formatted to stay readable on a phone.</small>
+        </div>
+      </div>
+      <div class="preview-card">
+        <div class="preview-label">AI PROMPT PACK</div>
+        <h3>Personalize without inventing details</h3>
+        <div class="sample">
+          Give AI your verified property facts first, tell it not to add missing details, then ask it to rewrite the message for tone, clarity or length.
+          <small>The kit includes 20 prompts built around safe, practical host tasks.</small>
+        </div>
+      </div>
+      <div class="preview-card">
+        <div class="preview-label">WELCOME BOOK</div>
+        <h3>Build one guest guide</h3>
+        <div class="sample">
+          Arrival • Wi-Fi • parking • house basics • local information • safety • checkout.
+          <small>The framework helps keep high-priority details easy to find instead of buried in long messages.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="who">
+  <div class="wrap">
+    <div class="section-title"><h2>Who GuestFlow is for</h2><p>Focused on hosts who want a simple communication system they can customize and reuse.</p></div>
+    <div class="who-grid">
+      <div class="checklist">
+        <h3>A good fit if you…</h3>
+        <ul>
+          <li>Manage one or several short-term rental listings yourself</li>
+          <li>Repeat the same guest answers every week</li>
+          <li>Want clearer check-in and checkout communication</li>
+          <li>Need a starting point for a guest welcome book</li>
+          <li>Use AI but want prompts that stay grounded in real property facts</li>
+        </ul>
+      </div>
+      <div class="checklist">
+        <h3>What this is not</h3>
+        <ul>
+          <li>Not property-management software</li>
+          <li>Not legal, tax, safety or platform-policy advice</li>
+          <li>Not a guarantee of reviews, occupancy or revenue</li>
+          <li>Not a replacement for checking your actual listing details</li>
+          <li>Not affiliated with Airbnb, Vrbo or any booking platform</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="how">
+  <div class="wrap">
+    <div class="section-title"><h2>How you use it</h2><p>Set up the system once, then reuse and refine it for future reservations.</p></div>
+    <div class="steps">
+      <div class="step"><strong>1. Customize</strong>Replace the placeholders with your verified address, check-in/out times, access method, Wi-Fi, parking, house rules and support contact.</div>
+      <div class="step"><strong>2. Save</strong>Keep the messages you actually need in your booking platform or host-management workflow using clear labels.</div>
+      <div class="step"><strong>3. Reuse</strong>Use the welcome-book framework, message flow and checklists as your standard operating starting point.</div>
+    </div>
+  </div>
+</section>
+
+<section class="order" id="buy">
+  <div class="wrap">
+    <div class="orderbox">
+      <span class="eyebrow">LAUNCH PRICE</span>
+      <h2>Get GuestFlow for $15.</h2>
+      <p>You receive the complete GuestFlow PDF plus the editable Word templates. After payment, send your confirmation to Local Growth on WhatsApp so the files can be verified and delivered.</p>
+      <div class="steps" style="margin:28px 0">
+        <div class="step"><strong>1. Pay</strong>Complete the $15 payment using the payment link.</div>
+        <div class="step"><strong>2. Confirm</strong>Send your payment confirmation on WhatsApp.</div>
+        <div class="step"><strong>3. Receive</strong>We verify the payment and send the digital GuestFlow files.</div>
+      </div>
+      <div class="actions" style="justify-content:center">
+        <a class="btn gold" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">Pay $15 Now</a>
+        <a class="btn dark" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%20paid%20for%20GuestFlow.%20Here%20is%20my%20payment%20confirmation." target="_blank" rel="noopener">I Paid — Send Confirmation</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap faq">
+    <div class="section-title"><h2>FAQ</h2></div>
+    <details><summary>What files do I receive?</summary><p>The complete GuestFlow PDF plus an editable Word template file for customizing your own property communication system.</p></details>
+    <details><summary>Is GuestFlow only for Airbnb hosts?</summary><p>No. It is designed for independent short-term rental hosts and small property managers. Platform names may appear descriptively, but GuestFlow is an independent resource.</p></details>
+    <details><summary>Can I use the messages exactly as written?</summary><p>You should review and customize every message. Remove anything that does not apply and verify every time, date, code, address, fee, policy and property detail before sending.</p></details>
+    <details><summary>Does this guarantee better reviews or more bookings?</summary><p>No. GuestFlow is a communication toolkit. Reviews, occupancy and revenue depend on many factors beyond messaging.</p></details>
+    <details><summary>Can I resell the templates?</summary><p>No. The purchase is for your own short-term rental business use. Redistribution, resale or repackaging as a competing template product is not permitted.</p></details>
+    <details><summary>How do I receive the files?</summary><p>After payment confirmation, message Local Growth on WhatsApp. Once the payment is verified, the digital files are delivered.</p></details>
+  </div>
+</section>
+
+<section class="disclaimer">
+  <div class="wrap disclaimer-box">
+    <h2>Independent host resource</h2>
+    <p>GuestFlow is not affiliated with or endorsed by Airbnb, Vrbo or any booking platform. It is not legal, tax, safety or platform-policy advice. Hosts are responsible for verifying requirements that apply to their property and location.</p>
+  </div>
+</section>
+</main>
+
+<footer>
+  <strong>Local Growth</strong><br>Grow Local • Reach More
+  <div class="policy"><a href="/terms.html">Terms</a> • <a href="/refund-policy.html">Refund Policy</a> • <a href="/privacy-policy.html">Privacy</a> • <a href="/delivery-policy.html">Delivery</a></div>
+  <div style="margin-top:10px">© 2026 Local Growth</div>
+</footer>
+</body>
+</html>
