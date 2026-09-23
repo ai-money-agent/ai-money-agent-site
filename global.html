@@ -14,11 +14,9 @@
     nav{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
     .navlink{color:#087849;font-weight:700;font-size:14px}
     .btn{display:inline-block;background:#10a864;color:#fff;padding:12px 20px;border-radius:999px;font-weight:800}
-    .hero{padding:80px 7%;text-align:center;background:radial-gradient(circle at top right,#dff8eb,transparent 35%),linear-gradient(135deg,#fff,#eef8f3)}
-    .hero-inner{max-width:900px;margin:auto}
-    .badge{display:inline-block;background:#ddf7e9;color:#087849;padding:8px 16px;border-radius:999px;font-weight:700;margin-bottom:20px}
-    h1{font-size:52px;line-height:1.12;margin-bottom:20px}h1 span{color:#0b9c5e}
-    .hero p{font-size:20px;color:#55605b;max-width:760px;margin:0 auto 26px}
+    .hero{padding:18px 5% 0;background:#fff}
+    .hero-image-shell{max-width:1180px;margin:auto;border-radius:24px;overflow:hidden;box-shadow:0 14px 42px rgba(0,0,0,.08);border:1px solid #e7ece9}
+    .hero-image-shell img{display:block;width:100%;height:auto}
     .trust{font-size:14px;color:#69736e;margin-top:14px}
     section{padding:68px 7%}.section-title{text-align:center;max-width:760px;margin:0 auto 36px}.section-title h2{font-size:36px;margin-bottom:10px}.section-title p{color:#68716d}
     .cards{max-width:1120px;margin:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
@@ -31,7 +29,7 @@
     footer{text-align:center;padding:34px 20px;background:#fff;color:#68716d}.policy-links{margin:14px 0}.policy-links a{color:#087849;font-weight:700;margin:0 6px}
     @media(max-width:800px){
       header{padding:14px 18px}.logo{font-size:20px}.navlink{display:none}.btn{font-size:14px;padding:10px 15px}
-      .hero{padding:58px 20px}h1{font-size:38px}.hero p{font-size:18px}
+      .hero{padding:10px 10px 0}.hero-image-shell{border-radius:14px}
       section{padding:54px 20px}.cards{grid-template-columns:1fr}.section-title h2{font-size:30px}.final{margin:25px 18px;padding:42px 20px}.final h2{font-size:30px}
     }
   </style>
@@ -40,22 +38,19 @@
 <header>
   <div class="logo">Local <span>Growth</span></div>
   <nav>
+    <a class="navlink" href="#products">Products</a>
+    <a class="navlink" href="#how-ordering">How It Works</a>
     <a class="navlink" href="/">العربية</a>
-    <a class="btn" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%27m%20interested%20in%20your%20services." target="_blank">WhatsApp Us</a>
   </nav>
 </header>
 
 <div class="hero">
-  <div class="hero-inner">
-    <div class="badge">🌍 Now serving clients worldwide</div>
-    <h1>Launch faster. Sell smarter. <span>Grow globally.</span></h1>
-    <p>Local Growth helps small businesses and creators build a professional online presence, create sellable digital products, and turn content and advertising into real sales opportunities.</p>
-    <a class="btn" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%20want%20to%20start%20selling%20or%20growing%20online." target="_blank">Start on WhatsApp</a>
-    <div class="trust">Worldwide orders supported. Secure payment link or payment instructions are sent after your order is confirmed.</div>
+  <div class="hero-image-shell">
+    <img src="/store-hero.webp?v=1" alt="Local Growth — practical digital tools for small businesses and creators, starting from $9">
   </div>
 </div>
 
-<section>
+<section id="products">
   <div class="section-title">
     <h2>Choose what you need</h2>
     <p>Simple offers for businesses and creators who want to start quickly without complicated setup.</p>
@@ -69,6 +64,7 @@
       <div class="price">$15</div>
       <a class="btn" href="/guestflow.html">View GuestFlow</a>
       <a class="btn" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">Buy Now — $15</a>
+      <a class="btn" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%27m%20interested%20in%20GuestFlow%20%E2%80%94%20Host%20Communication%20Kit%20%28%2415%29." target="_blank" rel="noopener">Ask about GuestFlow</a>
       <div class="small">Digital kit in English. After payment, message us on WhatsApp so we can verify the payment and deliver your files.</div>
     </div>
     <div class="card">
@@ -86,6 +82,7 @@
       <div class="price">$15</div>
       <a class="btn" href="/digital-product-guide.html">View the Guide</a>
       <a class="btn" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">Pay $15 Now</a>
+      <a class="btn" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%27m%20interested%20in%20the%20Digital%20Product%20Starter%20Guide%20%28%2415%29." target="_blank" rel="noopener">Ask about this Guide</a>
       <div class="small">Pay securely now. After payment, message us on WhatsApp so we can verify your payment and deliver the guide.</div>
     </div>
     <div class="card">
@@ -95,6 +92,7 @@
       <div class="price">$9</div>
       <a class="btn" href="/instagram-whatsapp-growth-kit.html">View the Kit</a>
       <a class="btn" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">Pay $9 Now</a>
+      <a class="btn" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%27m%20interested%20in%20the%2030-Day%20Instagram%20%26%20WhatsApp%20Growth%20Kit%20%28%249%29." target="_blank" rel="noopener">Ask about this Kit</a>
       <div class="small">Pay securely now. After payment, message us on WhatsApp so we can verify your payment and deliver the kit.</div>
     </div>
     <div class="card">
@@ -104,6 +102,7 @@
       <div class="price">$9</div>
       <a class="btn" href="/salon-reels.html">View the Kit</a>
       <a class="btn" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">Pay $9 Now</a>
+      <a class="btn" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%27m%20interested%20in%20the%20No-Face%20Salon%20Reels%20Kit%20%28%249%29." target="_blank" rel="noopener">Ask about Salon Kit</a>
       <div class="small">Pay securely now. After payment, message us on WhatsApp so we can verify your payment and deliver the kit.</div>
     </div>
     <div class="card">
@@ -135,7 +134,7 @@
   </div>
 </section>
 
-<section class="dark">
+<section class="dark" id="how-ordering">
   <div class="section-title">
     <h2>How ordering works</h2>
     <p>We keep the process simple and personal.</p>
@@ -151,7 +150,7 @@
 <div class="final">
   <h2>Ready to grow beyond your local market?</h2>
   <p>Message Local Growth and tell us what you sell, who you want to reach, and what you need help with.</p>
-  <a class="btn" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%27m%20ready%20to%20get%20started." target="_blank">Message Us on WhatsApp</a>
+  <a class="btn" href="#products">Browse Products</a>
 </div>
 
 <footer>
