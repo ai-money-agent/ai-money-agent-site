@@ -166,3 +166,26 @@ test('Anthropic 200 responses with incomplete stop reasons are rejected before p
     );
   } finally { globalThis.fetch=original; }
 });
+
+
+test('Anthropic provider failures retain request id for server-side diagnosis',async()=>{
+  const original=globalThis.fetch;
+  try {
+    globalThis.fetch=async()=>({
+      ok:false,
+      status:429,
+      json:async()=>({
+        type:'error',
+        error:{type:'rate_limit_error',message:'billing or rate limit detail'},
+        request_id:'req_test_123'
+      })
+    });
+    await assert.rejects(
+      ()=>generate(
+        {mode:'ad',productName:'Product',description:'Description long enough',audience:'Adults',language:'en',imageDataUrl:null},
+        {liveEnabled:true,provider:'anthropic',anthropicApiKey:'server-secret-test',anthropicModel:'claude-haiku-4-5-20251001'}
+      ),
+      error=>error.message.includes('request_id=req_test_123') && error.message.includes('code=rate_limit_error')
+    );
+  } finally { globalThis.fetch=original; }
+});
