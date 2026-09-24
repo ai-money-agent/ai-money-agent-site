@@ -56,6 +56,38 @@ footer{text-align:center;padding:36px 20px;background:#fff;color:var(--muted);fo
 .pay-method-actions{display:flex;gap:8px;flex-wrap:wrap}
 .pay-copy{border:1px solid #0d9b61;background:#fff;color:#087849;padding:10px 14px;border-radius:999px;font-weight:800;cursor:pointer}
 @media(max-width:600px){.pay-choice-box{padding:21px 17px}.pay-choice-box h3{font-size:22px}}
+
+/* Conversion-focused product detail enhancements */
+.lg-product-cover{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:26px;padding:10px;box-shadow:0 22px 60px rgba(0,0,0,.12)}
+.lg-product-cover img{display:block;width:100%;height:auto;border-radius:20px}
+.lg-cover-note{font-size:13px;font-weight:800;text-align:center;padding:10px 8px 4px;color:#526158}
+.lg-quick-wrap{max-width:1120px;margin:18px auto 0;padding:0 20px}
+.lg-quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.lg-fact{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:16px;padding:14px 16px;box-shadow:0 7px 24px rgba(0,0,0,.04)}
+.lg-fact b{display:block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#718078;margin-bottom:4px}
+.lg-fact span{font-size:15px;font-weight:850;line-height:1.35}
+.lg-sample-section{padding:62px 20px}
+.lg-sample-inner{max-width:1080px;margin:auto}
+.lg-sample-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:24px}
+.lg-sample-card{background:#fff;border:1px solid rgba(0,0,0,.09);border-radius:18px;padding:20px;box-shadow:0 8px 26px rgba(0,0,0,.04)}
+.lg-sample-card small{display:block;font-weight:900;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;opacity:.68}
+.lg-sample-card h3{margin:0 0 8px;font-size:21px}
+.lg-sample-card p{margin:0;line-height:1.65}
+.lg-mobile-bar{display:none}
+@media(max-width:760px){
+  body{padding-bottom:82px}
+  .lg-quick{grid-template-columns:1fr 1fr}
+  .lg-quick-wrap{padding:0 16px;margin-top:14px}
+  .lg-fact{padding:12px}
+  .lg-sample-grid{grid-template-columns:1fr}
+  .lg-product-cover{padding:7px;border-radius:20px}
+  .lg-product-cover img{border-radius:15px}
+  .lg-mobile-bar{position:fixed;display:flex;left:10px;right:10px;bottom:10px;z-index:9000;background:#fff;border:1px solid rgba(0,0,0,.11);border-radius:18px;padding:10px 11px;box-shadow:0 14px 45px rgba(0,0,0,.22);align-items:center;justify-content:space-between;gap:10px}
+  .lg-mobile-copy{min-width:0}
+  .lg-mobile-copy strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+  .lg-mobile-copy span{font-size:12px;color:#65716b}
+  .lg-mobile-buy{border:0;border-radius:999px;padding:12px 18px;background:var(--buy,#0d9b61);color:#fff;font-weight:900;white-space:nowrap;cursor:pointer}
+}
 </style>
 <!-- Meta Pixel Code -->
 <script>
@@ -99,12 +131,21 @@ alt=""
       </div>
       <div class="trust">Available in English & Arabic • Whish Money in Lebanon • International payment link • Files delivered after payment confirmation.</div>
     </div>
-    <div class="book">
-      <div><div class="book-kicker">LOCAL GROWTH</div><h2>DIGITAL PRODUCT<br>STARTER GUIDE</h2></div>
-      <div><div class="big">01</div><p>From idea to a simple, sellable digital offer.</p></div>
+    <div class="lg-product-cover">
+      <img src="/file_00000000e32082108ff8574e3a1cc7f8.png?v=2" alt="Digital Product Launch Guide — 2-in-1 guide with resale license" fetchpriority="high" decoding="async">
+      <div class="lg-cover-note">2-in-1 • Learn the process + resale license included</div>
     </div>
   </div>
 </section>
+
+<div class="lg-quick-wrap" aria-label="Product quick facts">
+  <div class="lg-quick">
+    <div class="lg-fact"><b>Price</b><span>$15 one-time</span></div>
+    <div class="lg-fact"><b>Format</b><span>Digital guide</span></div>
+    <div class="lg-fact"><b>Languages</b><span>English or Arabic</span></div>
+    <div class="lg-fact"><b>2-in-1</b><span>Resale license included</span></div>
+  </div>
+</div>
 
 <section>
   <div class="wrap">
@@ -343,5 +384,10 @@ alt=""
   });
 })();
 </script>
+
+<div class="lg-mobile-bar" style="--buy:#0d9b61">
+  <div class="lg-mobile-copy"><strong>Digital Product Launch Guide</strong><span>$15 • one-time</span></div>
+  <button type="button" class="lg-mobile-buy pay-choice-btn" data-product="Digital Product Launch Guide" data-price="15" onclick="openPaymentChoice(this)">Pay $15</button>
+</div>
 </body>
 </html>
