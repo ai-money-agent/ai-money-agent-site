@@ -207,7 +207,12 @@ alt=""
     <div class="payment-option">
       <h4>🌍 International Payment Link</h4>
       <p>For customers outside Lebanon or anyone who prefers the international payment link.</p>
-      <a class="btn" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">Open Payment Link</a>
+      <a class="btn" id="internationalPaymentLink" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener" onclick="showInternationalConfirmation()">Open Payment Link</a>
+      <div id="internationalReturn" style="display:none;margin-top:14px;padding:14px;border-radius:14px;background:#edf9f3;border:1px solid #cfeadb">
+        <strong>After you complete the payment</strong>
+        <p style="margin:6px 0 10px;color:#35604b">Return to this page and tap the button below. WhatsApp will open with a ready message so you can send your payment confirmation and receive your files.</p>
+        <a class="btn" id="internationalConfirm" href="#" target="_blank" rel="noopener">I Paid — Confirm on WhatsApp</a>
+      </div>
     </div>
   </div>
 </div>
@@ -217,6 +222,8 @@ alt=""
   var paymentProduct = document.getElementById('paymentProduct');
   var paymentPrice = document.getElementById('paymentPrice');
   var whishConfirm = document.getElementById('whishConfirm');
+  var internationalReturn = document.getElementById('internationalReturn');
+  var internationalConfirm = document.getElementById('internationalConfirm');
 
   function openPayment(button) {
     var product = button.getAttribute('data-product') || 'Digital Product';
@@ -225,6 +232,9 @@ alt=""
     paymentPrice.textContent = 'USD ' + price;
     var msg = 'Hi Local Growth, I paid USD ' + price + ' via Whish Money for ' + product + '. I will send the payment confirmation here.';
     whishConfirm.href = 'https://wa.me/96171226625?text=' + encodeURIComponent(msg);
+    var internationalMsg = 'Hi Local Growth, I completed the international payment of USD ' + price + ' for ' + product + '. I will send the payment confirmation here.';
+    internationalConfirm.href = 'https://wa.me/96171226625?text=' + encodeURIComponent(internationalMsg);
+    internationalReturn.style.display = 'none';
     paymentModal.classList.add('open');
     paymentModal.setAttribute('aria-hidden', 'false');
   }
@@ -232,6 +242,13 @@ alt=""
   function closePayment() {
     paymentModal.classList.remove('open');
     paymentModal.setAttribute('aria-hidden', 'true');
+  }
+
+  function showInternationalConfirmation() {
+    internationalReturn.style.display = 'block';
+    setTimeout(function(){
+      internationalReturn.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }, 250);
   }
 
   function toggleDescription(button) {
