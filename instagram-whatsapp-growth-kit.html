@@ -56,6 +56,38 @@ footer{text-align:center;padding:36px 20px;background:#fff;color:var(--muted);fo
 .pay-method-actions{display:flex;gap:8px;flex-wrap:wrap}
 .pay-copy{border:1px solid #0d9b61;background:#fff;color:#087849;padding:10px 14px;border-radius:999px;font-weight:800;cursor:pointer}
 @media(max-width:600px){.pay-choice-box{padding:21px 17px}.pay-choice-box h3{font-size:22px}}
+
+/* Conversion-focused product detail enhancements */
+.lg-product-cover{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:26px;padding:10px;box-shadow:0 22px 60px rgba(0,0,0,.12)}
+.lg-product-cover img{display:block;width:100%;height:auto;border-radius:20px}
+.lg-cover-note{font-size:13px;font-weight:800;text-align:center;padding:10px 8px 4px;color:#526158}
+.lg-quick-wrap{max-width:1120px;margin:18px auto 0;padding:0 20px}
+.lg-quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.lg-fact{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:16px;padding:14px 16px;box-shadow:0 7px 24px rgba(0,0,0,.04)}
+.lg-fact b{display:block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#718078;margin-bottom:4px}
+.lg-fact span{font-size:15px;font-weight:850;line-height:1.35}
+.lg-sample-section{padding:62px 20px}
+.lg-sample-inner{max-width:1080px;margin:auto}
+.lg-sample-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:24px}
+.lg-sample-card{background:#fff;border:1px solid rgba(0,0,0,.09);border-radius:18px;padding:20px;box-shadow:0 8px 26px rgba(0,0,0,.04)}
+.lg-sample-card small{display:block;font-weight:900;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;opacity:.68}
+.lg-sample-card h3{margin:0 0 8px;font-size:21px}
+.lg-sample-card p{margin:0;line-height:1.65}
+.lg-mobile-bar{display:none}
+@media(max-width:760px){
+  body{padding-bottom:82px}
+  .lg-quick{grid-template-columns:1fr 1fr}
+  .lg-quick-wrap{padding:0 16px;margin-top:14px}
+  .lg-fact{padding:12px}
+  .lg-sample-grid{grid-template-columns:1fr}
+  .lg-product-cover{padding:7px;border-radius:20px}
+  .lg-product-cover img{border-radius:15px}
+  .lg-mobile-bar{position:fixed;display:flex;left:10px;right:10px;bottom:10px;z-index:9000;background:#fff;border:1px solid rgba(0,0,0,.11);border-radius:18px;padding:10px 11px;box-shadow:0 14px 45px rgba(0,0,0,.22);align-items:center;justify-content:space-between;gap:10px}
+  .lg-mobile-copy{min-width:0}
+  .lg-mobile-copy strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+  .lg-mobile-copy span{font-size:12px;color:#65716b}
+  .lg-mobile-buy{border:0;border-radius:999px;padding:12px 18px;background:var(--buy,#0d9b61);color:#fff;font-weight:900;white-space:nowrap;cursor:pointer}
+}
 </style>
 <!-- Meta Pixel Code -->
 <script>
@@ -96,12 +128,21 @@ alt=""
       </div>
       <div class="trust">Digital product • 22-page launch edition • Worldwide orders supported • Delivered after payment confirmation.</div>
     </div>
-    <div class="cover">
-      <div><div class="mini">LOCAL GROWTH</div><h2>30-DAY INSTAGRAM &<br>WHATSAPP GROWTH KIT</h2></div>
-      <div><div class="big">30</div><p>Days of content, conversations, hooks, CTAs and sales follow-up.</p></div>
+    <div class="lg-product-cover">
+      <img src="/file_00000000561482108621f030f8c50a24.png?v=2" alt="30-Day Instagram and WhatsApp Growth Kit" fetchpriority="high" decoding="async">
+      <div class="lg-cover-note">30 days • hooks • captions • WhatsApp replies • AI prompts</div>
     </div>
   </div>
 </section>
+
+<div class="lg-quick-wrap" aria-label="Product quick facts">
+  <div class="lg-quick">
+    <div class="lg-fact"><b>Price</b><span>$9 one-time</span></div>
+    <div class="lg-fact"><b>Format</b><span>22-page digital PDF</span></div>
+    <div class="lg-fact"><b>Plan</b><span>30 days of actions</span></div>
+    <div class="lg-fact"><b>Includes</b><span>Hooks + replies + AI prompts</span></div>
+  </div>
+</div>
 
 <section>
   <div class="wrap">
@@ -124,6 +165,17 @@ alt=""
       <div class="item"><div>STEP 01</div><h3>Get attention</h3><p>Use clear hooks, useful content and simple visual ideas.</p></div>
       <div class="item"><div>STEP 02</div><h3>Start a conversation</h3><p>Use CTAs and WhatsApp replies that move interested people forward naturally.</p></div>
       <div class="item"><div>STEP 03</div><h3>Track the sale</h3><p>Measure inquiries, payment requests and purchases instead of likes alone.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="lg-sample-section">
+  <div class="lg-sample-inner">
+    <div class="section-title"><h2>See how practical the kit gets.</h2><p>Real examples of the type of action you work through inside the 30-day system.</p></div>
+    <div class="lg-sample-grid">
+      <div class="lg-sample-card"><small>Day 19 • WhatsApp tip</small><h3>Use a reply framework</h3><p>Acknowledge → clarify → recommend → next step, so interested buyers are not lost before price even comes up.</p></div>
+      <div class="lg-sample-card"><small>Day 23 • Objection</small><h3>Follow up without pressure</h3><p>Use one respectful follow-up when someone says “I need to think about it,” then give them space instead of chasing.</p></div>
+      <div class="lg-sample-card"><small>Day 30 • Review</small><h3>Measure the sales path</h3><p>Review what sold, what created replies, which objections repeated and where prospects stopped before planning the next month.</p></div>
     </div>
   </div>
 </section>
@@ -302,5 +354,10 @@ alt=""
   });
 })();
 </script>
+
+<div class="lg-mobile-bar" style="--buy:#0d9b61">
+  <div class="lg-mobile-copy"><strong>30-Day Growth Kit</strong><span>$9 • one-time</span></div>
+  <button type="button" class="lg-mobile-buy pay-choice-btn" data-product="30-Day Instagram & WhatsApp Growth Kit" data-price="9" onclick="openPaymentChoice(this)">Pay $9</button>
+</div>
 </body>
 </html>
