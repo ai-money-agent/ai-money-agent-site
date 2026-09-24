@@ -352,7 +352,12 @@ alt=""
     <div class="pay-method">
       <h4>🌍 International Payment Link</h4>
       <p>Use this option outside Lebanon or whenever you prefer the international payment link.</p>
-      <a class="btn" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">Open Payment Link</a>
+      <a class="btn" id="productInternationalPaymentLink" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener" onclick="showProductInternationalConfirmation()">Open Payment Link</a>
+      <div id="productInternationalReturn" style="display:none;margin-top:14px;padding:14px;border-radius:14px;background:#edf9f3;border:1px solid #cfeadb">
+        <strong>After you complete the payment</strong>
+        <p style="margin:6px 0 10px;color:#35604b">Return to this page and tap the button below. WhatsApp will open with a ready message so you can send your payment confirmation and receive your files.</p>
+        <a class="btn" id="productInternationalConfirm" href="#" target="_blank" rel="noopener">I Paid — Confirm on WhatsApp</a>
+      </div>
     </div>
   </div>
 </div>
@@ -362,6 +367,8 @@ alt=""
   var productPaymentName = document.getElementById('productPaymentName');
   var productPaymentPrice = document.getElementById('productPaymentPrice');
   var productWhishConfirm = document.getElementById('productWhishConfirm');
+  var productInternationalReturn = document.getElementById('productInternationalReturn');
+  var productInternationalConfirm = document.getElementById('productInternationalConfirm');
 
   function openPaymentChoice(button){
     var product = button.getAttribute('data-product') || 'Digital Product';
@@ -370,6 +377,9 @@ alt=""
     productPaymentPrice.textContent = 'USD ' + price;
     var message = 'Hi Local Growth, I paid USD ' + price + ' via Whish Money for ' + product + '. I will send the payment confirmation here.';
     productWhishConfirm.href = 'https://wa.me/96171226625?text=' + encodeURIComponent(message);
+    var internationalMessage = 'Hi Local Growth, I completed the international payment of USD ' + price + ' for ' + product + '. I will send the payment confirmation here.';
+    productInternationalConfirm.href = 'https://wa.me/96171226625?text=' + encodeURIComponent(internationalMessage);
+    productInternationalReturn.style.display = 'none';
     productPaymentModal.classList.add('open');
     productPaymentModal.setAttribute('aria-hidden','false');
   }
@@ -377,6 +387,13 @@ alt=""
   function closePaymentChoice(){
     productPaymentModal.classList.remove('open');
     productPaymentModal.setAttribute('aria-hidden','true');
+  }
+
+  function showProductInternationalConfirmation(){
+    productInternationalReturn.style.display = 'block';
+    setTimeout(function(){
+      productInternationalReturn.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }, 250);
   }
 
   function copyProductWhish(){
