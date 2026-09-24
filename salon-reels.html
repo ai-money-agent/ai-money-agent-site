@@ -47,6 +47,8 @@ body{margin:0;background:var(--cream);color:var(--ink);font-family:Arial,sans-se
 .cta .btn{background:var(--rose)}
 footer{text-align:center;padding:30px;font-size:13px}
 .ar{direction:rtl;text-align:right}
+.hero-ar{direction:rtl;text-align:right}
+.hero-ar .btn{margin-left:8px;margin-right:0}
 .product-mockup{min-height:520px;border-radius:24px;box-shadow:0 24px 60px #463a3030;background:linear-gradient(145deg,#25211f,#6d4c47);color:#fff;padding:48px 38px;display:flex;flex-direction:column;justify-content:space-between;text-align:center}
 .product-mockup .mini{letter-spacing:4px;font-size:12px;color:#f1c9c2}
 .product-mockup strong{font-family:Georgia,serif;font-size:52px;line-height:1}
@@ -131,19 +133,19 @@ alt=""
 <div class="wrap">
 <div class="nav">
 <span>LOCAL GROWTH</span>
-<a href="/global.html">Back to Store</a>
+<a href="/#salon-kit">العودة إلى المتجر</a>
 </div>
 
 <main class="hero">
-<div>
-<div class="eyebrow">FOR SALONS • NAILS • LASHES • BEAUTY PROS</div>
-<h1>Turn salon clips into booking conversations.</h1>
-<p class="lead">A complete 30-day Reel system you can film without showing your face—each day includes the hook, shots, screen text, caption and call to action.</p>
-<div class="price">Launch price: $9</div>
-<div class="small">One-time purchase • Digital product • Delivered after payment verification</div>
-<button type="button" class="btn pay-choice-btn" style="border:0;cursor:pointer;background:var(--rose)" data-product="No-Face Salon Reels Kit" data-price="9" onclick="openPaymentChoice(this)">Pay $9 Now</button>
-<a class="btn" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%20have%20a%20question%20about%20the%20No-Face%20Salon%20Reels%20Kit%20%28%249%29." target="_blank" rel="noopener">Ask on WhatsApp</a>
-<div class="payment-note"><strong>Lebanon:</strong> pay with Whish Money. <strong>Worldwide:</strong> use the international payment link. After payment, send your confirmation on WhatsApp and we deliver the digital files.</div>
+<div class="hero-ar" lang="ar">
+<div class="eyebrow">للصالونات • الأظافر • الرموش • خبراء التجميل</div>
+<h1>حزمة 30 يوم Reels للصالونات — بدون إظهار الوجه</h1>
+<p class="lead">أفكار Reels جاهزة، Hooks، نصوص، Captions، ردود WhatsApp وخطة تصوير تساعدك تنشري باستمرار وتحوّلي المحتوى إلى محادثات حجز.</p>
+<div class="price">$9 فقط</div>
+<div class="small">دفعة واحدة • منتج رقمي • الاستلام بعد تأكيد الدفع</div>
+<button type="button" class="btn pay-choice-btn" style="border:0;cursor:pointer;background:var(--rose)" data-product="حزمة 30 يوم Reels للصالونات" data-product-en="No-Face Salon Reels Kit" data-price="9" onclick="openPaymentChoice(this)">اطلبي الحزمة الآن بـ 9$</button>
+<a class="btn" href="https://wa.me/96171226625?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%20Local%20Growth%D8%8C%20%D9%84%D8%AF%D9%8A%20%D8%B3%D8%A4%D8%A7%D9%84%20%D8%B9%D9%86%20%D8%AD%D8%B2%D9%85%D8%A9%20Reels%20%D9%84%D9%84%D8%B5%D8%A7%D9%84%D9%88%D9%86%D8%A7%D8%AA%20%D8%A8%D8%B3%D8%B9%D8%B1%209%24." target="_blank" rel="noopener">اسألي على واتساب</a>
+<div class="payment-note"><strong>لبنان:</strong> الدفع عبر Whish Money. <strong>خارج لبنان:</strong> استخدمي رابط الدفع الدولي. بعد تأكيد الدفع نرسل لك الملفات الرقمية.</div>
 </div>
 
 <div class="lg-product-cover">
@@ -299,27 +301,27 @@ Includes inquiry and WhatsApp replies, plus a sales tracker.
 <div class="pay-choice-modal" id="productPaymentModal" aria-hidden="true">
   <div class="pay-choice-box" role="dialog" aria-modal="true" aria-labelledby="productPaymentTitle">
     <button type="button" class="pay-choice-close" onclick="closePaymentChoice()" aria-label="Close">×</button>
-    <h3 id="productPaymentTitle">Choose payment method</h3>
-    <div class="pay-choice-sub"><span id="productPaymentName"></span> — <strong id="productPaymentPrice"></strong><br><span dir="rtl">اختر طريقة الدفع المناسبة</span></div>
+    <h3 id="productPaymentTitle">اختاري طريقة الدفع</h3>
+    <div class="pay-choice-sub"><span id="productPaymentName"></span> — <strong id="productPaymentPrice"></strong></div>
 
-    <div class="pay-method">
-      <h4>🇱🇧 Whish Money — Lebanon</h4>
-      <p>Send the amount to the number below, then send your payment confirmation on WhatsApp.</p>
+    <div class="pay-method" dir="rtl" lang="ar">
+      <h4>🇱🇧 Whish Money — لبنان</h4>
+      <p>حوّلي 9$ على الرقم أدناه، ثم اضغطي «أرسلت 9$ عبر Whish» لإرسال الإيصال على واتساب.</p>
       <div class="pay-whish">71 226 625</div>
       <div class="pay-method-actions">
-        <button type="button" class="pay-copy" onclick="copyProductWhish()">Copy number</button>
-        <a class="btn" id="productWhishConfirm" href="#" target="_blank" rel="noopener">I Paid via Whish — Send Receipt</a>
+        <button type="button" class="pay-copy" onclick="copyProductWhish()">نسخ الرقم</button>
+        <a class="btn" id="productWhishConfirm" href="#" target="_blank" rel="noopener">أرسلت 9$ عبر Whish</a>
       </div>
     </div>
 
-    <div class="pay-method">
-      <h4>🌍 International Payment Link</h4>
-      <p>Use this option outside Lebanon or whenever you prefer the international payment link. Delivery happens only after payment verification.</p>
-      <a class="btn" id="productInternationalPaymentLink" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener" onclick="showProductInternationalConfirmation()">Open Payment Link</a>
+    <div class="pay-method" dir="rtl" lang="ar">
+      <h4>🌍 الدفع الدولي</h4>
+      <p>للعملاء خارج لبنان أو لمن يفضّل رابط الدفع الدولي.</p>
+      <a class="btn" id="productInternationalPaymentLink" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener" onclick="showProductInternationalConfirmation()">فتح رابط الدفع الدولي</a>
       <div id="productInternationalReturn" style="display:none;margin-top:14px;padding:14px;border-radius:14px;background:#edf9f3;border:1px solid #cfeadb">
-        <strong>Payment completed?</strong>
-        <p style="margin:6px 0 10px;color:#35604b">Send your receipt on WhatsApp so we can verify the payment and deliver your files.</p>
-        <a class="btn" id="productInternationalConfirm" href="#" target="_blank" rel="noopener">I Paid — Send Receipt on WhatsApp</a>
+        <strong>أكملتِ الدفع؟</strong>
+        <p style="margin:6px 0 10px;color:#35604b">أرسلي الإيصال على واتساب حتى نؤكد الدفع ونرسل لك الملفات.</p>
+        <a class="btn" id="productInternationalConfirm" href="#" target="_blank" rel="noopener">أرسلت الدفع — إرسال الإيصال على واتساب</a>
       </div>
     </div>
   </div>
@@ -334,15 +336,27 @@ Includes inquiry and WhatsApp replies, plus a sales tracker.
   var productInternationalConfirm = document.getElementById('productInternationalConfirm');
 
   function openPaymentChoice(button){
-    var product = button.getAttribute('data-product') || 'Digital Product';
-    var price = button.getAttribute('data-price') || '';
+    var product = button.getAttribute('data-product') || 'حزمة 30 يوم Reels للصالونات';
+    var productEn = button.getAttribute('data-product-en') || 'No-Face Salon Reels Kit';
+    var price = button.getAttribute('data-price') || '9';
     productPaymentName.textContent = product;
     productPaymentPrice.textContent = 'USD ' + price;
-    var message = 'Hi Local Growth, I completed the Whish Money payment of USD ' + price + ' for ' + product + '. I will send my payment receipt or transaction confirmation here for verification.';
+    var message = 'مرحباً Local Growth، دفعت ' + price + '$ عبر Whish مقابل ' + product + '. سأرسل إيصال الدفع هنا للتأكيد.';
     productWhishConfirm.href = 'https://wa.me/96171226625?text=' + encodeURIComponent(message);
-    var internationalMessage = 'Hi Local Growth, I completed the international payment of USD ' + price + ' for ' + product + '. I will send my payment receipt or transaction confirmation here for verification.';
+    var internationalMessage = 'مرحباً Local Growth، أكملت الدفع الدولي بقيمة ' + price + '$ مقابل ' + product + '. سأرسل إيصال الدفع هنا للتأكيد.';
     productInternationalConfirm.href = 'https://wa.me/96171226625?text=' + encodeURIComponent(internationalMessage);
     productInternationalReturn.style.display = 'none';
+
+    if (typeof fbq === 'function') {
+      fbq('track', 'InitiateCheckout', {
+        content_name: productEn,
+        content_ids: ['salon-reels-kit'],
+        content_type: 'product',
+        value: parseFloat(price || '0'),
+        currency: 'USD'
+      });
+    }
+
     productPaymentModal.classList.add('open');
     productPaymentModal.setAttribute('aria-hidden','false');
   }
@@ -386,18 +400,6 @@ Includes inquiry and WhatsApp replies, plus a sales tracker.
     currency: 'USD'
   });
   document.addEventListener('click', function(e){
-    var pay = e.target.closest ? e.target.closest('.pay-btn, .pay-choice-btn') : null;
-    if (pay && typeof fbq === 'function') {
-      var name = pay.getAttribute('data-product') || document.title;
-      var price = parseFloat(pay.getAttribute('data-price') || '0');
-      fbq('track', 'InitiateCheckout', {
-        content_name: name,
-        content_type: 'product',
-        value: price,
-        currency: 'USD'
-      });
-    }
-
     var link = e.target.closest ? e.target.closest('a[href*="wa.me/"]') : null;
     if (link && typeof fbq === 'function') {
       fbq('track', 'Contact', {
@@ -408,9 +410,9 @@ Includes inquiry and WhatsApp replies, plus a sales tracker.
 })();
 </script>
 
-<div class="lg-mobile-bar" style="--buy:#b87970">
-  <div class="lg-mobile-copy"><strong>No-Face Salon Reels Kit</strong><span>$9 • one-time</span></div>
-  <button type="button" class="lg-mobile-buy pay-choice-btn" data-product="No-Face Salon Reels Kit" data-price="9" onclick="openPaymentChoice(this)">Pay $9</button>
+<div class="lg-mobile-bar" style="--buy:#b87970" dir="rtl" lang="ar">
+  <div class="lg-mobile-copy"><strong>حزمة Reels للصالونات</strong><span>9$ • دفعة واحدة</span></div>
+  <button type="button" class="lg-mobile-buy pay-choice-btn" data-product="حزمة 30 يوم Reels للصالونات" data-product-en="No-Face Salon Reels Kit" data-price="9" onclick="openPaymentChoice(this)">اطلبي بـ 9$</button>
 </div>
 </body>
 </html>
