@@ -1,715 +1,293 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>Local Growth | نمو مشروعك وإدارة إعلاناتك</title>
-
-  <meta name="description"
-        content="Local Growth تساعد أصحاب الأعمال على إنشاء وإدارة الحملات الإعلانية وتحويل المشاهدات إلى عملاء حقيقيين.">
-
+  <title>Local Growth | Practical Digital Products for Small Businesses & Creators</title>
+  <meta name="description" content="Practical digital guides and ready-to-use kits for small businesses and creators. Browse GuestFlow, digital product guides, Instagram & WhatsApp growth tools, and salon Reels kits.">
+  <link rel="canonical" href="https://alocalgrowth.org/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Local Growth | Practical Digital Products">
+  <meta property="og:description" content="Ready-to-use digital guides and kits for small businesses and creators, starting from $9.">
+  <meta property="og:url" content="https://alocalgrowth.org/">
+  <meta property="og:image" content="https://alocalgrowth.org/Local-Growth-Store-Cover-Approved-2.webp?v=3">
+  <meta name="twitter:card" content="summary_large_image">
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: Arial, Tahoma, sans-serif;
-      background: #f5f7f6;
-      color: #18201d;
-      line-height: 1.7;
-    }
-
-    a {
-      text-decoration: none;
-    }
-
-    header {
-      background: #ffffff;
-      padding: 18px 7%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 18px;
-      border-bottom: 1px solid #e7e7e7;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      direction: ltr;
-    }
-
-    .logo {
-      font-size: 25px;
-      font-weight: 800;
-      color: #111;
-      direction: ltr;
-      white-space: nowrap;
-    }
-
-    .logo span {
-      color: #0d9b61;
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      direction: ltr;
-    }
-
-    .global-link {
-      color: #087849;
-      font-weight: bold;
-      white-space: nowrap;
-    }
-
-    .top-button {
-      background: #12a866;
-      color: white;
-      padding: 10px 18px;
-      border-radius: 30px;
-      font-weight: bold;
-      white-space: nowrap;
-    }
-
-    .hero {
-      min-height: 620px;
-      padding: 75px 7%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      background:
-        radial-gradient(circle at top right, #dff8eb, transparent 35%),
-        linear-gradient(135deg, #ffffff, #f0f8f4);
-    }
-
-    .hero-content {
-      max-width: 850px;
-    }
-
-    .badge {
-      display: inline-block;
-      background: #dcf8e9;
-      color: #087c4b;
-      padding: 8px 18px;
-      border-radius: 30px;
-      font-weight: bold;
-      margin-bottom: 22px;
-    }
-
-    h1 {
-      font-size: 52px;
-      line-height: 1.2;
-      margin-bottom: 22px;
-    }
-
-    h1 span {
-      color: #0b9c5e;
-    }
-
-    .hero p {
-      font-size: 21px;
-      color: #55605b;
-      max-width: 720px;
-      margin: auto;
-    }
-
-    .offer {
-      margin: 30px auto 0;
-      max-width: 650px;
-      background: #121816;
-      color: white;
-      border-radius: 22px;
-      padding: 24px;
-    }
-
-    .offer small {
-      color: #aee7c9;
-      font-size: 15px;
-    }
-
-    .offer h2 {
-      font-size: 30px;
-      margin: 5px 0;
-    }
-
-    .offer strong {
-      color: #50e69a;
-    }
-
-    .cta {
-      display: inline-block;
-      margin-top: 28px;
-      background: #10ad65;
-      color: #fff;
-      font-size: 20px;
-      font-weight: bold;
-      padding: 15px 30px;
-      border-radius: 50px;
-      box-shadow: 0 10px 25px rgba(16,173,101,.25);
-    }
-
-    section {
-      padding: 70px 7%;
-    }
-
-    .section-title {
-      text-align: center;
-      max-width: 760px;
-      margin: 0 auto 40px;
-    }
-
-    .section-title h2 {
-      font-size: 36px;
-      margin-bottom: 10px;
-    }
-
-    .section-title p {
-      color: #69716d;
-    }
-
-    .products {
-      background: #ffffff;
-    }
-
-    .cards {
-      max-width: 1100px;
-      margin: auto;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
-
-    .card {
-      background: white;
-      padding: 28px;
-      border-radius: 20px;
-      border: 1px solid #e8eeeb;
-      box-shadow: 0 8px 30px rgba(0,0,0,.04);
-    }
-
-    .products .card {
-      background: #f9fbfa;
-    }
-
-    .icon {
-      font-size: 32px;
-      margin-bottom: 12px;
-    }
-
-    .card h3 {
-      margin-bottom: 8px;
-      font-size: 21px;
-    }
-
-    .card p {
-      color: #65706a;
-      font-size: 16px;
-    }
-
-    .price {
-      font-size: 29px;
-      font-weight: 900;
-      color: #0b9159;
-      margin: 14px 0;
-      direction: ltr;
-      text-align: right;
-    }
-
-    .product-button {
-      display: inline-block;
-      background: #10a864;
-      color: white;
-      font-weight: 800;
-      padding: 11px 18px;
-      border-radius: 999px;
-      margin-top: 10px;
-    }
-
-    .product-note {
-      font-size: 13px !important;
-      margin-top: 12px;
-      color: #74807a !important;
-    }
-
-    .payment-strip {
-      max-width: 900px;
-      margin: 30px auto 0;
-      text-align: center;
-      background: #edf9f3;
-      border: 1px solid #cfeadb;
-      border-radius: 18px;
-      padding: 16px 20px;
-      color: #35604b;
-    }
-
-    .paths {
-      background: #102019;
-      color: white;
-    }
-
-    .paths .section-title p {
-      color: #bad0c4;
-    }
-
-    .path-grid {
-      max-width: 950px;
-      margin: auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-
-    .path {
-      background: #192d24;
-      padding: 30px;
-      border-radius: 20px;
-    }
-
-    .path h3 {
-      color: #5be39d;
-      font-size: 24px;
-      margin-bottom: 10px;
-    }
-
-    .steps {
-      max-width: 850px;
-      margin: auto;
-    }
-
-    .step {
-      display: flex;
-      gap: 18px;
-      margin-bottom: 25px;
-      background: white;
-      padding: 22px;
-      border-radius: 18px;
-    }
-
-    .number {
-      min-width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: #12a866;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-    }
-
-    .final {
-      background: linear-gradient(135deg, #0b9c5e, #087849);
-      color: white;
-      text-align: center;
-      border-radius: 30px;
-      max-width: 1050px;
-      margin: 40px auto;
-      padding: 55px 25px;
-    }
-
-    .final h2 {
-      font-size: 38px;
-      margin-bottom: 12px;
-    }
-
-    .final .cta {
-      background: white;
-      color: #087849;
-    }
-
-    footer {
-      text-align: center;
-      padding: 35px 20px;
-      color: #6c746f;
-      background: white;
-    }
-
-    .policy-links {
-      margin: 18px 0;
-      line-height: 2;
-    }
-
-    .policy-links a {
-      color: #087849;
-      font-weight: bold;
-      margin: 0 6px;
-    }
-
-    @media(max-width: 800px) {
-      h1 {
-        font-size: 38px;
-      }
-
-      .hero {
-        padding: 55px 20px;
-        min-height: auto;
-      }
-
-      .hero p {
-        font-size: 18px;
-      }
-
-      .cards,
-      .path-grid {
-        grid-template-columns: 1fr;
-      }
-
-      section {
-        padding: 55px 20px;
-      }
-
-      .section-title h2 {
-        font-size: 30px;
-      }
-
-      header {
-        padding: 12px 14px;
-        gap: 10px;
-      }
-
-      .logo {
-        font-size: 19px;
-      }
-
-      .header-actions {
-        gap: 8px;
-      }
-
-      .global-link {
-        font-size: 12px;
-      }
-
-      .top-button {
-        font-size: 12px;
-        padding: 8px 10px;
-      }
-    }
-
-    @media(max-width: 430px) {
-      header {
-        flex-wrap: wrap;
-      }
-
-      .logo {
-        width: 100%;
-        text-align: left;
-      }
-
-      .header-actions {
-        width: 100%;
-        justify-content: space-between;
-      }
-
-      .global-link,
-      .top-button {
-        font-size: 12px;
-      }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,Helvetica,sans-serif;background:#f5f7f6;color:#17201c;line-height:1.65}
+    a{text-decoration:none}
+    header{background:#fff;padding:16px 6%;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e7ece9;position:sticky;top:0;z-index:20}
+    .logo{font-size:24px;font-weight:800;color:#111}.logo span{color:#0d9b61}
+    nav{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    .navlink{color:#087849;font-weight:700;font-size:14px}
+    .btn{display:inline-block;background:#10a864;color:#fff;padding:12px 20px;border-radius:999px;font-weight:800}
+    .hero{padding:18px 5% 0;background:#fff}
+    .hero-image-shell{max-width:1180px;margin:auto;border-radius:24px;overflow:hidden;box-shadow:0 14px 42px rgba(0,0,0,.08);border:1px solid #e7ece9}
+    .hero-image-shell img{display:block;width:100%;height:auto}
+    .trust{font-size:14px;color:#69736e;margin-top:14px}
+    section{padding:68px 7%}.section-title{text-align:center;max-width:760px;margin:0 auto 36px}.section-title h2{font-size:36px;margin-bottom:10px}.section-title p{color:#68716d}
+    .cards{max-width:1120px;margin:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+    .card{background:#fff;border:1px solid #e5ece8;border-radius:22px;padding:28px;box-shadow:0 8px 28px rgba(0,0,0,.04);overflow:hidden}.card.featured{border:2px solid #d2b061;box-shadow:0 14px 40px rgba(17,52,73,.12)}.product-image{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:16px;margin-bottom:18px;border:1px solid #e5ece8;display:block}.featured-badge{display:inline-block;background:#f7eed8;color:#7d6328;font-size:12px;font-weight:900;letter-spacing:.08em;padding:7px 11px;border-radius:999px;margin-bottom:10px}.card .btn{margin:4px 4px 4px 0}
+    .card .icon{font-size:32px;margin-bottom:10px}.card h3{font-size:22px;margin-bottom:8px}.card p{color:#64706a;margin-bottom:16px}
+    .price{font-size:30px;font-weight:900;color:#0b9159;margin:12px 0}.small{font-size:13px;color:#74807a}
+    .dark{background:#102019;color:#fff}.dark .section-title p{color:#bfd0c7}
+    .steps{max-width:900px;margin:auto;display:grid;gap:15px}.step{background:#1a2e25;border-radius:18px;padding:22px;display:flex;gap:16px}.num{min-width:42px;height:42px;border-radius:50%;background:#50df99;color:#0b3b27;display:flex;align-items:center;justify-content:center;font-weight:900}
+    .final{max-width:1050px;margin:45px auto;padding:54px 28px;text-align:center;background:linear-gradient(135deg,#0b9c5e,#087849);color:#fff;border-radius:28px}.final h2{font-size:38px;margin-bottom:10px}.final .btn{background:#fff;color:#087849;margin-top:20px}
+    footer{text-align:center;padding:34px 20px;background:#fff;color:#68716d}.policy-links{margin:14px 0}.policy-links a{color:#087849;font-weight:700;margin:0 6px}
+    .pay-btn{border:0;cursor:pointer;font:inherit}
+    .payment-modal{position:fixed;inset:0;background:rgba(4,18,12,.68);display:none;align-items:center;justify-content:center;padding:18px;z-index:999}
+    .payment-modal.open{display:flex}
+    .payment-box{width:min(470px,100%);background:#fff;border-radius:24px;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.28);position:relative}
+    .payment-close{position:absolute;top:12px;right:14px;border:0;background:#eef4f1;width:36px;height:36px;border-radius:50%;font-size:22px;cursor:pointer;color:#183226}
+    .payment-box h3{font-size:25px;margin:0 42px 4px 0}.payment-sub{color:#68716d;margin-bottom:18px}
+    .payment-option{border:1px solid #dfe9e4;border-radius:18px;padding:16px;margin-top:12px;background:#fafcfb}
+    .payment-option h4{font-size:18px;margin-bottom:5px}.payment-option p{color:#68716d;font-size:14px;margin-bottom:10px}
+    .whish-number{font-size:24px;font-weight:900;color:#087849;letter-spacing:.04em;margin:8px 0}
+    .payment-actions{display:flex;gap:8px;flex-wrap:wrap}.payment-actions .btn{margin:0}
+    .copy-btn{border:1px solid #0d9b61;background:#fff;color:#087849;padding:10px 14px;border-radius:999px;font-weight:800;cursor:pointer}
+    .product-desc{margin-bottom:12px}.product-desc p{margin-bottom:8px}
+    .lang-toggle{border:1px solid #b9d8c9;background:#fff;color:#087849;padding:7px 12px;border-radius:999px;font-weight:800;font-size:13px;cursor:pointer}
+    .desc-ar{text-align:right;direction:rtl;font-family:Arial,Helvetica,sans-serif}
+    @media(max-width:800px){
+      header{padding:14px 18px}.logo{font-size:20px}.navlink{display:none}.btn{font-size:14px;padding:10px 15px}
+      .hero{padding:10px 10px 0}.hero-image-shell{border-radius:14px}
+      section{padding:54px 20px}.cards{grid-template-columns:1fr}.section-title h2{font-size:30px}.final{margin:25px 18px;padding:42px 20px}.final h2{font-size:30px}
     }
   </style>
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1242686388040858');
+fbq('track', 'PageView');
+</script>
+<!-- End Meta Pixel Code -->
 </head>
-
 <body>
-
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=1242686388040858&ev=PageView&noscript=1"
+alt=""
+></noscript>
 <header>
-  <div class="logo">
-    Local <span>Growth</span>
-  </div>
-
-  <div class="header-actions">
-    <a class="global-link" href="/global.html">English / Global</a>
-
-    <a class="top-button"
-       href="https://wa.me/96171226625"
-       target="_blank">
-      WhatsApp
-    </a>
-  </div>
+  <div class="logo">Local <span>Growth</span></div>
+  <nav>
+    <a class="navlink" href="#products">Products</a>
+    <a class="navlink" href="#how-ordering">How It Works</a>
+    <a class="navlink" href="/arabic.html">العربية</a>
+  </nav>
 </header>
 
 <div class="hero">
-
-  <div class="hero-content">
-
-    <div class="badge">
-      🚀 حلول نمو لأصحاب الأعمال
-    </div>
-
-    <h1>
-      لا تدفع على الإعلانات فقط…
-      <br>
-      اجعلها <span>تجلب لك عملاء</span>
-    </h1>
-
-    <p>
-      Local Growth تساعدك على تجهيز حملاتك الإعلانية،
-      استهداف الجمهور المناسب، إنشاء المحتوى،
-      ومتابعة النتائج حتى تعرف أين يذهب كل دولار.
-    </p>
-
-    <div class="offer">
-      <small>🔥 عرض الإطلاق</small>
-
-      <h2>
-        ادفع إدارة شهر واحد
-        <br>
-        وخذ <strong>الشهر الثاني مجانًا</strong>
-      </h2>
-
-      <p>
-        العرض متاح لأول 5 عملاء فقط
-      </p>
-    </div>
-
-    <a class="cta"
-       href="https://wa.me/96171226625"
-       target="_blank">
-       💬 ابدأ الآن عبر WhatsApp
-    </a>
-
+  <div class="hero-image-shell">
+    <img src="/Local-Growth-Store-Cover-Approved-2.webp?v=3" alt="Local Growth — practical digital tools for small businesses and creators, starting from $9" fetchpriority="high" decoding="async">
   </div>
-
 </div>
 
-<section class="products">
+<section id="products">
   <div class="section-title">
-    <h2>منتجاتنا وخدماتنا</h2>
-    <p>
-      اختر ما يناسبك: منتج رقمي جاهز، موقع لمشروعك، محتوى وإعلانات، أو إدارة كاملة لمسار البيع.
-    </p>
+    <h2>Choose your digital product</h2>
+    <p>Ready-to-use digital guides and kits designed to save time, simplify marketing and help you take action faster.</p>
   </div>
-
   <div class="cards">
-
-    <div class="card">
-      <div class="icon">🌐</div>
-      <h3>موقع إلكتروني لمشروعك</h3>
-      <p>موقع احترافي ومتوافق مع الهاتف لعرض خدماتك أو منتجاتك، مع إمكانية الطلب والتواصل مباشرة عبر WhatsApp.</p>
-      <div class="price">ابتداءً من $100</div>
-      <a class="product-button"
-         href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%27m%20interested%20in%20the%20Business%20Website%20offer."
-         target="_blank">اطلب موقعك</a>
-      <a class="product-button" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">الدفع عبر Payment Link</a>
-    </div>
-
-    <div class="card">
-      <div class="icon">📘</div>
-      <h3>دليل بدء المنتج الرقمي</h3>
-      <p>دليل عملي يساعدك على إنشاء منتج رقمي باستخدام أدوات الذكاء الاصطناعي وتجهيزه للبيع عبر الإنترنت.</p>
+    <div class="card featured" id="guestflow">
+      <img class="product-image" loading="lazy" decoding="async" src="/file_00000000127081f48200e88763586d40.png" alt="GuestFlow Short-Term Rental Host Communication Kit">
+      <div class="featured-badge">NEW • FOR SHORT-TERM RENTAL HOSTS</div>
+      <h3>GuestFlow — Host Communication Kit</h3>
+      <div class="product-desc">
+        <p class="desc-en">42 ready-to-edit guest messages, a welcome-book builder, AI prompts and editable templates for independent short-term rental hosts and small property managers.</p>
+        <p class="desc-ar" dir="rtl" lang="ar" hidden>٤٢ رسالة جاهزة للتعديل للضيوف، ومنشئ دليل ترحيبي، وأوامر للذكاء الاصطناعي، وقوالب قابلة للتعديل، مخصصة لمضيفي الإيجارات قصيرة الأجل ومديري العقارات الصغيرة.</p>
+        <button class="lang-toggle" type="button" onclick="toggleDescription(this)">العربية</button>
+      </div>
       <div class="price">$15</div>
-      <a class="product-button" href="/digital-product-guide.html">شاهد صفحة الدليل</a>
-      <a class="product-button"
-         href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile"
-         target="_blank" rel="noopener">ادفع $15 عبر Payment Link</a>
-      <p class="product-note">ادفع الآن عبر الرابط، ثم أرسل لنا تأكيد الدفع على WhatsApp لنتحقق من العملية ونرسل لك الملف.</p>
+      <a class="btn" href="/guestflow.html">View GuestFlow</a>
+      <button class="btn pay-btn" data-product="GuestFlow — Host Communication Kit" data-price="15" onclick="openPayment(this)">Buy Now — $15</button>
+      <a class="btn" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%27m%20interested%20in%20GuestFlow%20%E2%80%94%20Host%20Communication%20Kit%20%28%2415%29." target="_blank" rel="noopener">Ask about GuestFlow</a>
+      <div class="small">Digital kit in English. After payment, message us on WhatsApp so we can verify the payment and deliver your files.</div>
     </div>
-
-    <div class="card">
-      <div class="icon">🎥</div>
-      <h3>No-Face Salon Reels Kit</h3>
-      <p>خطة 30 يومًا من أفكار Reels وHooks وCaptions وCTA وردود جاهزة للصالونات بدون الحاجة للظهور بالوجه.</p>
+    <div class="card" id="digital-guide">
+      <img class="product-image" loading="lazy" decoding="async" src="/file_00000000e32082108ff8574e3a1cc7f8.png?v=1" alt="Digital Product Launch Guide — English and Arabic versions available">
+      <h3>Digital Product Launch Guide</h3>
+      <div class="product-desc">
+        <p class="desc-en">A practical guide for creating your first digital product with AI and preparing it for online sales.</p>
+        <p class="desc-ar" dir="rtl" lang="ar" hidden>دليل عملي يساعدك على إنشاء أول منتج رقمي باستخدام الذكاء الاصطناعي وتجهيزه للبيع عبر الإنترنت.</p>
+        <button class="lang-toggle" type="button" onclick="toggleDescription(this)">العربية</button>
+      </div>
+      <div class="small" style="font-weight:900;color:#0b9159;margin:4px 0 10px">🌐 Available in English & Arabic</div>
+      <div class="price">$15</div>
+      <a class="btn" href="/digital-product-guide.html">English Version</a>
+      <a class="btn" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%20want%20the%20Arabic%20version%20of%20the%20Digital%20Product%20Launch%20Guide%20%28%2415%29." target="_blank" rel="noopener">Arabic Version</a>
+      <button class="btn pay-btn" data-product="Digital Product Launch Guide" data-price="15" onclick="openPayment(this)">Pay $15 Now</button>
+      <div class="small">One price, your choice of language. After payment, message us on WhatsApp and tell us whether you want the English or Arabic version.</div>
+    </div>
+    <div class="card" id="instagram-kit">
+      <img class="product-image" loading="lazy" decoding="async" src="/file_00000000561482108621f030f8c50a24.png?v=1" alt="30-Day Instagram and WhatsApp Growth Kit cover">
+      <h3>30-Day Instagram & WhatsApp Growth Kit</h3>
+      <div class="product-desc">
+        <p class="desc-en">A practical 30-day content and sales-conversation system with daily ideas, hooks, captions, WhatsApp replies, AI prompts and a simple ad test plan.</p>
+        <p class="desc-ar" dir="rtl" lang="ar" hidden>نظام عملي لمدة 30 يومًا للمحتوى ومحادثات البيع، يتضمن أفكارًا يومية، وافتتاحيات قوية، ونصوص منشورات، وردود واتساب، وأوامر للذكاء الاصطناعي، وخطة بسيطة لاختبار الإعلانات.</p>
+        <button class="lang-toggle" type="button" onclick="toggleDescription(this)">العربية</button>
+      </div>
       <div class="price">$9</div>
-      <a class="product-button" href="/salon-reels.html">شاهد الحزمة</a>
-      <a class="product-button" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">ادفع $9 عبر Payment Link</a>
-      <p class="product-note">ادفع الآن عبر الرابط، ثم أرسل لنا تأكيد الدفع على WhatsApp لنتحقق من العملية ونرسل لك الحزمة.</p>
+      <a class="btn" href="/instagram-whatsapp-growth-kit.html">View the Kit</a>
+      <button class="btn pay-btn" data-product="30-Day Instagram & WhatsApp Growth Kit" data-price="9" onclick="openPayment(this)">Pay $9 Now</button>
+      <a class="btn" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%27m%20interested%20in%20the%2030-Day%20Instagram%20%26%20WhatsApp%20Growth%20Kit%20%28%249%29." target="_blank" rel="noopener">Ask about this Kit</a>
+      <div class="small">Pay securely now. After payment, message us on WhatsApp so we can verify your payment and deliver the kit.</div>
     </div>
-
-    <div class="card">
-      <div class="icon">📣</div>
-      <h3>إعداد وإدارة الإعلانات</h3>
-      <p>نساعدك في هيكلة الحملة، الاستهداف، المحتوى الإعلاني، المتابعة والتحسين المستمر.</p>
-      <div class="price">حسب المشروع</div>
-      <a class="product-button"
-         href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%27m%20interested%20in%20advertising%20management."
-         target="_blank">اطلب عرضًا</a>
-      <a class="product-button" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">الدفع عبر Payment Link</a>
-      <p class="product-note">استخدم رابط الدفع بعد الاتفاق على السعر النهائي.</p>
+    <div class="card" id="salon-kit">
+      <img class="product-image" loading="lazy" decoding="async" src="/file_000000002d988210aa66797328080d80.png?v=1" alt="No-Face Salon Reels Kit cover">
+      <h3>No-Face Salon Reels Kit</h3>
+      <div class="product-desc">
+        <p class="desc-en">30 days of Reel ideas, hooks, scripts, captions, CTAs and WhatsApp replies for salons that want content without showing their face.</p>
+        <p class="desc-ar" dir="rtl" lang="ar" hidden>30 يومًا من أفكار الريلز، والافتتاحيات، والسكريبتات، والكابتشن، وعبارات الحث على الإجراء، وردود واتساب للصالونات التي تريد صناعة محتوى من دون الظهور بالوجه.</p>
+        <button class="lang-toggle" type="button" onclick="toggleDescription(this)">العربية</button>
+      </div>
+      <div class="price">$9</div>
+      <a class="btn" href="/salon-reels.html">View the Kit</a>
+      <button class="btn pay-btn" data-product="No-Face Salon Reels Kit" data-price="9" onclick="openPayment(this)">Pay $9 Now</button>
+      <a class="btn" href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%27m%20interested%20in%20the%20No-Face%20Salon%20Reels%20Kit%20%28%249%29." target="_blank" rel="noopener">Ask about Salon Kit</a>
+      <div class="small">Pay securely now. After payment, message us on WhatsApp so we can verify your payment and deliver the kit.</div>
     </div>
-
-    <div class="card">
-      <div class="icon">🧠</div>
-      <h3>محتوى وReel Scripts بالذكاء الاصطناعي</h3>
-      <p>Hooks، Scripts، Shot Lists، Captions وCTA مصممة بحسب منتجك وجمهورك ولغتك.</p>
-      <div class="price">اسألنا</div>
-      <a class="product-button"
-         href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%20need%20AI%20content%20and%20Reel%20scripts."
-         target="_blank">اطلب محتوى</a>
-      <a class="product-button" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">الدفع عبر Payment Link</a>
-    </div>
-
-    <div class="card">
-      <div class="icon">💬</div>
-      <h3>دعم مسار البيع</h3>
-      <p>ننظم لك المسار من الإعلان أو المنشور إلى WhatsApp ثم الدفع والتسليم والمتابعة.</p>
-      <div class="price">حسب المشروع</div>
-      <a class="product-button"
-         href="https://wa.me/96171226625?text=Hi%20Local%20Growth%2C%20I%20need%20help%20with%20my%20sales%20funnel."
-         target="_blank">تحدث معنا</a>
-      <a class="product-button" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">الدفع عبر Payment Link</a>
-      <p class="product-note">استخدم رابط الدفع بعد الاتفاق على السعر النهائي.</p>
-    </div>
-
-  </div>
-
-  <div class="payment-strip">
-    داخل لبنان: Whish Money أو OMT حسب المنتج. للطلبات من خارج لبنان: نرسل رابط الدفع أو تعليمات الدفع المتاحة بعد تأكيد الطلب.
+    
   </div>
 </section>
 
-<section>
-
+<section class="dark" id="how-ordering">
   <div class="section-title">
-    <h2>ماذا نفعل لمشروعك؟</h2>
-    <p>
-      هدفنا ليس مجرد تشغيل إعلان، بل بناء حملة تساعد مشروعك على النمو.
-    </p>
+    <h2>How ordering works</h2>
+    <p>Four simple steps to get your digital product.</p>
   </div>
-
-  <div class="cards">
-
-    <div class="card">
-      <div class="icon">🎯</div>
-      <h3>استهداف الجمهور المناسب</h3>
-      <p>نحدد الجمهور الأقرب لخدمتك أو منتجك بدل إهدار الميزانية.</p>
-    </div>
-
-    <div class="card">
-      <div class="icon">📱</div>
-      <h3>تصميم الإعلان والمحتوى</h3>
-      <p>نجهز الرسالة الإعلانية والمحتوى الذي يشجع العميل على التواصل.</p>
-    </div>
-
-    <div class="card">
-      <div class="icon">📊</div>
-      <h3>متابعة النتائج</h3>
-      <p>نتابع الأداء ونعدل الحملة بدل ترك الإعلان يصرف المال بلا مراقبة.</p>
-    </div>
-
-    <div class="card">
-      <div class="icon">🎥</div>
-      <h3>محتوى وReels</h3>
-      <p>نساعدك في تجهيز أفكار وصناعة محتوى مناسب لنشاطك.</p>
-    </div>
-
-    <div class="card">
-      <div class="icon">💬</div>
-      <h3>تحويل الرسائل إلى فرص بيع</h3>
-      <p>نساعدك على تنظيم الردود ومتابعة العملاء المحتملين.</p>
-    </div>
-
-    <div class="card">
-      <div class="icon">📈</div>
-      <h3>تحسين مستمر</h3>
-      <p>نستخدم نتائج الحملة لمعرفة ما يعمل ونركز الميزانية عليه.</p>
-    </div>
-
-  </div>
-
-</section>
-
-<section class="paths">
-
-  <div class="section-title">
-    <h2>اختر الطريقة المناسبة لك</h2>
-    <p>أنت تقرر كيف تريد أن تعمل معنا.</p>
-  </div>
-
-  <div class="path-grid">
-
-    <div class="path">
-      <h3>🎓 تعلّم تعمل إعلاناتك بنفسك</h3>
-      <p>
-        نعمل معك عمليًا خطوة بخطوة حتى تتعلم تجهيز وإدارة حملاتك بنفسك.
-      </p>
-    </div>
-
-    <div class="path">
-      <h3>⚙️ نحن نتولى الحملة</h3>
-      <p>
-        إذا لا تريد تضييع وقتك، Local Growth تتولى إعداد وإدارة ومتابعة الحملة عنك.
-      </p>
-    </div>
-
-  </div>
-
-</section>
-
-<section>
-
-  <div class="section-title">
-    <h2>كيف نبدأ؟</h2>
-  </div>
-
   <div class="steps">
-
-    <div class="step">
-      <div class="number">1</div>
-      <div>
-        <h3>راسلنا على WhatsApp</h3>
-        <p>أخبرنا عن نوع مشروعك والخدمة أو المنتج الذي تريد الترويج له.</p>
-      </div>
-    </div>
-
-    <div class="step">
-      <div class="number">2</div>
-      <div>
-        <h3>نراجع وضعك الحالي</h3>
-        <p>نحدد ما تحتاجه وما إذا كان الإعلان مناسبًا لهدفك.</p>
-      </div>
-    </div>
-
-    <div class="step">
-      <div class="number">3</div>
-      <div>
-        <h3>نبدأ خطة النمو</h3>
-        <p>إما نعلمك التنفيذ عمليًا أو نتولى الحملة عنك.</p>
-      </div>
-    </div>
-
+    <div class="step"><div class="num">1</div><div><h3>Choose your digital product</h3><p>Select the guide or kit that fits what you want to achieve.</p></div></div>
+    <div class="step"><div class="num">2</div><div><h3>Choose your payment method</h3><p>Pay with Whish Money in Lebanon or use our international payment link.</p></div></div>
+    <div class="step"><div class="num">3</div><div><h3>Send payment confirmation</h3><p>Message us on WhatsApp with your payment confirmation so we can verify the order.</p></div></div>
+    <div class="step"><div class="num">4</div><div><h3>Receive your files</h3><p>Once payment is confirmed, your digital product is sent directly to you.</p></div></div>
   </div>
-
 </section>
 
 <div class="final">
-
-  <h2>مشروعك يستحق أن ينمو 🚀</h2>
-
-  <p>
-    احصل على تقييم أولي لمشروعك وابدأ معنا اليوم.
-  </p>
-
-  <a class="cta"
-     href="https://wa.me/96171226625"
-     target="_blank">
-     تواصل معنا عبر WhatsApp
-  </a>
-
+  <h2>Ready to choose your next digital tool?</h2>
+  <p>Browse our practical guides and kits designed to help you create, market and grow faster.</p>
+  <a class="btn" href="#products">Browse Products</a>
 </div>
 
 <footer>
-
-  <strong>Local Growth</strong>
-  <br>
-
+  <strong>Local Growth</strong><br>
   Grow Local • Reach More
-
   <div class="policy-links">
-    <a href="/terms.html">Terms & Conditions</a>
-    •
-    <a href="/refund-policy.html">Refund Policy</a>
-    <br>
-    <a href="/privacy-policy.html">Privacy Policy</a>
-    •
+    <a href="/terms.html">Terms & Conditions</a> •
+    <a href="/refund-policy.html">Refund Policy</a><br>
+    <a href="/privacy-policy.html">Privacy Policy</a> •
     <a href="/delivery-policy.html">Delivery Policy</a>
   </div>
-
   © 2026 Local Growth
-
 </footer>
 
+<div class="payment-modal" id="paymentModal" aria-hidden="true">
+  <div class="payment-box" role="dialog" aria-modal="true" aria-labelledby="paymentTitle">
+    <button class="payment-close" type="button" onclick="closePayment()" aria-label="Close">×</button>
+    <h3 id="paymentTitle">Choose payment method</h3>
+    <div class="payment-sub"><span id="paymentProduct"></span> — <strong id="paymentPrice"></strong></div>
+
+    <div class="payment-option">
+      <h4>🇱🇧 Whish Money — Lebanon</h4>
+      <p>Send the amount to this Whish Money number, then send your payment confirmation on WhatsApp.</p>
+      <div class="whish-number" id="whishNumber">71 226 625</div>
+      <div class="payment-actions">
+        <button class="copy-btn" type="button" onclick="copyWhish()">Copy number</button>
+        <a class="btn" id="whishConfirm" href="#" target="_blank" rel="noopener">Send confirmation</a>
+      </div>
+    </div>
+
+    <div class="payment-option">
+      <h4>🌍 International Payment Link</h4>
+      <p>For customers outside Lebanon or anyone who prefers the international payment link.</p>
+      <a class="btn" href="https://link.payoneer.com/Token?t=FAAEDF3688EA4E98B23CD8B03CA9758F&src=mobile" target="_blank" rel="noopener">Open Payment Link</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  var paymentModal = document.getElementById('paymentModal');
+  var paymentProduct = document.getElementById('paymentProduct');
+  var paymentPrice = document.getElementById('paymentPrice');
+  var whishConfirm = document.getElementById('whishConfirm');
+
+  function openPayment(button) {
+    var product = button.getAttribute('data-product') || 'Digital Product';
+    var price = button.getAttribute('data-price') || '';
+    paymentProduct.textContent = product;
+    paymentPrice.textContent = 'USD ' + price;
+    var msg = 'Hi Local Growth, I paid USD ' + price + ' via Whish Money for ' + product + '. I will send the payment confirmation here.';
+    whishConfirm.href = 'https://wa.me/96171226625?text=' + encodeURIComponent(msg);
+    paymentModal.classList.add('open');
+    paymentModal.setAttribute('aria-hidden', 'false');
+  }
+
+  function closePayment() {
+    paymentModal.classList.remove('open');
+    paymentModal.setAttribute('aria-hidden', 'true');
+  }
+
+  function toggleDescription(button) {
+    var box = button.closest('.product-desc');
+    var en = box.querySelector('.desc-en');
+    var ar = box.querySelector('.desc-ar');
+    var showArabic = ar.hidden;
+    ar.hidden = !showArabic;
+    en.hidden = showArabic;
+    button.textContent = showArabic ? 'English' : 'العربية';
+  }
+
+  function copyWhish() {
+    var number = '71226625';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(number).then(function() {
+        alert('Whish number copied: ' + number);
+      });
+    } else {
+      window.prompt('Copy Whish number:', number);
+    }
+  }
+
+  paymentModal.addEventListener('click', function(e) {
+    if (e.target === paymentModal) closePayment();
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closePayment();
+  });
+</script>
+
+<script>
+(function(){
+
+  document.addEventListener('click', function(e){
+    var pay = e.target.closest ? e.target.closest('.pay-btn, .pay-choice-btn') : null;
+    if (pay && typeof fbq === 'function') {
+      var name = pay.getAttribute('data-product') || document.title;
+      var price = parseFloat(pay.getAttribute('data-price') || '0');
+      fbq('track', 'InitiateCheckout', {
+        content_name: name,
+        content_type: 'product',
+        value: price,
+        currency: 'USD'
+      });
+    }
+
+    var link = e.target.closest ? e.target.closest('a[href*="wa.me/"]') : null;
+    if (link && typeof fbq === 'function') {
+      fbq('track', 'Contact', {
+        content_name: link.textContent ? link.textContent.trim() : 'WhatsApp'
+      });
+    }
+  });
+})();
+</script>
 </body>
 </html>
