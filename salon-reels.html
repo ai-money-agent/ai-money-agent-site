@@ -76,8 +76,26 @@ footer{text-align:center;padding:30px;font-size:13px}
 .pay-copy{border:1px solid #0d9b61;background:#fff;color:#087849;padding:10px 14px;border-radius:999px;font-weight:800;cursor:pointer}
 @media(max-width:600px){.pay-choice-box{padding:21px 17px}.pay-choice-box h3{font-size:22px}}
 </style>
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1242686388040858');
+fbq('track', 'PageView');
+</script>
+<!-- End Meta Pixel Code -->
 </head>
 <body>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=1242686388040858&ev=PageView&noscript=1"
+alt=""
+></noscript>
 <div class="wrap">
 <div class="nav">
 <span>LOCAL GROWTH</span>
@@ -300,6 +318,38 @@ Includes inquiry and WhatsApp replies, plus a sales tracker.
   document.addEventListener('keydown', function(e){
     if (e.key === 'Escape') closePaymentChoice();
   });
+</script>
+<script>
+(function(){
+
+  fbq('track', 'ViewContent', {
+    content_name: "No-Face Salon Reels Kit",
+    content_ids: ["salon-reels-kit"],
+    content_type: 'product',
+    value: 9,
+    currency: 'USD'
+  });
+  document.addEventListener('click', function(e){
+    var pay = e.target.closest ? e.target.closest('.pay-btn, .pay-choice-btn') : null;
+    if (pay && typeof fbq === 'function') {
+      var name = pay.getAttribute('data-product') || document.title;
+      var price = parseFloat(pay.getAttribute('data-price') || '0');
+      fbq('track', 'InitiateCheckout', {
+        content_name: name,
+        content_type: 'product',
+        value: price,
+        currency: 'USD'
+      });
+    }
+
+    var link = e.target.closest ? e.target.closest('a[href*="wa.me/"]') : null;
+    if (link && typeof fbq === 'function') {
+      fbq('track', 'Contact', {
+        content_name: link.textContent ? link.textContent.trim() : 'WhatsApp'
+      });
+    }
+  });
+})();
 </script>
 </body>
 </html>
