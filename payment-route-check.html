@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>فحص طريقة استلام الأموال | Local Growth</title>
+<style>
+:root{--bg:#f6f8f7;--card:#fff;--text:#15221b;--muted:#65736b;--green:#176b45;--line:#dce5df}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:var(--text)}
+.wrap{max-width:620px;margin:auto;padding:22px 16px 44px}.brand{text-align:center;color:var(--green);font-weight:800;font-size:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;margin-top:12px;box-shadow:0 8px 30px #0000000b}h1{font-size:25px;margin:0 0 8px}.lead{color:var(--muted);line-height:1.7;margin:0 0 20px}.q{margin:18px 0}.q label.title{display:block;font-weight:750;margin-bottom:9px}.opts{display:grid;gap:8px}.opt{border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#fff}.opt input{margin-left:8px}input[type=text],input[type=number],select{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px;font-size:16px;background:#fff;color:var(--text)}button{width:100%;border:0;border-radius:13px;padding:15px;background:var(--green);color:#fff;font-size:17px;font-weight:800;margin-top:8px}.note{font-size:13px;color:var(--muted);line-height:1.6;margin-top:15px}.success{display:none;text-align:center}.success h2{color:var(--green)}
+</style>
+</head><body><main class="wrap"><div class="brand">LOCAL GROWTH</div><section class="card" id="formCard"><h1>🇱🇧 فحص طريقة استلام الأموال</h1><p class="lead">جاوب على أسئلة قصيرة لنفهم حالتك ونراجع طرق استلام الأموال المناسبة لك في لبنان.</p>
+<form id="routeForm">
+<div class="q"><label class="title">1. من أين ستأتي الأموال؟</label><div class="opts">
+<label class="opt"><input required type="radio" name="source" value="عميل مباشر">عميل مباشر</label><label class="opt"><input type="radio" name="source" value="Upwork / Freelancer">Upwork / Freelancer أو منصة عمل</label><label class="opt"><input type="radio" name="source" value="منتجات رقمية">بيع منتجات رقمية</label><label class="opt"><input type="radio" name="source" value="Amazon / Shopify">Amazon / Shopify / متجر إلكتروني</label><label class="opt"><input type="radio" name="source" value="شركة أجنبية">شركة أجنبية</label></div></div>
+<div class="q"><label class="title" for="country">2. من أي دولة سيأتي الدفع؟</label><input required id="country" name="country" type="text" placeholder="مثال: الولايات المتحدة"></div>
+<div class="q"><label class="title" for="amount">3. كم المبلغ تقريبًا بالدولار؟</label><input required id="amount" name="amount" type="number" min="1" placeholder="مثال: 500"></div>
+<div class="q"><label class="title">4. كيف يريد الطرف الآخر أن يدفع؟</label><select required name="method"><option value="">اختر</option><option>Visa / Mastercard</option><option>PayPal</option><option>تحويل بنكي</option><option>من خلال منصة</option><option>لا أعرف</option></select></div>
+<div class="q"><label class="title">5. أنت تعمل كـ:</label><div class="opts"><label class="opt"><input required type="radio" name="status" value="فرد">فرد</label><label class="opt"><input type="radio" name="status" value="شركة مسجلة">شركة مسجلة</label></div></div>
+<div class="q"><label class="title">6. ماذا لديك حاليًا؟</label><select required name="available"><option value="">اختر الأقرب</option><option>حساب بنكي</option><option>Whish</option><option>OMT</option><option>Payoneer</option><option>أكثر من خيار</option><option>لا يوجد شيء مما سبق</option></select></div>
+<div class="q"><label class="title">7. هل المال موجود بالفعل؟</label><div class="opts"><label class="opt"><input required type="radio" name="stage" value="المال موجود وأريد سحبه">نعم، المال موجود وأريد سحبه</label><label class="opt"><input type="radio" name="stage" value="أجهز طريقة للاستلام">لا، أريد تجهيز طريقة للاستلام قبل البيع/العمل</label></div></div>
+<div class="q"><label class="title" for="platform">8. اسم المنصة إن وجدت (اختياري)</label><input id="platform" name="platform" type="text" placeholder="Upwork، Amazon، Shopify..."></div>
+<button type="submit">إرسال حالتي عبر WhatsApp</button><p class="note">🔒 لا نطلب كلمة مرور، رقم بطاقة، PIN أو رمز OTP. الخدمة تقارن المسارات والمتطلبات المتاحة؛ الموافقة النهائية على الحساب أو المعاملة تعود لمزود الخدمة.</p>
+</form></section><section class="card success" id="success"><h2>تم تجهيز بياناتك ✓</h2><p>سيتم فتح WhatsApp لإرسال الحالة إلى Local Growth.</p></section></main>
+<script>
+const phone='96171226625';
+document.getElementById('routeForm').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.target);const text=`مرحبا Local Growth، أريد فحص طريقة استلام الأموال.\n\n1) مصدر الأموال: ${f.get('source')}\n2) دولة الدفع: ${f.get('country')}\n3) المبلغ التقريبي: $${f.get('amount')}\n4) طريقة الدفع: ${f.get('method')}\n5) الصفة: ${f.get('status')}\n6) المتوفر حاليًا: ${f.get('available')}\n7) المرحلة: ${f.get('stage')}\n8) المنصة: ${f.get('platform')||'لا يوجد/غير محدد'}`;document.getElementById('formCard').style.display='none';document.getElementById('success').style.display='block';window.location.href=`https://wa.me/${phone}?text=${encodeURIComponent(text)}`;});
+</script></body></html>
