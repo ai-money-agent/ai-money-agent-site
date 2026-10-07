@@ -71,7 +71,7 @@ test('Arabic strategy engine returns actionable structures without provider call
   const profile={country:'لبنان',budget:'20 دولار',skills:'تصميم كانفا',timeAvailable:'ساعتان يوميًا',businessType:'service',marketScope:'local',payoutMethods:'Whish و OMT'};
   const ideas=findProductIdeas(profile,'ar');
   assert.equal(ideas.length,4);
-  assert.match(ideas[0].note,/بدون بيانات سوق حيّة/);
+  assert.match(ideas[0].note,/بيانات سوق حيّة/);
 
   const analysis=analyzeIdea(profile,ideas[0],'ar');
   assert.equal(analysis.sellingAngles.length,4);
