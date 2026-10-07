@@ -56,7 +56,7 @@ try {
   const readyBefore = await (await get('/api/health/ready')).json();
   assert.equal(readyBefore.status,'ready');
   const healthBefore = await (await get('/api/health')).json();
-  assert.equal(healthBefore.version,'0.6.0');
+  assert.equal(healthBefore.version,'0.7.0');
   assert.equal(healthBefore.generationCost,2);
   assert.equal(healthBefore.demoGenerationCost,0);
   assert.equal(healthBefore.demoAvailable,true);
