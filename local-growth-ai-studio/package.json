@@ -1,11 +1,13 @@
 {
   "name": "local-growth-ai-studio",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node --env-file-if-exists=.env server.js",
-    "test": "node --test tests/core.test.mjs tests/ui-static.test.mjs tests/frontend.test.mjs && node tests/smoke.mjs"
+    "test": "node --check server.js && node --check public/v2.js && node --test tests/core.test.mjs tests/ui-static.test.mjs tests/frontend.test.mjs tests/v2.test.mjs && node tests/smoke.mjs"
   },
-  "engines": { "node": ">=24" }
+  "engines": {
+    "node": ">=24"
+  }
 }

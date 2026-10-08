@@ -1,3 +1,31 @@
+# Local Growth AI Studio V2 — business partner workspace
+
+V2 extends the existing creative beta instead of replacing its backend. Open `/v2` to use the new mobile-first business workspace.
+
+## What works without a paid API
+
+- Create a persistent business project from country, budget, skills, time, business model, market scope and payout methods.
+- Rank executable product/service/ecommerce ideas with an explicit execution-fit score.
+- Analyze an idea, customer problems, pricing guidance, selling angles, differentiation and a validation plan.
+- Build and save a smallest-sellable product blueprint: name, audience, problem, outcome, USP, price, offer, bonus, refund policy and delivery.
+- Generate and save a Brand Profile with colors, voice, description and Buyer Persona.
+- Generate four Ad Studio variants (Problem/Solution, Curiosity, Outcome, Direct Offer).
+- Generate a Reel pack with hook, voiceover, scenes, shot list, on-screen text, caption and CTA.
+- Use a project-aware AI Partner rules engine for onboarding, no-sales diagnostics and routing to the next task.
+- Save projects, products, research, creative outputs, partner messages and Recipes/Tasks in SQLite.
+
+The local Product Research score is intentionally **not presented as live market-demand data**. Current competitor names, live prices, trend volume and web demand require a future live research provider/API.
+
+## Safety gates
+
+V2 does not launch ads, publish posts, buy anything, make payments or call a paid image/video service. The existing Live AI provider gate remains separate and disabled unless the owner explicitly enables provider configuration and billing.
+
+## Storage
+
+V2 uses `WORKSPACE_DB` when configured, otherwise `data/workspace.sqlite`. On Docker hosting this resolves inside the persistent `/app/data` volume. The existing credit ledger remains separate.
+
+---
+
 # Local Growth AI Studio — working beta
 
 Independent mobile-first product-to-ad application. Customers do not need a ChatGPT account.

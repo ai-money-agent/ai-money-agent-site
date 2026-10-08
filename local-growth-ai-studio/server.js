@@ -4,6 +4,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash, createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
 import { Ledger } from './lib/ledger.js';
+import { WorkspaceStore } from './lib/workspace.js';
+import { findProductIdeas, analyzeIdea, buildProductBlueprint, buildBrandProfile, createAdPack, createReelPack, partnerReply, recipes } from './lib/business-engine.js';
 import { generate } from './lib/generator.js';
 import { prepareVideoRequest, videoCapability } from './lib/video.js';
 
@@ -51,6 +53,7 @@ if (config.liveEnabled) {
   if (missing.length) throw new Error(`Live AI config invalid: ${missing.join(', ')}`);
 }
 const ledger = new Ledger(process.env.CREDIT_DB || join(ROOT, 'data', 'credits.sqlite'), config.initialCredits);
+const workspace = new WorkspaceStore(process.env.WORKSPACE_DB || join(ROOT, 'data', 'workspace.sqlite'));
 const accounts = { demo: 'demo-shared', live: 'beta-owner' };
 const rates = new Map();
 const equal = (a, b) => {
@@ -163,18 +166,18 @@ async function api(req, res, url) {
     res.setHeader('Retry-After','60');
     return json(res,429,{ok:false,error:'Too many requests. Wait one minute.'});
   }
-  if (req.method === 'POST') {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
     const expected = ORIGIN || `http://${req.headers.host}`;
     if ((req.headers.origin && req.headers.origin !== expected) || req.headers['sec-fetch-site'] === 'cross-site') throw failure('Cross-site request blocked.',403);
   }
   if (req.method === 'GET' && url.pathname === '/api/health/ready') {
     const storageReady = ledger.ping();
-    return json(res,storageReady ? 200 : 503,{ok:storageReady,status:storageReady ? 'ready' : 'not_ready',version:'0.6.0'});
+    return json(res,storageReady ? 200 : 503,{ok:storageReady,status:storageReady ? 'ready' : 'not_ready',version:'0.7.0'});
   }
   if (req.method === 'GET' && url.pathname === '/api/health') {
     return json(res,200,{
       ok:true,
-      version:'0.6.0',
+      version:'0.7.0',
       engine:config.liveEnabled ? config.provider : config.allowDemo ? 'demo' : 'disabled',
       aiConnected:config.liveEnabled,
       providerPaused:config.liveRequested && !config.liveEnabled,
@@ -187,6 +190,7 @@ async function api(req, res, url) {
       pendingJobTimeoutMinutes:config.pendingJobTimeoutMinutes,
       uptimeSeconds:Math.floor(process.uptime()),
       storageReady:ledger.ping(),
+      workspaceReady:workspace.ping(),
       requiresLogin:!authenticated(req)
     });
   }
@@ -198,6 +202,161 @@ async function api(req, res, url) {
     return json(res,200,{ok:true});
   }
   if (!authenticated(req)) throw failure('Enter your Studio access code first.',401);
+
+
+  const v2Account = accounts.live;
+  const v2Language = (value, sample = '') => {
+    if (value === 'ar' || value === 'en') return value;
+    return /[\\u0600-\\u06ff]/.test(String(sample || '')) ? 'ar' : 'en';
+  };
+  const projectOrFail = (id) => {
+    if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/.test(id)) throw failure('Choose a valid project.',400);
+    const project = workspace.project(v2Account,id);
+    if (!project) throw failure('Project not found.',404);
+    return project;
+  };
+  const productOrFail = (id) => {
+    if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/.test(id)) throw failure('Choose a valid product.',400);
+    const product = workspace.product(v2Account,id);
+    if (!product) throw failure('Product not found.',404);
+    return product;
+  };
+
+  if (req.method === 'GET' && url.pathname === '/api/v2/recipes') {
+    return json(res,200,{ok:true,recipes:recipes(v2Language(url.searchParams.get('language')))});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/projects') {
+    return json(res,200,{ok:true,projects:workspace.listProjects(v2Account)});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/projects') {
+    const body = await readBody(req);
+    const profile = {
+      country:text(body.country || '',80,'Country',2),
+      budget:text(body.budget || '0',80,'Budget',1),
+      skills:text(body.skills || 'Beginner',300,'Skills',2),
+      timeAvailable:text(body.timeAvailable || '5 hours/week',80,'Available time',2),
+      businessType:['digital','service','ecommerce','unsure'].includes(body.businessType) ? body.businessType : 'unsure',
+      marketScope:['local','global','both','unsure'].includes(body.marketScope) ? body.marketScope : 'unsure',
+      payoutMethods:text(body.payoutMethods || 'Not set yet',300,'Payout methods',2)
+    };
+    const project = workspace.createProject(v2Account,{name:body.name || 'New business project',...profile});
+    return json(res,201,{ok:true,project});
+  }
+  if (req.method === 'PATCH' && url.pathname.startsWith('/api/v2/projects/')) {
+    const id = url.pathname.slice('/api/v2/projects/'.length);
+    projectOrFail(id);
+    const body = await readBody(req);
+    const project = workspace.updateProject(v2Account,id,{
+      name:body.name,
+      status:body.status,
+      profile:body.profile && typeof body.profile === 'object' ? body.profile : undefined
+    });
+    return json(res,200,{ok:true,project});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/dashboard') {
+    const projectId = url.searchParams.get('projectId');
+    if (projectId) projectOrFail(projectId);
+    return json(res,200,{ok:true,...workspace.dashboard(v2Account,projectId || null)});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/research/ideas') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const language = v2Language(body.language,project.profile.skills);
+    const ideas = findProductIdeas(project.profile,language);
+    return json(res,200,{ok:true,ideas,dataStatus:language === 'ar' ? 'تقييم قابلية تنفيذ داخلي، بدون بيانات ويب حيّة.' : 'Execution-fit analysis; no live web-market data.'});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/research/analyze') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    if (!body.idea || typeof body.idea !== 'object') throw failure('Choose an idea to analyze.',422);
+    const language = v2Language(body.language,body.idea.name);
+    const analysis = analyzeIdea(project.profile,body.idea,language);
+    const saved = workspace.saveResearch(v2Account,project.id,analysis.ideaName,analysis);
+    return json(res,200,{ok:true,analysis,researchId:saved.id});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/products/build') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const latestResearch = workspace.latestResearch(v2Account,project.id)?.payload || null;
+    const language = v2Language(body.language,body.idea?.name || body.answers?.name);
+    const blueprint = buildProductBlueprint({
+      profile:project.profile,
+      research:latestResearch,
+      idea:body.idea && typeof body.idea === 'object' ? body.idea : {},
+      answers:body.answers && typeof body.answers === 'object' ? body.answers : {},
+      language
+    });
+    const product = workspace.saveProduct(v2Account,project.id,blueprint);
+    return json(res,201,{ok:true,product});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/products/save') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    if (!body.product || typeof body.product !== 'object') throw failure('Product details are required.',422);
+    const product = workspace.saveProduct(v2Account,project.id,body.product);
+    return json(res,200,{ok:true,product});
+  }
+  if (req.method === 'GET' && url.pathname.startsWith('/api/v2/products')) {
+    const projectId = url.searchParams.get('projectId');
+    const project = projectOrFail(projectId);
+    return json(res,200,{ok:true,products:workspace.listProducts(v2Account,project.id)});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/brand/generate') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const product = productOrFail(body.productId);
+    if (product.projectId !== project.id) throw failure('Product does not belong to this project.',409);
+    const language = v2Language(body.language,product.name);
+    const brand = workspace.saveBrand(v2Account,project.id,buildBrandProfile(product,project,language));
+    return json(res,200,{ok:true,brand});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/brand/save') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    if (!body.brand || typeof body.brand !== 'object') throw failure('Brand profile is required.',422);
+    return json(res,200,{ok:true,brand:workspace.saveBrand(v2Account,project.id,body.brand)});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/ads/generate') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const product = productOrFail(body.productId);
+    if (product.projectId !== project.id) throw failure('Product does not belong to this project.',409);
+    const language = v2Language(body.language,product.name);
+    const pack = createAdPack(product,language);
+    const saved = workspace.saveOutput(v2Account,project.id,'ad-pack',`${product.name} — 4 ad angles`,pack);
+    return json(res,200,{ok:true,pack,savedId:saved.id});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/reels/generate') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const product = productOrFail(body.productId);
+    if (product.projectId !== project.id) throw failure('Product does not belong to this project.',409);
+    const language = v2Language(body.language,product.name);
+    const pack = createReelPack(product,language);
+    const saved = workspace.saveOutput(v2Account,project.id,'reel',`${product.name} — Reel`,pack);
+    return json(res,200,{ok:true,pack,savedId:saved.id});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/partner') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const message = text(body.message,4000,'Message',1);
+    workspace.addMessage(v2Account,project.id,'user',message);
+    const products = workspace.listProducts(v2Account,project.id);
+    const language = v2Language(body.language,message);
+    const result = partnerReply(message,{project,product:products[0] || null,research:workspace.latestResearch(v2Account,project.id)?.payload || null,brand:workspace.brand(v2Account,project.id)},language);
+    workspace.addMessage(v2Account,project.id,'assistant',result.reply);
+    return json(res,200,{ok:true,...result,messages:workspace.messages(v2Account,project.id)});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/partner/messages') {
+    const project = projectOrFail(url.searchParams.get('projectId'));
+    return json(res,200,{ok:true,messages:workspace.messages(v2Account,project.id)});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/tasks') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const recipe = text(body.recipe,120,'Recipe',2);
+    return json(res,201,{ok:true,task:workspace.createTask(v2Account,project.id,recipe,body.payload && typeof body.payload === 'object' ? body.payload : {})});
+  }
 
   if (req.method === 'GET' && url.pathname.startsWith('/api/generations/')) {
     const mode = generationMode(url.searchParams.get('mode'));
@@ -259,7 +418,7 @@ async function api(req, res, url) {
   throw failure('API route not found.',404);
 }
 
-const assets = { '/':'index.html', '/index.html':'index.html', '/styles.css':'styles.css', '/app.js':'app.js' };
+const assets = { '/':'index.html', '/index.html':'index.html', '/styles.css':'styles.css', '/app.js':'app.js', '/v2':'v2.html', '/v2/':'v2.html', '/v2.html':'v2.html', '/v2.css':'v2.css', '/v2.js':'v2.js' };
 const mime = { html:'text/html', css:'text/css', js:'text/javascript' };
 const server = http.createServer(async (req,res) => {
   headers(res);
@@ -283,4 +442,4 @@ const server = http.createServer(async (req,res) => {
 server.requestTimeout = 60000;
 server.listen(PORT,process.env.HOST || '127.0.0.1',() => logEvent('log','server_ready',{ port:PORT, mode:config.liveEnabled ? 'live' : config.allowDemo ? 'demo' : 'disabled', provider:config.provider }));
 process.on('unhandledRejection',(reason) => logEvent('error','unhandled_rejection',{ message:String(reason?.message || reason || 'unknown').slice(0,700) }));
-process.on('SIGTERM',() => server.close(() => {ledger.close(); process.exit(0);}));
+process.on('SIGTERM',() => server.close(() => { ledger.close(); workspace.close(); process.exit(0); }));
