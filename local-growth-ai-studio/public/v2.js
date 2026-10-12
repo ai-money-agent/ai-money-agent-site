@@ -170,11 +170,21 @@ function renderFactoryAssets() {
   state.factoryAssets.forEach(asset=>{
     const row=document.createElement('div'); row.className='factory-asset';
     const meta=document.createElement('div'); const title=document.createElement('strong'); title.textContent=asset.filename||asset.title;
-    const detail=document.createElement('small'); detail.textContent=[asset.type,asset.pages?asset.pages+' pages':'',new Date(asset.createdAt).toLocaleDateString()].filter(Boolean).join(' · ');
+    const detail=document.createElement('small'); detail.textContent=[asset.type,asset.pages?asset.pages+' pages':'',asset.label||'',new Date(asset.createdAt).toLocaleDateString()].filter(Boolean).join(' · ');
     meta.append(title,detail);
     const link=document.createElement('a'); link.className='secondary'; link.textContent='Download'; link.href='/api/v2/factory/download?projectId='+encodeURIComponent(state.activeProjectId)+'&fileId='+encodeURIComponent(asset.fileId); link.setAttribute('download',asset.filename||'product');
-    row.append(meta,link); root.append(row);
+    const actions=document.createElement('div');actions.className='factory-asset-actions';actions.append(link);
+    if(asset.previewFileId){const preview=document.createElement('button');preview.className='secondary';preview.type='button';preview.textContent='Preview / edit';preview.addEventListener('click',()=>showFactoryPreview(asset));actions.append(preview);const companion=document.createElement('a');companion.className='secondary';companion.textContent='Download interactive copy';companion.href='/api/v2/factory/download?projectId='+encodeURIComponent(state.activeProjectId)+'&fileId='+encodeURIComponent(asset.previewFileId);companion.setAttribute('download',asset.previewFilename||'interactive.html');actions.append(companion);}
+    row.append(meta,actions); root.append(row);
   });
+}
+function showFactoryPreview(asset){
+  const panel=$('factoryPreview')?.closest('.factory-preview');if(!panel||!asset?.previewFileId)return;
+  panel.classList.remove('hidden');$('factoryPreviewTitle').textContent=asset.previewFilename||asset.filename||'Product preview';
+  const links=$('factoryDownloadLinks');links.replaceChildren();
+  for(const [id,name,label] of [[asset.fileId,asset.filename||'product','Download file'],[asset.previewFileId,asset.previewFilename||'interactive.html','Download interactive copy']]){if(!id)continue;const a=document.createElement('a');a.className='secondary';a.textContent=label;a.href='/api/v2/factory/download?projectId='+encodeURIComponent(state.activeProjectId)+'&fileId='+encodeURIComponent(id);a.setAttribute('download',name);links.append(a);}
+  $('factoryPreview').src='/api/v2/factory/download?projectId='+encodeURIComponent(state.activeProjectId)+'&fileId='+encodeURIComponent(asset.previewFileId)+'&inline=1';
+  panel.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function renderExistingProduct() {
   const p=state.dashboard?.products?.[0];
@@ -322,24 +332,31 @@ function renderAnalysis(a) {
   const foot=document.createElement('small');foot.textContent=a.dataStatus||'';root.append(foot);
 }
 
-$('factoryType').addEventListener('change',()=>{
+function syncFactoryControls(){
   const quiz=$('factoryType').value==='quiz';
   $('factoryQuestionsWrap').classList.toggle('hidden',!quiz);
+  $('factoryQuestionCountWrap').classList.toggle('hidden',!quiz);
   $('factoryLevelWrap').classList.toggle('hidden',!['worksheet'].includes($('factoryType').value));
-});
+  $('factoryPagesWrap').classList.toggle('hidden',quiz||['budget','organizer'].includes($('factoryType').value));
+  if(quiz)$('factoryHint').textContent='The quiz uses only complete question rows you provide, up to the selected count. No questions are invented and no AI provider is called.';
+  else $('factoryHint').textContent='This local template factory uses the fields you enter; it does not call an AI service. PDF products include a touch-friendly HTML workbook for drawing and saved answers. Arabic PDFs embed a Unicode font and shape RTL text; their interactive companion can also be printed. XLSX budgets include a phone-friendly interactive preview.';
+}
+$('factoryType').addEventListener('change',syncFactoryControls);
+syncFactoryControls();
 $('factoryForm').addEventListener('submit',async e=>{
   e.preventDefault();
   if(!state.activeProjectId){openProjectModal();return;}
   const type=$('factoryType').value;
-  const questions=type==='quiz'?$('factoryQuestions').value.split(/\\r?\\n/).map(line=>{
+  const questions=type==='quiz'?$('factoryQuestions').value.split(/\r?\n/).map(line=>{
     const [question,answer,...wrong]=line.split('|').map(part=>part.trim());
     return {question,answer,wrong};
   }).filter(item=>item.question):[];
-  const body={projectId:state.activeProjectId,productId:state.currentProduct?.id,type,title:$('factoryTitle').value.trim(),topic:$('factoryTopic').value.trim(),audience:$('factoryAudience').value.trim(),outcome:$('factoryOutcome').value.trim(),level:Number($('factoryLevel').value),questions};
+  const body={projectId:state.activeProjectId,productId:state.currentProduct?.id,type,language:$('factoryLanguage').value,title:$('factoryTitle').value.trim(),topic:$('factoryTopic').value.trim(),audience:$('factoryAudience').value.trim(),outcome:$('factoryOutcome').value.trim(),pages:Number($('factoryPages').value),questionCount:Number($('factoryQuestionCount').value),questionsPerPage:10,level:Number($('factoryLevel').value),questions};
   try{
     notice('Creating a real file locally. No AI or paid API call is used.');
     const data=await api('/api/v2/factory/generate',{method:'POST',body:JSON.stringify(body)});
     await loadWorkspace(false);
+    showFactoryPreview(data.asset);
     notice('File created and saved to this project: '+data.asset.filename,'success');
   }catch(err){notice(err.message,'error');}
 });
