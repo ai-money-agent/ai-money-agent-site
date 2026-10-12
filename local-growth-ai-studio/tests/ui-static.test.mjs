@@ -38,8 +38,14 @@ test('V2 remains usable on narrow Android screens and reports whether OpenAI is 
   assert.doesNotMatch(v2Html+v2Js,/OPENAI_API_KEY|sk-[A-Za-z0-9_-]{12,}/);
   assert.match(v2Html,/DIGITAL PRODUCT FACTORY/);
   assert.match(v2Html,/Quiz questions, one per line/);
+  for(const id of ['factoryLanguage','factoryPages','factoryAudience','factoryPreview','factoryDownloadLinks','factoryQuestionCount']) assert.match(v2Html,new RegExp(`id=["']${id}["']`));
+  assert.match(v2Html,/embed a Unicode font and shape RTL text/);
+  assert.match(v2Html,/phone-friendly interactive preview/);
   assert.match(v2Js,/\/api\/v2\/factory\/generate/);
   assert.match(v2Js,/\/api\/v2\/factory\/download/);
+  assert.match(v2Js,/showFactoryPreview/);
+  assert.match(v2Css,/factory-preview iframe/);
+  assert.match(v2Css,/factory-asset-actions/);
   assert.match(v2Css,/factory-form/);
 });
 
