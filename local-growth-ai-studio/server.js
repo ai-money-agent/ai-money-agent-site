@@ -7,6 +7,7 @@ import { Ledger } from './lib/ledger.js';
 import { WorkspaceStore } from './lib/workspace.js';
 import { findProductIdeas, analyzeIdea, buildProductBlueprint, buildBrandProfile, createAdPack, createReelPack, partnerReply, recipes } from './lib/business-engine.js';
 import { generate } from './lib/generator.js';
+import { generateV2 } from './lib/v2-ai.js';
 import { prepareVideoRequest, videoCapability } from './lib/video.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
@@ -187,6 +188,9 @@ async function api(req, res, url) {
       demoAvailable:config.allowDemo,
       liveAvailable:config.liveEnabled,
       provider:config.provider,
+      v2AiProvider:'openai',
+      v2AiReady:config.liveEnabled && config.provider === 'openai',
+      v2AiMode:config.liveEnabled && config.provider === 'openai' ? 'openai' : 'local',
       pendingJobTimeoutMinutes:config.pendingJobTimeoutMinutes,
       uptimeSeconds:Math.floor(process.uptime()),
       storageReady:ledger.ping(),
@@ -262,17 +266,18 @@ async function api(req, res, url) {
     const body = await readBody(req);
     const project = projectOrFail(body.projectId);
     const language = v2Language(body.language,project.profile.skills);
-    const ideas = findProductIdeas(project.profile,language);
-    return json(res,200,{ok:true,ideas,dataStatus:language === 'ar' ? 'تقييم قابلية تنفيذ داخلي، بدون بيانات ويب حيّة.' : 'Execution-fit analysis; no live web-market data.'});
+    const generated = await generateV2({operation:'product ideas',context:{profile:project.profile},language,fallback:()=>findProductIdeas(project.profile,language)},config);
+    return json(res,200,{ok:true,ideas:generated.value,dataStatus:language === 'ar' ? 'تقييم قابلية تنفيذ داخلي، بدون بيانات ويب حيّة.' : 'Execution-fit analysis; no live web-market data.',aiEngine:generated.engine});
   }
   if (req.method === 'POST' && url.pathname === '/api/v2/research/analyze') {
     const body = await readBody(req);
     const project = projectOrFail(body.projectId);
     if (!body.idea || typeof body.idea !== 'object') throw failure('Choose an idea to analyze.',422);
     const language = v2Language(body.language,body.idea.name);
-    const analysis = { ...analyzeIdea(project.profile,body.idea,language), idea:body.idea };
+    const generated = await generateV2({operation:'idea analysis and market validation plan',context:{profile:project.profile,idea:body.idea},language,fallback:()=>({ ...analyzeIdea(project.profile,body.idea,language), idea:body.idea })},config);
+    const analysis = generated.value;
     const saved = workspace.saveResearch(v2Account,project.id,analysis.ideaName,analysis);
-    return json(res,200,{ok:true,analysis,researchId:saved.id});
+    return json(res,200,{ok:true,analysis,researchId:saved.id,aiEngine:generated.engine});
   }
   if (req.method === 'POST' && url.pathname === '/api/v2/products/build') {
     const body = await readBody(req);
@@ -284,16 +289,18 @@ async function api(req, res, url) {
       const existing = productOrFail(body.productId);
       if (existing.projectId !== project.id) throw failure('Product does not belong to this project.',409);
     }
-    const blueprint = buildProductBlueprint({
+    const build = () => buildProductBlueprint({
       profile:project.profile,
       research:latestResearch,
       idea:selectedIdea,
       answers:body.answers && typeof body.answers === 'object' ? body.answers : {},
       language
     });
+    const generated = await generateV2({operation:'smallest sellable product blueprint and pricing',context:{profile:project.profile,research:latestResearch,idea:selectedIdea,answers:body.answers || {}},language,fallback:build},config);
+    const blueprint = generated.value;
     if (body.productId) blueprint.id = body.productId;
     const product = workspace.saveProduct(v2Account,project.id,blueprint);
-    return json(res,201,{ok:true,product});
+    return json(res,201,{ok:true,product,aiEngine:generated.engine});
   }
   if (req.method === 'POST' && url.pathname === '/api/v2/products/save') {
     const body = await readBody(req);
@@ -313,8 +320,9 @@ async function api(req, res, url) {
     const product = productOrFail(body.productId);
     if (product.projectId !== project.id) throw failure('Product does not belong to this project.',409);
     const language = v2Language(body.language,product.name);
-    const brand = workspace.saveBrand(v2Account,project.id,buildBrandProfile(product,project,language));
-    return json(res,200,{ok:true,brand});
+    const generated = await generateV2({operation:'brand profile and buyer persona',context:{product,project},language,fallback:()=>buildBrandProfile(product,project,language)},config);
+    const brand = workspace.saveBrand(v2Account,project.id,generated.value);
+    return json(res,200,{ok:true,brand,aiEngine:generated.engine});
   }
   if (req.method === 'POST' && url.pathname === '/api/v2/brand/save') {
     const body = await readBody(req);
@@ -328,9 +336,10 @@ async function api(req, res, url) {
     const product = productOrFail(body.productId);
     if (product.projectId !== project.id) throw failure('Product does not belong to this project.',409);
     const language = v2Language(body.language,product.name);
-    const pack = createAdPack(product,language);
+    const generated = await generateV2({operation:'four distinct test advertisements',context:{product},language,fallback:()=>createAdPack(product,language)},config);
+    const pack = generated.value;
     const saved = workspace.saveOutput(v2Account,project.id,'ad-pack',`${product.name} — 4 ad angles`,pack);
-    return json(res,200,{ok:true,pack,savedId:saved.id});
+    return json(res,200,{ok:true,pack,savedId:saved.id,aiEngine:generated.engine});
   }
   if (req.method === 'POST' && url.pathname === '/api/v2/reels/generate') {
     const body = await readBody(req);
@@ -338,9 +347,10 @@ async function api(req, res, url) {
     const product = productOrFail(body.productId);
     if (product.projectId !== project.id) throw failure('Product does not belong to this project.',409);
     const language = v2Language(body.language,product.name);
-    const pack = createReelPack(product,language);
+    const generated = await generateV2({operation:'short vertical reel script and shot list',context:{product},language,fallback:()=>createReelPack(product,language)},config);
+    const pack = generated.value;
     const saved = workspace.saveOutput(v2Account,project.id,'reel',`${product.name} — Reel`,pack);
-    return json(res,200,{ok:true,pack,savedId:saved.id});
+    return json(res,200,{ok:true,pack,savedId:saved.id,aiEngine:generated.engine});
   }
   if (req.method === 'POST' && url.pathname === '/api/v2/partner') {
     const body = await readBody(req);
@@ -349,9 +359,11 @@ async function api(req, res, url) {
     workspace.addMessage(v2Account,project.id,'user',message);
     const products = workspace.listProducts(v2Account,project.id);
     const language = v2Language(body.language,message);
-    const result = partnerReply(message,{project,product:products[0] || null,research:workspace.latestResearch(v2Account,project.id)?.payload || null,brand:workspace.brand(v2Account,project.id)},language);
+    const context = {project,product:products[0] || null,research:workspace.latestResearch(v2Account,project.id)?.payload || null,brand:workspace.brand(v2Account,project.id)};
+    const generated = await generateV2({operation:'business partner reply and next step',context:{...context,message},language,fallback:()=>partnerReply(message,context,language)},config);
+    const result = generated.value;
     workspace.addMessage(v2Account,project.id,'assistant',result.reply);
-    return json(res,200,{ok:true,...result,messages:workspace.messages(v2Account,project.id)});
+    return json(res,200,{ok:true,...result,aiEngine:generated.engine,messages:workspace.messages(v2Account,project.id)});
   }
   if (req.method === 'GET' && url.pathname === '/api/v2/partner/messages') {
     const project = projectOrFail(url.searchParams.get('projectId'));

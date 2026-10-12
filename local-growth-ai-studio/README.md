@@ -2,23 +2,19 @@
 
 V2 extends the existing creative beta instead of replacing its backend. Open `/v2` to use the new mobile-first business workspace.
 
-## What works without a paid API
+## V2 strategy and OpenAI
 
 - Create a persistent business project from country, budget, skills, time, business model, market scope and payout methods.
-- Rank executable product/service/ecommerce ideas with an explicit execution-fit score.
-- Analyze an idea, customer problems, pricing guidance, selling angles, differentiation and a validation plan.
-- Build and save a smallest-sellable product blueprint: name, audience, problem, outcome, USP, price, offer, bonus, refund policy and delivery.
-- Generate and save a Brand Profile with colors, voice, description and Buyer Persona.
-- Generate four Ad Studio variants (Problem/Solution, Curiosity, Outcome, Direct Offer).
-- Generate a Reel pack with hook, voiceover, scenes, shot list, on-screen text, caption and CTA.
-- Use a project-aware AI Partner rules engine for onboarding, no-sales diagnostics and routing to the next task.
+- Rank executable product/service/ecommerce ideas with an execution-fit score, then analyze an idea, plan the product, set pricing, create a brand, write ads and reels, and respond as a project-aware business partner.
 - Save projects, products, research, creative outputs, partner messages and Recipes/Tasks in SQLite.
 
-The local Product Research score is intentionally **not presented as live market-demand data**. Current competitor names, live prices, trend volume and web demand require a future live research provider/API.
+With `ENABLE_LIVE_AI=1`, `OPENAI_PROVIDER_ENABLED=1`, `AI_PROVIDER=openai`, an OpenAI API key and model configured, these V2 strategy steps call the OpenAI Responses API with structured output. Provider errors are returned without silently substituting template text. Without that configuration, the same journey uses local deterministic templates and labels their engine as `local`.
+
+The Product Research score is intentionally **not presented as live market-demand data** in either mode. Current competitor names, live prices, trend volume and web demand require a separate live research source/API.
 
 ## Safety gates
 
-V2 does not launch ads, publish posts, buy anything, make payments or call a paid image/video service. The existing Live AI provider gate remains separate and disabled unless the owner explicitly enables provider configuration and billing.
+V2 does not launch ads, publish posts, buy anything or make payments. Text generation may make billable OpenAI API calls only after the existing live provider gates are deliberately enabled. Image and video generation are not connected.
 
 ## Storage
 

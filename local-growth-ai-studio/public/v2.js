@@ -231,7 +231,7 @@ async function loadWorkspace(showLoading=true) {
   renderIdeas();
   if(state.analysis)renderAnalysis(state.analysis);else $('analysisPanel').classList.add('hidden');
   renderDashboard(); renderPartnerContext(); syncProductSelectors(); renderSaved(); renderExistingProduct(); renderBrand(state.dashboard.brand);
-  if (state.dashboard.activeProject) notice('V2 workspace ready. Strategy flows run locally; no paid API call is required.','success');
+  if (state.dashboard.activeProject) notice(state.health.v2AiReady ? 'Workspace ready. OpenAI is enabled for business strategy.' : 'Workspace ready. Local templates work now; OpenAI strategy needs a configured API key.','success');
   else notice('Create your first project to start from zero.');
 }
 
@@ -403,7 +403,7 @@ async function boot() {
   try{
     const res=await fetch('/api/health',{signal:AbortSignal.timeout(10000)});if(!res.ok)throw new Error('Studio server unavailable');
     state.health=await res.json();
-    $('v2Engine').textContent=state.health.liveAvailable ? `Strategy + ${state.health.provider}` : 'Strategy Engine · Free';
+    $('v2Engine').textContent=state.health.v2AiReady ? 'OpenAI business partner · Live' : 'Local templates · OpenAI needs API setup';
     if(state.health.requiresLogin){
       $('loginPanel').classList.remove('hidden'); $('studioApp').classList.add('hidden'); return;
     }

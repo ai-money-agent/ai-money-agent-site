@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { Ledger } from '../lib/ledger.js';
 import { generate, validateOutput } from '../lib/generator.js';
 import { prepareVideoRequest, videoCapability } from '../lib/video.js';
+import { generateV2 } from '../lib/v2-ai.js';
 
 test('reservations prevent overspending and failure releases exactly once',()=>{
   const db=new Ledger(':memory:',1);
@@ -87,6 +88,32 @@ test('demo generation never calls a paid provider',async()=>{
     );
     assert.equal(output.engine,'demo');
     assert.match(output.result.hook,/Demo Product/);
+  } finally { globalThis.fetch=original; }
+});
+
+test('V2 uses local templates without credentials and validates mocked OpenAI output',async()=>{
+  const original=globalThis.fetch;
+  const fallback={name:'Local idea',score:70,types:['service','digital']};
+  try {
+    globalThis.fetch=async()=>{ throw new Error('local mode must not call a provider'); };
+    const local=await generateV2({operation:'ideas',context:{skills:'Canva'},language:'en',fallback:()=>fallback},{liveEnabled:false,provider:'openai'});
+    assert.deepEqual(local,{value:fallback,engine:'local'});
+
+    globalThis.fetch=async(url,options)=>{
+      assert.equal(url,'https://api.openai.com/v1/responses');
+      assert.equal(options.headers.Authorization,'Bearer test-only');
+      const body=JSON.parse(options.body);
+      assert.equal(body.model,'test-model');
+      assert.equal(body.store,false);
+      assert.equal(body.text.format.strict,true);
+      assert.match(body.input[1].content,/Canva/);
+      return {ok:true,json:async()=>({output_text:JSON.stringify({result:{name:'AI idea',score:88,types:['service','digital']}})})};
+    };
+    const live=await generateV2({operation:'ideas',context:{skills:'Canva'},language:'en',fallback:()=>fallback},{liveEnabled:true,provider:'openai',openaiApiKey:'test-only',openaiModel:'test-model'});
+    assert.deepEqual(live,{value:{name:'AI idea',score:88,types:['service','digital']},engine:'openai'});
+
+    globalThis.fetch=async()=>({ok:true,json:async()=>({output_text:JSON.stringify({result:{name:'bad',score:'eighty',types:['service']}})})});
+    await assert.rejects(()=>generateV2({operation:'ideas',context:{},fallback:()=>fallback},{liveEnabled:true,provider:'openai',openaiApiKey:'test-only',openaiModel:'test-model'}),/invalid result.score/);
   } finally { globalThis.fetch=original; }
 });
 

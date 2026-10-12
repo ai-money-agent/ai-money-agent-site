@@ -3,12 +3,15 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
-const [html, css, js, dockerfile, packageText] = await Promise.all([
+const [html, css, js, dockerfile, packageText, v2Html, v2Css, v2Js] = await Promise.all([
   readFile(new URL('public/index.html',root),'utf8'),
   readFile(new URL('public/styles.css',root),'utf8'),
   readFile(new URL('public/app.js',root),'utf8'),
   readFile(new URL('Dockerfile',root),'utf8'),
-  readFile(new URL('package.json',root),'utf8')
+  readFile(new URL('package.json',root),'utf8'),
+  readFile(new URL('public/v2.html',root),'utf8'),
+  readFile(new URL('public/v2.css',root),'utf8'),
+  readFile(new URL('public/v2.js',root),'utf8')
 ]);
 
 test('UI contains the complete requested creative workflow',()=>{
@@ -22,6 +25,17 @@ test('UI contains the complete requested creative workflow',()=>{
   assert.match(html,/data-generation-cost/);
   assert.match(html,/No provider API calls/);
   assert.match(html,/aria-live="polite"/);
+});
+
+test('V2 remains usable on narrow Android screens and reports whether OpenAI is live',()=>{
+  assert.match(v2Html,/name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/);
+  assert.match(v2Css,/@media\s*\(max-width:\s*760px\)/);
+  assert.match(v2Css,/@media\s*\(max-width:\s*430px\)/);
+  assert.match(v2Css,/min-height:44px/);
+  assert.match(v2Js,/OpenAI business partner · Live/);
+  assert.match(v2Js,/Local templates · OpenAI needs API setup/);
+  assert.match(v2Js,/\/api\/v2\/dashboard/);
+  assert.doesNotMatch(v2Html+v2Js,/OPENAI_API_KEY|sk-[A-Za-z0-9_-]{12,}/);
 });
 
 test('frontend is mobile-first, self-contained and does not contain provider secrets',()=>{
