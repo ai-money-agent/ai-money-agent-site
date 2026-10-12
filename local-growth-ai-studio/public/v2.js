@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const state = {
   health:null, projects:[], activeProjectId:'', dashboard:null, ideas:[], selectedIdea:null, analysis:null,
-  products:[], currentProduct:null, currentView:'dashboard', recipes:[]
+  products:[], currentProduct:null, currentView:'dashboard', recipes:[], pendingPartnerMessage:''
 };
 
 const notice = (text, type='info') => {
@@ -24,6 +24,11 @@ async function api(path, options={}) {
 }
 const escapeText = (v) => String(v ?? '');
 const activeProject = () => state.projects.find(p=>p.id===state.activeProjectId) || state.dashboard?.activeProject || null;
+const containsArabic = (value) => /[\u0600-\u06ff]/.test(String(value || ''));
+function profileLanguage() {
+  const profile=activeProject()?.profile||{};
+  return containsArabic([profile.country,profile.skills,profile.payoutMethods].join(' '))?'ar':'en';
+}
 
 function showView(name) {
   state.currentView=name;
@@ -141,15 +146,31 @@ function renderSaved() {
   const oRoot=$('savedOutputs'); oRoot.replaceChildren();
   const outputs=state.dashboard?.outputs||[];
   if(!outputs.length){oRoot.textContent='No creative packs saved yet.';return;}
-  outputs.forEach(o=>{const row=document.createElement('div');row.className='saved-row';row.innerHTML='<strong></strong><span></span>';row.querySelector('strong').textContent=o.title;row.querySelector('span').textContent=`${o.type} · ${new Date(o.createdAt).toLocaleDateString()}`;oRoot.append(row);});
+  outputs.forEach(o=>{
+    const row=document.createElement('button');row.className='saved-row';row.type='button';row.innerHTML='<strong></strong><span></span>';
+    row.querySelector('strong').textContent=o.title;row.querySelector('span').textContent=`${o.type} · ${new Date(o.createdAt).toLocaleDateString()} · Open`;
+    row.addEventListener('click',()=>{
+      if(o.type==='ad-pack'){renderAds(o.payload);showView('ads');}
+      else if(o.type==='reel'){renderReel(o.payload);showView('reels');}
+      else showView('dashboard');
+    });
+    oRoot.append(row);
+  });
 }
 function renderExistingProduct() {
   const p=state.dashboard?.products?.[0];
-  if (!p) { $('productResult').innerHTML='<div class="placeholder"><strong>No product built yet.</strong><p>Choose an idea in Research, or fill the fields and build.</p></div>'; return; }
+  if (!p) { state.currentProduct=null; $('productForm').querySelector('button[type="submit"]').textContent='Build product'; $('productResult').innerHTML='<div class="placeholder"><strong>No product built yet.</strong><p>Choose an idea in Research, or fill the fields and build.</p></div>'; return; }
   renderProduct(p);
 }
 function renderProduct(p) {
   state.currentProduct=p;
+  $('productNameV2').value=p.name||'';
+  $('productAudience').value=p.audience||'';
+  $('productProblem').value=p.problem||'';
+  $('productOutcome').value=p.outcome||'';
+  $('productPrice').value=p.price??'';
+  $('productCurrency').value=p.currency||'USD';
+  $('productForm').querySelector('button[type="submit"]').textContent='Update product';
   const root=$('productResult'); root.replaceChildren();
   const h=document.createElement('h2');h.textContent=p.name;root.append(h);
   const intro=document.createElement('p');intro.textContent=p.description||'';root.append(intro);
@@ -170,7 +191,7 @@ function renderBrand(brand) {
 }
 
 async function loadRecipes() {
-  const data=await api('/api/v2/recipes?language=en');
+  const data=await api(`/api/v2/recipes?language=${profileLanguage()}`);
   state.recipes=data.recipes||[];
   const root=$('recipeGrid'); root.replaceChildren();
   state.recipes.forEach(r=>{
@@ -196,7 +217,19 @@ async function loadWorkspace(showLoading=true) {
   const query=state.activeProjectId?`?projectId=${encodeURIComponent(state.activeProjectId)}`:'';
   state.dashboard=await api('/api/v2/dashboard'+query);
   state.products=state.dashboard.products||[];
+  state.analysis=state.dashboard.research?.payload||null;
+  state.selectedIdea=state.analysis?.idea||null;
+  state.ideas=[];
+  if(state.dashboard.activeProject&&state.analysis){
+    try{
+      const data=await api('/api/v2/research/ideas',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,language:profileLanguage()})});
+      state.ideas=data.ideas||[];
+      if(!state.selectedIdea) state.selectedIdea=state.ideas.find(idea=>idea.name===state.analysis.ideaName)||null;
+    }catch{}
+  }
   profileChips(state.dashboard.activeProject);
+  renderIdeas();
+  if(state.analysis)renderAnalysis(state.analysis);else $('analysisPanel').classList.add('hidden');
   renderDashboard(); renderPartnerContext(); syncProductSelectors(); renderSaved(); renderExistingProduct(); renderBrand(state.dashboard.brand);
   if (state.dashboard.activeProject) notice('V2 workspace ready. Strategy flows run locally; no paid API call is required.','success');
   else notice('Create your first project to start from zero.');
@@ -217,7 +250,10 @@ $('projectForm').addEventListener('submit',async e=>{
   try{
     const data=await api('/api/v2/projects',{method:'POST',body:JSON.stringify(body)});
     state.activeProjectId=data.project.id; closeProjectModal(); $('projectForm').reset();
-    await loadWorkspace(); showView('research'); await findIdeas();
+    await loadWorkspace();
+    if(state.pendingPartnerMessage){
+      const message=state.pendingPartnerMessage;state.pendingPartnerMessage='';showView('partner');await sendPartnerMessage(message);
+    }else{showView('research');await findIdeas();}
   }catch(err){$('projectFormError').textContent=err.message;}
 });
 
@@ -225,7 +261,7 @@ async function findIdeas() {
   if(!state.activeProjectId){openProjectModal();return;}
   try{
     notice('Ranking ideas for execution fit…');
-    const data=await api('/api/v2/research/ideas',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,language:'en'})});
+    const data=await api('/api/v2/research/ideas',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,language:profileLanguage()})});
     state.ideas=data.ideas||[]; state.selectedIdea=null; state.analysis=null; renderIdeas();
     notice(data.dataStatus||'Ideas ready.','success');
   }catch(e){notice(e.message,'error');}
@@ -251,7 +287,7 @@ function renderIdeas() {
 async function analyzeIdeaNow(idea) {
   try{
     state.selectedIdea=idea;renderIdeas();notice('Analyzing idea…');
-    const data=await api('/api/v2/research/analyze',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,idea,language:'en'})});
+    const data=await api('/api/v2/research/analyze',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,idea,language:profileLanguage()})});
     state.analysis=data.analysis;renderAnalysis(data.analysis);await loadWorkspace(false);notice('Idea analysis saved to the project.','success');
   }catch(e){notice(e.message,'error');}
 }
@@ -279,7 +315,7 @@ $('productForm').addEventListener('submit',async e=>{
   };
   try{
     notice('Building the smallest sellable version…');
-    const data=await api('/api/v2/products/build',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,idea:state.selectedIdea||{},answers,language:'en'})});
+    const data=await api('/api/v2/products/build',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,productId:state.currentProduct?.id,idea:state.selectedIdea||{},answers,language:profileLanguage()})});
     renderProduct(data.product);await loadWorkspace(false);notice('Product blueprint saved.','success');
   }catch(err){notice(err.message,'error');}
 });
@@ -344,16 +380,21 @@ async function loadPartner() {
 function appendMessage(role,content) {
   const root=$('chatMessages');const div=document.createElement('div');div.className=`message-row ${role==='user'?'user':'assistant'}`;div.textContent=content;root.append(div);root.scrollTop=root.scrollHeight;
 }
-$('partnerForm').addEventListener('submit',async e=>{
-  e.preventDefault();if(!state.activeProjectId){openProjectModal();return;}
-  const input=$('partnerInput');const message=input.value.trim();if(!message)return;input.value='';appendMessage('user',message);
+async function sendPartnerMessage(message) {
+  appendMessage('user',message);
   try{
-    const data=await api('/api/v2/partner',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,message,language:'en'})});
+    const data=await api('/api/v2/partner',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,message,language:containsArabic(message)?'ar':'en'})});
     appendMessage('assistant',data.reply);
     if(data.nextAction&&['research','product','ads','reels','brand','dashboard'].includes(data.nextAction)){
       const chip=document.createElement('button');chip.className='ghost';chip.textContent=`Open ${data.nextAction}`;chip.onclick=()=>showView(data.nextAction);$('chatMessages').append(chip);
     }
   }catch(err){appendMessage('assistant',`Error: ${err.message}`);}
+}
+$('partnerForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const input=$('partnerInput');const message=input.value.trim();if(!message)return;input.value='';
+  if(!state.activeProjectId){state.pendingPartnerMessage=message;openProjectModal();return;}
+  await sendPartnerMessage(message);
 });
 document.querySelectorAll('[data-prompt]').forEach(btn=>btn.addEventListener('click',()=>{ $('partnerInput').value=btn.dataset.prompt; $('partnerInput').focus(); }));
 
@@ -380,3 +421,4 @@ $('loginForm').addEventListener('submit',async e=>{
   }catch(err){$('loginError').textContent=err.message;}
 });
 boot();
+
