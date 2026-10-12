@@ -170,6 +170,19 @@ try {
   assert.equal(ebook.contentType,'application/pdf');
   assert.equal(ebook.pages,6);
   assert.match(ebook.label,/no AI connection used/i);
+  assert.ok(ebook.previewFileId);
+  const worksheetResponse=await post('/api/v2/factory/generate',{
+    projectId:project.id,productId:updated.id,type:'worksheet',title:'Math practice',topic:'addition and subtraction',audience:'grade 3',level:3,pages:2
+  });
+  assert.equal(worksheetResponse.status,201);
+  const worksheet=(await worksheetResponse.json()).asset;
+  assert.equal(worksheet.pages,4);
+  assert.ok(worksheet.previewFileId);
+  const worksheetPreview=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${worksheet.previewFileId}&inline=1`);
+  const worksheetHtml=await worksheetPreview.text();
+  assert.match(worksheetHtml,/data-answer/);
+  assert.match(worksheetHtml,/Answer key/);
+  assert.doesNotMatch(worksheetHtml.slice(0,worksheetHtml.indexOf('<section id="answers"')),/3\. 9 \+ 5 = 14/);
   assert.equal(ebookResponse.headers.get('content-type')?.startsWith('application/json'),true);
   const budgetResponse=await post('/api/v2/factory/generate',{
     projectId:project.id,productId:updated.id,type:'budget',title:'Budget planner',topic:'monthly budgeting'
@@ -177,6 +190,31 @@ try {
   assert.equal(budgetResponse.status,201);
   const budget=(await budgetResponse.json()).asset;
   assert.equal(budget.contentType,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  const mobileBudgetPreview=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${budget.previewFileId}&inline=1`);
+  assert.equal(mobileBudgetPreview.status,200);
+  assert.match(mobileBudgetPreview.headers.get('content-security-policy'),/script-src 'unsafe-inline'/);
+  assert.equal(mobileBudgetPreview.headers.get('x-frame-options'),'SAMEORIGIN');
+  const mobileBudgetHtml=await mobileBudgetPreview.text();
+  assert.match(mobileBudgetHtml,/Monthly budget preview/);
+  assert.match(mobileBudgetHtml,/localStorage/);
+  assert.match(mobileBudgetHtml,/income-total/);
+  const arabicResponse=await post('/api/v2/factory/generate',{
+    projectId:project.id,productId:updated.id,type:'coloring',language:'ar',title:'كتاب التلوين',topic:'الحيوانات',audience:'الأطفال من ٦ إلى ٨ سنوات',pages:2
+  });
+  assert.equal(arabicResponse.status,201);
+  const arabic=(await arabicResponse.json()).asset;
+  assert.equal(arabic.contentType,'application/pdf');
+  assert.match(arabic.filename,/arabic-coloring\.pdf$/);
+  const arabicPdf=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${arabic.fileId}`);
+  const arabicBytes=Buffer.from(await arabicPdf.arrayBuffer()).toString('latin1');
+  assert.match(arabicBytes,/\/Subtype \/Type0/);
+  assert.match(arabicBytes,/\/FontFile2/);
+  const arabicPrint=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${arabic.previewFileId}&inline=1`);
+  const arabicHtml=await arabicPrint.text();
+  assert.match(arabicHtml,/<html lang="ar" dir="rtl">/);
+  assert.match(arabicHtml,/window\.print\(\)/);
+  assert.match(arabicHtml,/class="activity-art"/);
+  assert.match(arabicHtml,/data-canvas/);
   const quizResponse=await post('/api/v2/factory/generate',{
     projectId:project.id,productId:updated.id,type:'quiz',title:'Canva Quiz',topic:'Canva basics',
     questions:[
@@ -188,7 +226,7 @@ try {
   assert.equal(quizResponse.status,201);
   const quiz=(await quizResponse.json()).asset;
   assert.equal(quiz.contentType,'text/html; charset=utf-8');
-  assert.equal((await (await get(`/api/v2/factory/assets?projectId=${project.id}`)).json()).assets.length,3);
+  assert.equal((await (await get(`/api/v2/factory/assets?projectId=${project.id}`)).json()).assets.length,5);
   const ebookDownload=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${ebook.fileId}`);
   assert.equal(ebookDownload.status,200);
   assert.equal(ebookDownload.headers.get('content-type'),'application/pdf');
@@ -196,6 +234,9 @@ try {
   const budgetDownload=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${budget.fileId}`);
   assert.equal(budgetDownload.status,200);
   assert.equal(Buffer.from(await budgetDownload.arrayBuffer()).readUInt32LE(0),0x04034b50);
+  const interactiveDownload=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${ebook.previewFileId}`);
+  assert.equal(interactiveDownload.status,200);
+  assert.match(await interactiveDownload.text(),/data-canvas/);
   assert.equal((await post('/api/v2/factory/generate',{projectId:project.id,type:'quiz',title:'Bad quiz',topic:'x',questions:[]})).status,422);
 
   const brandResponse=await post('/api/v2/brand/generate',{projectId:project.id,productId:updated.id,language:'ar'});
@@ -209,7 +250,7 @@ try {
   assert.equal(reelResponse.status,200);
   assert.equal((await reelResponse.json()).aiEngine,'local');
   const savedWorkspace=await (await get(`/api/v2/dashboard?projectId=${project.id}`)).json();
-  assert.equal(savedWorkspace.outputs.length,5);
+  assert.equal(savedWorkspace.outputs.length,7);
   assert.equal(savedWorkspace.outputs.find(output=>output.type==='ad-pack').type,'ad-pack');
   assert.match(savedWorkspace.outputs.find(output=>output.type==='ad-pack').payload.variants[0].primaryText,/خدمة كانفا المطورة/);
   const partnerResponse=await post('/api/v2/partner',{projectId:project.id,message:'أريد أن أربح من الإنترنت ولا أعرف ماذا أبيع.'});
@@ -229,16 +270,19 @@ try {
   assert.equal((await (await get('/api/credits')).json()).balance,7);
   const recoveredWorkspace=await (await get(`/api/v2/dashboard?projectId=${project.id}`)).json();
   assert.equal(recoveredWorkspace.products[0].name,'خدمة كانفا المطورة');
-  assert.equal(recoveredWorkspace.outputs.length,5);
+  assert.equal(recoveredWorkspace.outputs.length,7);
   assert.ok(recoveredWorkspace.outputs.some(output=>output.type==='ad-pack'));
   assert.ok(recoveredWorkspace.outputs.some(output=>output.type==='reel'));
   const recoveredAssets=(await (await get(`/api/v2/factory/assets?projectId=${project.id}`)).json()).assets;
-  assert.equal(recoveredAssets.length,3);
+  assert.equal(recoveredAssets.length,5);
   const recoveredEbook=recoveredAssets.find(asset=>asset.fileId===ebook.fileId);
   assert.ok(recoveredEbook);
+  assert.equal(recoveredEbook.previewFileId,ebook.previewFileId);
   const recoveredDownload=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${ebook.fileId}`);
   assert.equal(recoveredDownload.status,200);
   assert.equal(Buffer.from(await recoveredDownload.arrayBuffer()).subarray(0,8).toString(),'%PDF-1.4');
+  const recoveredPreview=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${ebook.previewFileId}&inline=1`);
+  assert.match(await recoveredPreview.text(),/canvas/);
 
   assert.ok(recoveredWorkspace.brand);
   assert.equal(recoveredWorkspace.research.payload.idea.type,'service');
