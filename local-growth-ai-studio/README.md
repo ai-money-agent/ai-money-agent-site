@@ -97,10 +97,12 @@ The text brief is restored from this browser's local storage on page load. Produ
 
 ## Digital Product Factory
 
-The Product Builder now creates downloadable starter files entirely on the server, without calling an AI provider:
+The Product Builder creates downloadable starter files from its product type, language, age/audience, topic, page count, learning level, and supplied quiz questions. This factory uses local templates and never calls an AI provider:
 
 - Multi-page PDF workbooks, coloring/activity PDFs, and educational worksheets with answer keys.
 - XLSX budget planners and 12-month organizers with formulas.
 - Offline quiz games as self-contained HTML from the user's questions.
 
-Files are stored under the persistent `data/generated-products` directory by default (override with `PRODUCT_FILES_DIR`). SQLite saves each file's project, type, filename, and download identifier, so the project can restore its downloads after restart. Generated templates are labeled as local work and should be checked and customized before sale. PDF templates currently support English/Latin text; XLSX and quiz HTML preserve Unicode text. The simulated AI connectivity check is separate from file creation; no result from the factory is presented as AI output.
+PDF books and worksheets include a matching touch-friendly HTML copy with printable layout, canvas drawing, editable answer fields, and local browser saving. Arabic PDFs embed the bundled DejaVu Sans font and shape common Arabic joining forms for right-to-left layout; their companions use browser Arabic text shaping. XLSX budget products keep spreadsheet formulas and provide a live, phone-sized HTML preview that saves inputs locally, so a phone does not need a terminal or spreadsheet app just to inspect the budget. Quiz games run offline and use only complete questions the user supplied, up to the selected count.
+
+Files are stored under the persistent `data/generated-products` directory by default (override with `PRODUCT_FILES_DIR`). SQLite saves each file and companion's project, type, filename, and download identifier, so the project can restore downloads after restart. Generated templates are labeled as local work and should be checked and customized before sale. The simulated AI connectivity check is separate from file creation; no result from the factory is presented as AI output.
