@@ -207,7 +207,7 @@ async function api(req, res, url) {
   const v2Account = accounts.live;
   const v2Language = (value, sample = '') => {
     if (value === 'ar' || value === 'en') return value;
-    return /[\\u0600-\\u06ff]/.test(String(sample || '')) ? 'ar' : 'en';
+    return /[\u0600-\u06ff]/.test(String(sample || '')) ? 'ar' : 'en';
   };
   const projectOrFail = (id) => {
     if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/.test(id)) throw failure('Choose a valid project.',400);
@@ -270,7 +270,7 @@ async function api(req, res, url) {
     const project = projectOrFail(body.projectId);
     if (!body.idea || typeof body.idea !== 'object') throw failure('Choose an idea to analyze.',422);
     const language = v2Language(body.language,body.idea.name);
-    const analysis = analyzeIdea(project.profile,body.idea,language);
+    const analysis = { ...analyzeIdea(project.profile,body.idea,language), idea:body.idea };
     const saved = workspace.saveResearch(v2Account,project.id,analysis.ideaName,analysis);
     return json(res,200,{ok:true,analysis,researchId:saved.id});
   }
@@ -279,13 +279,19 @@ async function api(req, res, url) {
     const project = projectOrFail(body.projectId);
     const latestResearch = workspace.latestResearch(v2Account,project.id)?.payload || null;
     const language = v2Language(body.language,body.idea?.name || body.answers?.name);
+    const selectedIdea = body.idea && typeof body.idea === 'object' && body.idea.name ? body.idea : latestResearch?.idea || {};
+    if (body.productId) {
+      const existing = productOrFail(body.productId);
+      if (existing.projectId !== project.id) throw failure('Product does not belong to this project.',409);
+    }
     const blueprint = buildProductBlueprint({
       profile:project.profile,
       research:latestResearch,
-      idea:body.idea && typeof body.idea === 'object' ? body.idea : {},
+      idea:selectedIdea,
       answers:body.answers && typeof body.answers === 'object' ? body.answers : {},
       language
     });
+    if (body.productId) blueprint.id = body.productId;
     const product = workspace.saveProduct(v2Account,project.id,blueprint);
     return json(res,201,{ok:true,product});
   }
@@ -443,3 +449,4 @@ server.requestTimeout = 60000;
 server.listen(PORT,process.env.HOST || '127.0.0.1',() => logEvent('log','server_ready',{ port:PORT, mode:config.liveEnabled ? 'live' : config.allowDemo ? 'demo' : 'disabled', provider:config.provider }));
 process.on('unhandledRejection',(reason) => logEvent('error','unhandled_rejection',{ message:String(reason?.message || reason || 'unknown').slice(0,700) }));
 process.on('SIGTERM',() => server.close(() => { ledger.close(); workspace.close(); process.exit(0); }));
+
