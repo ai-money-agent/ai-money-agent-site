@@ -39,6 +39,7 @@ test('creates real multi-page PDF products offline for ebook, coloring and works
   const coloring=createDigitalProduct({...base,type:'coloring'}).buffer.toString('binary');
   assert.match(coloring,/0 0 0 RG/);
   assert.match(coloring,/ellipsePath|c h S/,'coloring PDF includes a closed outlined vector illustration');
+  assert.doesNotMatch(coloring,/\b\d+(?:\.\d+)?\s+\d+(?:\.\d+)?\s+m\s+\d+(?:\.\d+)?\s+\d+(?:\.\d+)?\s+c\b/,'PDF cubic curves include all three control/end points');
 });
 
 test('creates a valid XLSX package with usable planning sheets and formulas',()=>{
