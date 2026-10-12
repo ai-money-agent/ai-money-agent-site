@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const state = {
   health:null, projects:[], activeProjectId:'', dashboard:null, ideas:[], selectedIdea:null, analysis:null,
-  products:[], currentProduct:null, currentView:'dashboard', recipes:[], pendingPartnerMessage:''
+  products:[], currentProduct:null, factoryAssets:[], currentView:'dashboard', recipes:[], pendingPartnerMessage:''
 };
 
 const notice = (text, type='info') => {
@@ -79,6 +79,7 @@ function renderProgress() {
     ['Profile',Boolean(d.activeProject)],
     ['Research',Boolean(d.research)],
     ['Product',Boolean(d.products?.length)],
+    ['Downloadable file',(d.outputs||[]).some(x=>x.type==='digital-product')],
     ['Brand',Boolean(d.brand)],
     ['Ads / Reel',Boolean(d.outputs?.length)],
     ['Launch',d.activeProject?.status==='launched'||d.activeProject?.status==='optimizing'],
@@ -92,7 +93,8 @@ function bestNextAction() {
   const d=state.dashboard||{};
   if (!d.activeProject) return ['Create a project profile first.','research'];
   if (!d.research) return ['Find and analyze one product idea before building anything.','research'];
-  if (!d.products?.length) return ['Turn the selected idea into the smallest sellable product.','product'];
+  if (!d.products?.length) return ['Turn the selected idea into a priced product offer.','product'];
+  if (!(d.outputs||[]).some(x=>x.type==='digital-product')) return ['Build and save the actual downloadable file.','product'];
   if (!d.brand) return ['Create the Brand Profile so future content stays consistent.','brand'];
   const hasAds=(d.outputs||[]).some(x=>x.type==='ad-pack');
   const hasReel=(d.outputs||[]).some(x=>x.type==='reel');
@@ -157,6 +159,23 @@ function renderSaved() {
     oRoot.append(row);
   });
 }
+function renderFactoryAssets() {
+  const root=$('factoryAssets');
+  if (!root) return;
+  root.replaceChildren();
+  if (!state.factoryAssets.length) {
+    const empty=document.createElement('p'); empty.className='factory-hint'; empty.textContent='No downloadable files saved in this project yet.'; root.append(empty); return;
+  }
+  const heading=document.createElement('h3'); heading.textContent='Saved product files'; root.append(heading);
+  state.factoryAssets.forEach(asset=>{
+    const row=document.createElement('div'); row.className='factory-asset';
+    const meta=document.createElement('div'); const title=document.createElement('strong'); title.textContent=asset.filename||asset.title;
+    const detail=document.createElement('small'); detail.textContent=[asset.type,asset.pages?asset.pages+' pages':'',new Date(asset.createdAt).toLocaleDateString()].filter(Boolean).join(' · ');
+    meta.append(title,detail);
+    const link=document.createElement('a'); link.className='secondary'; link.textContent='Download'; link.href='/api/v2/factory/download?projectId='+encodeURIComponent(state.activeProjectId)+'&fileId='+encodeURIComponent(asset.fileId); link.setAttribute('download',asset.filename||'product');
+    row.append(meta,link); root.append(row);
+  });
+}
 function renderExistingProduct() {
   const p=state.dashboard?.products?.[0];
   if (!p) { state.currentProduct=null; $('productForm').reset(); $('productForm').querySelector('button[type="submit"]').textContent='Build product'; $('productResult').innerHTML='<div class="placeholder"><strong>No product built yet.</strong><p>Choose an idea in Research, or fill the fields and build.</p></div>'; return; }
@@ -216,6 +235,7 @@ async function loadWorkspace(showLoading=true) {
   await refreshProjects();
   const query=state.activeProjectId?`?projectId=${encodeURIComponent(state.activeProjectId)}`:'';
   state.dashboard=await api('/api/v2/dashboard'+query);
+  state.factoryAssets=state.activeProjectId?(await api('/api/v2/factory/assets'+query)).assets||[]:[];
   state.products=state.dashboard.products||[];
   state.analysis=state.dashboard.research?.payload||null;
   state.selectedIdea=state.analysis?.idea||null;
@@ -230,7 +250,7 @@ async function loadWorkspace(showLoading=true) {
   profileChips(state.dashboard.activeProject);
   renderIdeas();
   if(state.analysis)renderAnalysis(state.analysis);else $('analysisPanel').classList.add('hidden');
-  renderDashboard(); renderPartnerContext(); syncProductSelectors(); renderSaved(); renderExistingProduct(); renderBrand(state.dashboard.brand);
+  renderDashboard(); renderPartnerContext(); syncProductSelectors(); renderSaved(); renderExistingProduct(); renderBrand(state.dashboard.brand); renderFactoryAssets();
   if (state.dashboard.activeProject) notice(state.health.v2AiReady ? 'Workspace ready. OpenAI is enabled for business strategy.' : 'Workspace ready. Local templates work now; OpenAI strategy needs a configured API key.','success');
   else notice('Create your first project to start from zero.');
 }
@@ -302,6 +322,27 @@ function renderAnalysis(a) {
   const foot=document.createElement('small');foot.textContent=a.dataStatus||'';root.append(foot);
 }
 
+$('factoryType').addEventListener('change',()=>{
+  const quiz=$('factoryType').value==='quiz';
+  $('factoryQuestionsWrap').classList.toggle('hidden',!quiz);
+  $('factoryLevelWrap').classList.toggle('hidden',!['worksheet'].includes($('factoryType').value));
+});
+$('factoryForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!state.activeProjectId){openProjectModal();return;}
+  const type=$('factoryType').value;
+  const questions=type==='quiz'?$('factoryQuestions').value.split(/\\r?\\n/).map(line=>{
+    const [question,answer,...wrong]=line.split('|').map(part=>part.trim());
+    return {question,answer,wrong};
+  }).filter(item=>item.question):[];
+  const body={projectId:state.activeProjectId,productId:state.currentProduct?.id,type,title:$('factoryTitle').value.trim(),topic:$('factoryTopic').value.trim(),audience:$('factoryAudience').value.trim(),outcome:$('factoryOutcome').value.trim(),level:Number($('factoryLevel').value),questions};
+  try{
+    notice('Creating a real file locally. No AI or paid API call is used.');
+    const data=await api('/api/v2/factory/generate',{method:'POST',body:JSON.stringify(body)});
+    await loadWorkspace(false);
+    notice('File created and saved to this project: '+data.asset.filename,'success');
+  }catch(err){notice(err.message,'error');}
+});
 $('productForm').addEventListener('submit',async e=>{
   e.preventDefault();
   if(!state.activeProjectId){openProjectModal();return;}

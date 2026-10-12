@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash, createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
@@ -9,6 +9,7 @@ import { findProductIdeas, analyzeIdea, buildProductBlueprint, buildBrandProfile
 import { generate } from './lib/generator.js';
 import { generateV2 } from './lib/v2-ai.js';
 import { prepareVideoRequest, videoCapability } from './lib/video.js';
+import { createDigitalProduct } from './lib/digital-product-factory.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const intEnv = (name, fallback, min, max) => {
@@ -55,6 +56,7 @@ if (config.liveEnabled) {
 }
 const ledger = new Ledger(process.env.CREDIT_DB || join(ROOT, 'data', 'credits.sqlite'), config.initialCredits);
 const workspace = new WorkspaceStore(process.env.WORKSPACE_DB || join(ROOT, 'data', 'workspace.sqlite'));
+const productFilesRoot = process.env.PRODUCT_FILES_DIR || join(ROOT,'data','generated-products');
 const accounts = { demo: 'demo-shared', live: 'beta-owner' };
 const rates = new Map();
 const equal = (a, b) => {
@@ -301,6 +303,62 @@ async function api(req, res, url) {
     if (body.productId) blueprint.id = body.productId;
     const product = workspace.saveProduct(v2Account,project.id,blueprint);
     return json(res,201,{ok:true,product,aiEngine:generated.engine});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/factory/assets') {
+    const projectId = url.searchParams.get('projectId');
+    const project = projectOrFail(projectId);
+    const assets = workspace.listOutputs(v2Account,project.id,1000)
+      .filter(item => item.type === 'digital-product')
+      .map(item => ({ id:item.id, title:item.title, createdAt:item.createdAt, ...item.payload }));
+    return json(res,200,{ok:true,assets});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/factory/generate') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    if (body.productId) {
+      const linkedProduct = productOrFail(body.productId);
+      if (linkedProduct.projectId !== project.id) throw failure('Product does not belong to this project.',409);
+    }
+    let artifact;
+    try {
+      artifact = createDigitalProduct({
+        type:body.type, title:body.title, topic:body.topic, audience:body.audience,
+        outcome:body.outcome, level:body.level, questions:body.questions
+      });
+    } catch (error) {
+      throw failure(error.message || 'Could not create this digital product.',422);
+    }
+    const extension = artifact.filename.split('.').pop();
+    const filePath = join(productFilesRoot,artifact.id + '.' + extension);
+    await mkdir(productFilesRoot,{recursive:true,mode:0o700});
+    await writeFile(filePath,artifact.buffer,{flag:'wx',mode:0o600});
+    let saved;
+    try {
+      saved = workspace.saveOutput(v2Account,project.id,'digital-product',artifact.filename,{
+        fileId:artifact.id, filename:artifact.filename, extension, contentType:artifact.contentType,
+        pages:artifact.pages || null, type:body.type, label:artifact.label
+      });
+    } catch (error) {
+      await unlink(filePath).catch(()=>{});
+      throw error;
+    }
+    return json(res,201,{ok:true,asset:{id:saved.id,fileId:artifact.id,filename:artifact.filename,contentType:artifact.contentType,pages:artifact.pages||null,label:artifact.label,createdAt:saved.createdAt}});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/factory/download') {
+    const project = projectOrFail(url.searchParams.get('projectId'));
+    const fileId = url.searchParams.get('fileId') || '';
+    if (!/^[0-9a-f-]{36}$/i.test(fileId)) throw failure('Choose a valid saved file.',400);
+    const saved = workspace.listOutputs(v2Account,project.id,1000)
+      .find(item => item.type === 'digital-product' && item.payload?.fileId === fileId);
+    if (!saved) throw failure('Saved file not found for this project.',404);
+    const extension = saved.payload.extension;
+    if (!['pdf','xlsx','html'].includes(extension)) throw failure('Unsupported saved file.',404);
+    let file;
+    try { file = await readFile(join(productFilesRoot,fileId + '.' + extension)); }
+    catch { throw failure('The saved file is missing. Generate it again from the Product Builder.',404); }
+    const filename = String(saved.payload.filename || saved.title).replace(/[^a-zA-Z0-9._-]/g,'_');
+    res.writeHead(200,{'Content-Type':saved.payload.contentType,'Content-Disposition':`attachment; filename="${filename}"`,'Content-Length':file.length,'Cache-Control':'no-store'});
+    return res.end(file);
   }
   if (req.method === 'POST' && url.pathname === '/api/v2/products/save') {
     const body = await readBody(req);

@@ -36,6 +36,11 @@ test('V2 remains usable on narrow Android screens and reports whether OpenAI is 
   assert.match(v2Js,/Local templates · OpenAI needs API setup/);
   assert.match(v2Js,/\/api\/v2\/dashboard/);
   assert.doesNotMatch(v2Html+v2Js,/OPENAI_API_KEY|sk-[A-Za-z0-9_-]{12,}/);
+  assert.match(v2Html,/DIGITAL PRODUCT FACTORY/);
+  assert.match(v2Html,/Quiz questions, one per line/);
+  assert.match(v2Js,/\/api\/v2\/factory\/generate/);
+  assert.match(v2Js,/\/api\/v2\/factory\/download/);
+  assert.match(v2Css,/factory-form/);
 });
 
 test('frontend is mobile-first, self-contained and does not contain provider secrets',()=>{

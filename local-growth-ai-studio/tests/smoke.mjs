@@ -20,6 +20,7 @@ async function start() {
       HOST:'127.0.0.1',
       CREDIT_DB:join(dir,'test.sqlite'),
       WORKSPACE_DB:join(dir,'workspace.sqlite'),
+      PRODUCT_FILES_DIR:join(dir,'generated-products'),
       OPENAI_API_KEY:'',
       ENABLE_LIVE_AI:'1',
       OPENAI_PROVIDER_ENABLED:'0',
@@ -161,6 +162,42 @@ try {
   assert.equal(updated.name,'خدمة كانفا المطورة');
   assert.equal((await (await get(`/api/v2/products?projectId=${project.id}`)).json()).products.length,1);
 
+  const ebookResponse=await post('/api/v2/factory/generate',{
+    projectId:project.id,productId:updated.id,type:'ebook',title:'Sample guide',topic:'Canva basics',audience:'new sellers',outcome:'Create a simple product'
+  });
+  assert.equal(ebookResponse.status,201);
+  const ebook=(await ebookResponse.json()).asset;
+  assert.equal(ebook.contentType,'application/pdf');
+  assert.equal(ebook.pages,6);
+  assert.match(ebook.label,/no AI connection used/i);
+  assert.equal(ebookResponse.headers.get('content-type')?.startsWith('application/json'),true);
+  const budgetResponse=await post('/api/v2/factory/generate',{
+    projectId:project.id,productId:updated.id,type:'budget',title:'Budget planner',topic:'monthly budgeting'
+  });
+  assert.equal(budgetResponse.status,201);
+  const budget=(await budgetResponse.json()).asset;
+  assert.equal(budget.contentType,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  const quizResponse=await post('/api/v2/factory/generate',{
+    projectId:project.id,productId:updated.id,type:'quiz',title:'Canva Quiz',topic:'Canva basics',
+    questions:[
+      {question:'Which tool adds text?',answer:'Text',wrong:['Crop','Resize']},
+      {question:'What is a page?',answer:'A design canvas',wrong:['A file name','A payment']},
+      {question:'How do you export?',answer:'Download',wrong:['Delete','Close']}
+    ]
+  });
+  assert.equal(quizResponse.status,201);
+  const quiz=(await quizResponse.json()).asset;
+  assert.equal(quiz.contentType,'text/html; charset=utf-8');
+  assert.equal((await (await get(`/api/v2/factory/assets?projectId=${project.id}`)).json()).assets.length,3);
+  const ebookDownload=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${ebook.fileId}`);
+  assert.equal(ebookDownload.status,200);
+  assert.equal(ebookDownload.headers.get('content-type'),'application/pdf');
+  assert.equal(Buffer.from(await ebookDownload.arrayBuffer()).subarray(0,8).toString(),'%PDF-1.4');
+  const budgetDownload=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${budget.fileId}`);
+  assert.equal(budgetDownload.status,200);
+  assert.equal(Buffer.from(await budgetDownload.arrayBuffer()).readUInt32LE(0),0x04034b50);
+  assert.equal((await post('/api/v2/factory/generate',{projectId:project.id,type:'quiz',title:'Bad quiz',topic:'x',questions:[]})).status,422);
+
   const brandResponse=await post('/api/v2/brand/generate',{projectId:project.id,productId:updated.id,language:'ar'});
   assert.equal(brandResponse.status,200);
   assert.equal((await brandResponse.json()).aiEngine,'local');
@@ -172,7 +209,7 @@ try {
   assert.equal(reelResponse.status,200);
   assert.equal((await reelResponse.json()).aiEngine,'local');
   const savedWorkspace=await (await get(`/api/v2/dashboard?projectId=${project.id}`)).json();
-  assert.equal(savedWorkspace.outputs.length,2);
+  assert.equal(savedWorkspace.outputs.length,5);
   assert.equal(savedWorkspace.outputs.find(output=>output.type==='ad-pack').type,'ad-pack');
   assert.match(savedWorkspace.outputs.find(output=>output.type==='ad-pack').payload.variants[0].primaryText,/خدمة كانفا المطورة/);
   const partnerResponse=await post('/api/v2/partner',{projectId:project.id,message:'أريد أن أربح من الإنترنت ولا أعرف ماذا أبيع.'});
@@ -192,9 +229,17 @@ try {
   assert.equal((await (await get('/api/credits')).json()).balance,7);
   const recoveredWorkspace=await (await get(`/api/v2/dashboard?projectId=${project.id}`)).json();
   assert.equal(recoveredWorkspace.products[0].name,'خدمة كانفا المطورة');
-  assert.equal(recoveredWorkspace.outputs.length,2);
+  assert.equal(recoveredWorkspace.outputs.length,5);
   assert.ok(recoveredWorkspace.outputs.some(output=>output.type==='ad-pack'));
   assert.ok(recoveredWorkspace.outputs.some(output=>output.type==='reel'));
+  const recoveredAssets=(await (await get(`/api/v2/factory/assets?projectId=${project.id}`)).json()).assets;
+  assert.equal(recoveredAssets.length,3);
+  const recoveredEbook=recoveredAssets.find(asset=>asset.fileId===ebook.fileId);
+  assert.ok(recoveredEbook);
+  const recoveredDownload=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${ebook.fileId}`);
+  assert.equal(recoveredDownload.status,200);
+  assert.equal(Buffer.from(await recoveredDownload.arrayBuffer()).subarray(0,8).toString(),'%PDF-1.4');
+
   assert.ok(recoveredWorkspace.brand);
   assert.equal(recoveredWorkspace.research.payload.idea.type,'service');
   assert.equal((await (await get(`/api/v2/partner/messages?projectId=${project.id}`)).json()).messages.length,2);
@@ -208,7 +253,7 @@ try {
   assert.equal((await get('/api/generations/missing-request-0001')).status,404);
   assert.equal((await get('/api/generations/invalid')).status,400);
   assert.equal((await (await get('/api/credits')).json()).balance,7);
-  console.log('PASS: auth, CSRF, Demo/Live isolation, stale-credit recovery, paused-provider result recovery, validation, persistence, protected files, video contract and UI.');
+  console.log('PASS: auth, CSRF, Demo/Live isolation, stale-credit recovery, paused-provider result recovery, validation, persistence, protected files, video contract, offline digital factory downloads and UI.');
 } finally {
   await stop();
   await rm(dir,{recursive:true,force:true});

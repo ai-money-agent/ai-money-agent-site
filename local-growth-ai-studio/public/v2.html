@@ -155,6 +155,26 @@
         </div>
       </section>
 
+        <article class="card factory-card">
+          <div class="section-head">
+            <div><span class="kicker">DIGITAL PRODUCT FACTORY</span><h2>Create the downloadable product file.</h2><p>Uses your details and editable local templates. This step does not call an AI provider.</p></div>
+          </div>
+          <form id="factoryForm" class="factory-form">
+            <label>Product format<select id="factoryType"><option value="ebook">Multi-page ebook / workbook PDF</option><option value="coloring">Coloring and activity book PDF</option><option value="worksheet">Educational worksheet + answer key PDF</option><option value="budget">Budget planner XLSX</option><option value="organizer">Budget and 12-month organizer XLSX</option><option value="quiz">Offline questions game (HTML)</option></select></label>
+            <label>File title<input id="factoryTitle" maxlength="100" required placeholder="A practical starter workbook" /></label>
+            <label>Topic<input id="factoryTopic" maxlength="120" required placeholder="What the product teaches or organizes" /></label>
+            <label>For whom?<input id="factoryAudience" maxlength="120" placeholder="Learners, families, small businesses…" /></label>
+            <label class="full">Desired outcome<input id="factoryOutcome" maxlength="180" placeholder="What should the buyer be able to do?" /></label>
+            <label id="factoryLevelWrap">Worksheet level<input id="factoryLevel" type="number" min="1" max="12" value="2" /></label>
+            <label id="factoryQuestionsWrap" class="full hidden">Quiz questions, one per line: Question | correct answer | wrong answer | wrong answer
+              <textarea id="factoryQuestions" rows="6" placeholder="What is 2 + 2? | 4 | 3 | 5"></textarea>
+            </label>
+            <p id="factoryHint" class="factory-hint full">Templates produce real files from these inputs. PDF text currently supports English/Latin characters; XLSX and quiz files preserve Unicode. Review subject-specific material before selling.</p>
+            <button class="primary full" type="submit">Create and save downloadable file</button>
+          </form>
+          <div id="factoryAssets" class="factory-assets" aria-live="polite"></div>
+          <div class="factory-next"><span>Next in the journey: set up the offer and advertisement.</span><button class="secondary" type="button" data-go="ads">Continue to Ad Studio</button></div>
+        </article>
       <section class="view" data-view-panel="ads">
         <div class="section-head">
           <div><span class="kicker">AD STUDIO</span><h1>Generate four testable angles.</h1><p>Problem/Solution, Curiosity, Outcome and Direct Offer. Nothing is launched automatically.</p></div>

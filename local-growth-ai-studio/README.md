@@ -93,3 +93,14 @@ Before choosing a paid host or enabling paid AI, obtain the owner's approval. No
 The text brief is restored from this browser's local storage on page load. Product images are intentionally not saved there. The current tab remembers only the last generation's random ID, output language and Demo/Live mode in session storage. After a reload or connection loss, **Recover last result** reads the existing server job without running the provider or reserving another credit. Fresh pending jobs remain pending; stale reservations are automatically failed and refunded after the configured timeout. Failed jobs show that the Studio credit was returned. Recovery requires the same authenticated beta account and the original database. Closing the tab or clearing browser storage can remove the recovery pointer.
 
 **Download .txt** exports all seven creative sections as UTF-8 text (including Arabic). **Copy all** remains available. Starting another generation is a new credit-bearing action.
+
+
+## Digital Product Factory
+
+The Product Builder now creates downloadable starter files entirely on the server, without calling an AI provider:
+
+- Multi-page PDF workbooks, coloring/activity PDFs, and educational worksheets with answer keys.
+- XLSX budget planners and 12-month organizers with formulas.
+- Offline quiz games as self-contained HTML from the user's questions.
+
+Files are stored under the persistent `data/generated-products` directory by default (override with `PRODUCT_FILES_DIR`). SQLite saves each file's project, type, filename, and download identifier, so the project can restore its downloads after restart. Generated templates are labeled as local work and should be checked and customized before sale. PDF templates currently support English/Latin text; XLSX and quiz HTML preserve Unicode text. The simulated AI connectivity check is separate from file creation; no result from the factory is presented as AI output.
