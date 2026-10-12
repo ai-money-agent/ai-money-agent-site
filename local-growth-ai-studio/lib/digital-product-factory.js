@@ -30,12 +30,12 @@ function pdfDocument(title, pages) {
     if (art) {
       const which = Number(art.slice(5));
       const paths = [
-        '300 330 m 300 370 340 370 340 330 c 340 290 300 290 300 330 c S 280 330 m 240 330 240 370 280 370 c 320 370 320 330 280 330 c S 280 290 m 240 290 240 330 280 330 c 320 330 320 290 280 290 c S',
-        '250 270 m 250 370 l 350 370 l 350 270 l S 235 370 m 300 440 l 365 370 l S 285 270 m 285 325 l 315 325 l 315 270 l S',
-        '250 320 m 360 370 l 410 330 l 360 290 l h S 250 320 m 215 360 l 215 280 l h S 275 360 m 290 350 l 300 360 l 290 370 l h S',
-        '270 290 m 270 390 l 330 390 l 330 290 l h S 260 390 m 300 425 l 340 390 l S 290 350 m 290 354.4 294.4 358 300 358 c 305.6 358 310 354.4 310 350 c 310 345.6 305.6 342 300 342 c 294.4 342 290 345.6 290 350 c S 270 320 m 250 320 l S 330 320 m 350 320 l S',
-        '300 420 m 360 340 l 300 260 l 240 340 l h S 300 420 m 300 260 l S 240 340 m 360 340 l S 300 260 m 300 235 l S 300 235 m 280 215 l 320 215 l h S',
-        '300 390 m 300 350 l 340 330 l 300 310 l 260 330 l h S 300 390 m 300 420 l 330 405 l S 260 330 m 230 330 l S 340 330 m 370 330 l S 300 310 m 300 280 l S'
+        '270 350 m 270 410 l 300 380 l 330 410 l 330 350 c 330 300 270 300 270 350 c S 283 355 m 283 358 286 361 289 358 c 292 355 289 352 286 352 c 284 352 283 353 283 355 c S 311 355 m 311 358 314 361 317 358 c 320 355 317 352 314 352 c 312 352 311 353 311 355 c S 292 330 m 300 324 l 308 330 l 300 336 l h S 292 324 m 283 320 l 270 324 S 308 324 m 317 320 l 330 324 S',
+        '265 350 m 265 400 c 265 420 285 430 300 410 c 315 430 335 420 335 400 l 335 350 c 335 300 265 300 265 350 c S 280 360 m 280 364 284 368 288 364 c 292 360 288 356 284 356 c 282 356 280 358 280 360 c S 312 360 m 312 364 316 368 320 364 c 324 360 320 356 316 356 c 314 356 312 358 312 360 c S 292 335 m 300 330 l 308 335 l 300 342 l h S 286 326 m 300 322 l 314 326 S',
+        '270 340 m 300 375 l 355 340 l 300 305 l h S 300 375 m 300 305 l S 355 340 m 390 375 l 390 305 l h S 270 340 m 238 370 l 238 310 l h S 286 354 m 286 358 290 362 294 358 c 298 354 294 350 290 350 c 288 350 286 352 286 354 c S 310 354 m 310 358 314 362 318 358 c 322 354 318 350 314 350 c 312 350 310 352 310 354 c S',
+        '270 300 m 270 390 l 330 390 l 330 300 l h S 258 390 m 300 430 l 342 390 l S 282 355 m 282 359 286 363 290 359 c 294 355 290 351 286 351 c 284 351 282 353 282 355 c S 310 355 m 310 359 314 363 318 359 c 322 355 318 351 314 351 c 312 351 310 353 310 355 c S 290 330 m 300 325 l 310 330 l S 283 300 m 275 285 l S 317 300 m 325 285 l S',
+        '300 410 m 365 340 l 300 270 l 235 340 l h S 300 410 m 300 270 l S 235 340 m 365 340 l S 270 375 m 330 375 l S 270 305 m 330 305 l S 300 270 m 300 245 l 280 230 l 320 230 l h S',
+        '300 340 m 300 400 l S 300 365 m 280 410 225 425 222 380 c 218 344 257 338 300 365 c S 300 365 m 343 338 382 344 378 380 c 375 425 320 410 300 365 c S 300 345 m 280 315 235 280 230 315 c 225 350 272 360 300 345 c S 300 345 m 328 360 375 350 370 315 c 365 280 320 315 300 345 c S 298 400 m 290 425 280 440 270 445 S 302 400 m 310 425 320 440 330 445 S'
       ];
       commands.push('0 0 0 RG', '2 w', '1 J', paths[(which - 1) % paths.length], '0 0 0 rg');
     }
@@ -151,7 +151,7 @@ function sheet(rows) {
 }
 function workbook(input) {
   const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const budget=[['Monthly Budget Planner',input.title],['Category','Planned','Actual','Difference'],['Income',0,0,'=C3-B3'],['Housing',0,0,'=B4-C4'],['Food',0,0,'=B5-C5'],['Transport',0,0,'=B6-C6'],['Utilities',0,0,'=B7-C7'],['Health',0,0,'=B8-C8'],['Savings',0,0,'=B9-C9'],['Other',0,0,'=B10-C10'],['Total','=SUM(B3:B10)','=SUM(C3:C10)','=C11-B11'],['Instructions','Enter planned and actual amounts. Formulas calculate differences.']];
+  const budget=[['Monthly Budget Planner',input.title],['Category','Planned','Actual','Variance'],['Income',0,0,'=C3-B3'],['Housing',0,0,'=B4-C4'],['Food',0,0,'=B5-C5'],['Transport',0,0,'=B6-C6'],['Utilities',0,0,'=B7-C7'],['Health',0,0,'=B8-C8'],['Savings',0,0,'=B9-C9'],['Other',0,0,'=B10-C10'],['Total Expenses','=SUM(B4:B10)','=SUM(C4:C10)','=B11-C11'],['Net Savings','=B3-B11','=C3-C11','=C12-B12'],['Instructions','Enter income and expense amounts. Variance compares planned with actual; net savings is income minus expenses.']];
   const transactions=[['Date','Category','Description','Income','Expense','Balance'],['','','',0,0,'=D2-E2']];
   for(let i=3;i<=32;i++) transactions.push(['','','',0,0,`=F${i-1}+D${i}-E${i}`]);
   const planner=[['12-Month Organizer','Goal','Notes'],...months.map(m=>[m,'','']),['Quarterly review','What worked?','What to change?']];
@@ -195,3 +195,4 @@ export function createDigitalProduct(input = {}) {
   const pages=kind==='ebook'?ebookPages(normalized):kind==='coloring'?coloringPages(normalized):worksheetPages(normalized);
   return {id,filename:`${slug(title)}.pdf`,contentType:'application/pdf',buffer:pdfDocument(title,pages),pages:pages.length,label:'Print-ready starter pages built locally; no AI connection used.'};
 }
+
