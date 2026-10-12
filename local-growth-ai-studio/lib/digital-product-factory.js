@@ -102,7 +102,7 @@ function pdfDocument(title, pages, {rtl=false}={}) {
       const which = Number(art.slice(5));
       const paths = [
         `${ellipsePath(300,350,68,70)} ${ellipsePath(252,408,23,22)} ${ellipsePath(348,408,23,22)} ${ellipsePath(278,360,4,5)} ${ellipsePath(322,360,4,5)} ${ellipsePath(300,337,11,8)} 288 325 m 294 314 306 314 312 325 c S`,
-        `265 330 m 270 402 l 288 385 l 300 395 l 312 385 l 330 402 l 335 330 c ${ellipsePath(300,345,61,55)} ${ellipsePath(281,355,4,5)} ${ellipsePath(319,355,4,5)} 290 330 m 300 322 310 322 310 330 c S 268 340 m 236 350 l S 270 330 m 238 330 l S 332 340 m 364 350 l S 330 330 m 362 330 l S`,
+        `${ellipsePath(300,345,65,60)} 252 390 m 262 445 l 300 400 l h S 300 400 m 338 445 l 348 390 l h S ${ellipsePath(281,355,4,5)} ${ellipsePath(319,355,4,5)} 290 330 m 300 322 310 322 310 330 c S 268 340 m 236 350 l S 270 330 m 238 330 l S 332 340 m 364 350 l S 330 330 m 362 330 l S`,
         `${ellipsePath(300,350,58,36)} 242 350 m 205 380 l 205 320 l h S 300 386 m 287 410 l 313 410 l h S 300 314 m 287 290 l 313 290 l h S ${ellipsePath(323,358,4,5)} 278 350 m 238 350 l S`,
         `265 310 m 265 390 l 335 390 l 335 310 l h S 300 390 m 300 420 l S 290 420 m 310 420 l S ${ellipsePath(283,360,5,6)} ${ellipsePath(317,360,5,6)} 283 335 m 317 335 l S`,
         `300 410 m 365 340 l 300 270 l 235 340 l h S 300 410 m 300 270 l S 235 340 m 365 340 l S 300 270 m 300 240 l 280 225 l 320 225 l h S`,
