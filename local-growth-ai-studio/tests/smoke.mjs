@@ -19,6 +19,7 @@ async function start() {
       PORT:'8799',
       HOST:'127.0.0.1',
       CREDIT_DB:join(dir,'test.sqlite'),
+      WORKSPACE_DB:join(dir,'workspace.sqlite'),
       OPENAI_API_KEY:'',
       ENABLE_LIVE_AI:'1',
       OPENAI_PROVIDER_ENABLED:'0',
@@ -121,6 +122,44 @@ try {
   assert.equal(videoBody.spec.aspectRatio,'9:16');
   assert.equal((await (await get('/api/credits')).json()).balance,7);
 
+  const projectResponse=await post('/api/v2/projects',{
+    name:'مشروع اختبار',country:'لبنان',budget:'20 دولار',skills:'تصميم كانفا',timeAvailable:'ساعتان يوميًا',
+    businessType:'service',marketScope:'local',payoutMethods:'Whish و OMT'
+  });
+  assert.equal(projectResponse.status,201);
+  const project=(await projectResponse.json()).project;
+  const ideasResponse=await post('/api/v2/research/ideas',{projectId:project.id,language:'ar'});
+  assert.equal(ideasResponse.status,200);
+  const ideas=(await ideasResponse.json()).ideas;
+  const chosen=ideas.find(idea=>idea.type==='service');
+  const analysisResponse=await post('/api/v2/research/analyze',{projectId:project.id,idea:chosen,language:'ar'});
+  assert.equal(analysisResponse.status,200);
+  const analysis=(await analysisResponse.json()).analysis;
+  assert.equal(analysis.idea.type,'service');
+  const savedResearch=await (await get(`/api/v2/dashboard?projectId=${project.id}`)).json();
+  assert.equal(savedResearch.research.payload.idea.name,chosen.name);
+
+  const builtResponse=await post('/api/v2/products/build',{projectId:project.id,answers:{name:'خدمة كانفا',price:25},language:'ar'});
+  assert.equal(builtResponse.status,201);
+  const built=(await builtResponse.json()).product;
+  assert.equal(built.type,'service');
+  const updatedResponse=await post('/api/v2/products/build',{projectId:project.id,productId:built.id,idea:chosen,answers:{name:'خدمة كانفا المطورة',price:30},language:'ar'});
+  assert.equal(updatedResponse.status,201);
+  const updated=(await updatedResponse.json()).product;
+  assert.equal(updated.id,built.id);
+  assert.equal(updated.name,'خدمة كانفا المطورة');
+  assert.equal((await (await get(`/api/v2/products?projectId=${project.id}`)).json()).products.length,1);
+
+  const adResponse=await post('/api/v2/ads/generate',{projectId:project.id,productId:updated.id,language:'ar'});
+  assert.equal(adResponse.status,200);
+  const savedWorkspace=await (await get(`/api/v2/dashboard?projectId=${project.id}`)).json();
+  assert.equal(savedWorkspace.outputs.length,1);
+  assert.equal(savedWorkspace.outputs[0].type,'ad-pack');
+  assert.match(savedWorkspace.outputs[0].payload.variants[0].primaryText,/خدمة كانفا المطورة/);
+  const partnerResponse=await post('/api/v2/partner',{projectId:project.id,message:'أريد أن أربح من الإنترنت ولا أعرف ماذا أبيع.'});
+  assert.equal(partnerResponse.status,200);
+  assert.match((await partnerResponse.json()).reply,/سنبدأ من الصفر/);
+
   assert.equal((await get('/.env')).status,404);
   assert.equal((await get('/server.js')).status,404);
   const home = await get('/');
@@ -130,6 +169,11 @@ try {
   await stop();
   await start();
   assert.equal((await (await get('/api/credits')).json()).balance,7);
+  const recoveredWorkspace=await (await get(`/api/v2/dashboard?projectId=${project.id}`)).json();
+  assert.equal(recoveredWorkspace.products[0].name,'خدمة كانفا المطورة');
+  assert.equal(recoveredWorkspace.outputs[0].type,'ad-pack');
+  assert.equal(recoveredWorkspace.research.payload.idea.type,'service');
+  assert.equal((await (await get(`/api/v2/partner/messages?projectId=${project.id}`)).json()).messages.length,2);
   const replay = await (await post('/api/generate',{...brief,generationMode:'demo'})).json();
   assert.equal(replay.replayed,true);
   assert.equal(replay.credits.balance,7);
@@ -145,3 +189,4 @@ try {
   await stop();
   await rm(dir,{recursive:true,force:true});
 }
+
