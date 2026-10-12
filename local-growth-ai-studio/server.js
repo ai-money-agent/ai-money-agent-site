@@ -323,7 +323,8 @@ async function api(req, res, url) {
     try {
       artifact = createDigitalProduct({
         type:body.type, title:body.title, topic:body.topic, audience:body.audience,
-        outcome:body.outcome, level:body.level, questions:body.questions
+        outcome:body.outcome, level:body.level, questions:body.questions, language:body.language,
+        pages:body.pages, questionsPerPage:body.questionsPerPage
       });
     } catch (error) {
       throw failure(error.message || 'Could not create this digital product.',422);
@@ -332,32 +333,45 @@ async function api(req, res, url) {
     const filePath = join(productFilesRoot,artifact.id + '.' + extension);
     await mkdir(productFilesRoot,{recursive:true,mode:0o700});
     await writeFile(filePath,artifact.buffer,{flag:'wx',mode:0o600});
+    let previewFileId=artifact.id, previewExtension=extension;
+    if(artifact.preview?.buffer && artifact.preview.buffer !== artifact.buffer){
+      previewFileId=randomUUID();previewExtension=artifact.preview.filename.split('.').pop();
+      await writeFile(join(productFilesRoot,previewFileId+'.'+previewExtension),artifact.preview.buffer,{flag:'wx',mode:0o600});
+    }
     let saved;
     try {
       saved = workspace.saveOutput(v2Account,project.id,'digital-product',artifact.filename,{
         fileId:artifact.id, filename:artifact.filename, extension, contentType:artifact.contentType,
-        pages:artifact.pages || null, type:body.type, label:artifact.label
+        pages:artifact.pages || null, type:body.type, label:artifact.label,
+        previewFileId, previewFilename:artifact.preview?.filename || artifact.filename,
+        previewContentType:artifact.preview?.contentType || artifact.contentType,
+        previewExtension
       });
     } catch (error) {
       await unlink(filePath).catch(()=>{});
+      if(previewFileId!==artifact.id)await unlink(join(productFilesRoot,previewFileId+'.'+previewExtension)).catch(()=>{});
       throw error;
     }
-    return json(res,201,{ok:true,asset:{id:saved.id,fileId:artifact.id,filename:artifact.filename,contentType:artifact.contentType,pages:artifact.pages||null,label:artifact.label,createdAt:saved.createdAt}});
+    return json(res,201,{ok:true,asset:{id:saved.id,fileId:artifact.id,filename:artifact.filename,contentType:artifact.contentType,pages:artifact.pages||null,label:artifact.label,previewFileId,previewFilename:artifact.preview?.filename||artifact.filename,previewContentType:artifact.preview?.contentType||artifact.contentType,createdAt:saved.createdAt}});
   }
   if (req.method === 'GET' && url.pathname === '/api/v2/factory/download') {
     const project = projectOrFail(url.searchParams.get('projectId'));
     const fileId = url.searchParams.get('fileId') || '';
     if (!/^[0-9a-f-]{36}$/i.test(fileId)) throw failure('Choose a valid saved file.',400);
     const saved = workspace.listOutputs(v2Account,project.id,1000)
-      .find(item => item.type === 'digital-product' && item.payload?.fileId === fileId);
+      .find(item => item.type === 'digital-product' && (item.payload?.fileId === fileId || item.payload?.previewFileId === fileId));
     if (!saved) throw failure('Saved file not found for this project.',404);
-    const extension = saved.payload.extension;
+    const isPreview=saved.payload.previewFileId===fileId;
+    const extension = isPreview?saved.payload.previewExtension:saved.payload.extension;
     if (!['pdf','xlsx','html'].includes(extension)) throw failure('Unsupported saved file.',404);
     let file;
     try { file = await readFile(join(productFilesRoot,fileId + '.' + extension)); }
     catch { throw failure('The saved file is missing. Generate it again from the Product Builder.',404); }
-    const filename = String(saved.payload.filename || saved.title).replace(/[^a-zA-Z0-9._-]/g,'_');
-    res.writeHead(200,{'Content-Type':saved.payload.contentType,'Content-Disposition':`attachment; filename="${filename}"`,'Content-Length':file.length,'Cache-Control':'no-store'});
+    const filename = String(isPreview?saved.payload.previewFilename:(saved.payload.filename || saved.title)).replace(/[^a-zA-Z0-9._-]/g,'_');
+    const contentType=isPreview?saved.payload.previewContentType:saved.payload.contentType;
+    const inline=url.searchParams.get('inline')==='1';
+    const previewHeaders=isPreview&&inline&&contentType.startsWith('text/html;')?{'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'",'X-Frame-Options':'SAMEORIGIN'}:{};
+    res.writeHead(200,{'Content-Type':contentType,'Content-Disposition':`${inline?'inline':'attachment'}; filename="${filename}"`,'Content-Length':file.length,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...previewHeaders});
     return res.end(file);
   }
   if (req.method === 'POST' && url.pathname === '/api/v2/products/save') {
