@@ -142,7 +142,7 @@ function syncProductSelectors() {
 }
 function renderSaved() {
   const pRoot=$('savedProjects'); pRoot.replaceChildren();
-  state.projects.forEach(p=>{const row=document.createElement('div');row.className='saved-row';row.innerHTML=`<strong></strong><span></span>`;row.querySelector('strong').textContent=p.name;row.querySelector('span').textContent=`${p.status} · ${new Date(p.updatedAt).toLocaleDateString()}`;row.addEventListener('click',async()=>{state.activeProjectId=p.id;fillProjectSelect();await loadWorkspace();showView('dashboard');});pRoot.append(row);});
+  state.projects.forEach(p=>{const row=document.createElement('button');row.type='button';row.className='saved-row';row.innerHTML='<strong></strong><span></span>';row.querySelector('strong').textContent=p.name;row.querySelector('span').textContent=`${p.status} · ${new Date(p.updatedAt).toLocaleDateString()}`;row.addEventListener('click',async()=>{state.activeProjectId=p.id;fillProjectSelect();await loadWorkspace();showView('dashboard');});pRoot.append(row);});
   const oRoot=$('savedOutputs'); oRoot.replaceChildren();
   const outputs=state.dashboard?.outputs||[];
   if(!outputs.length){oRoot.textContent='No creative packs saved yet.';return;}
@@ -159,7 +159,7 @@ function renderSaved() {
 }
 function renderExistingProduct() {
   const p=state.dashboard?.products?.[0];
-  if (!p) { state.currentProduct=null; $('productForm').querySelector('button[type="submit"]').textContent='Build product'; $('productResult').innerHTML='<div class="placeholder"><strong>No product built yet.</strong><p>Choose an idea in Research, or fill the fields and build.</p></div>'; return; }
+  if (!p) { state.currentProduct=null; $('productForm').reset(); $('productForm').querySelector('button[type="submit"]').textContent='Build product'; $('productResult').innerHTML='<div class="placeholder"><strong>No product built yet.</strong><p>Choose an idea in Research, or fill the fields and build.</p></div>'; return; }
   renderProduct(p);
 }
 function renderProduct(p) {
