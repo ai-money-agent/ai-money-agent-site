@@ -160,18 +160,22 @@
             <div><span class="kicker">DIGITAL PRODUCT FACTORY</span><h2>Create the downloadable product file.</h2><p>Uses your details and editable local templates. This step does not call an AI provider.</p></div>
           </div>
           <form id="factoryForm" class="factory-form">
-            <label>Product format<select id="factoryType"><option value="ebook">Multi-page ebook / workbook PDF</option><option value="coloring">Coloring and activity book PDF</option><option value="worksheet">Educational worksheet + answer key PDF</option><option value="budget">Budget planner XLSX</option><option value="organizer">Budget and 12-month organizer XLSX</option><option value="quiz">Offline questions game (HTML)</option></select></label>
+            <label>Product format<select id="factoryType"><option value="ebook">Multi-page ebook / workbook</option><option value="coloring">Coloring and activity book</option><option value="worksheet">Educational worksheets + answer key</option><option value="budget">Budget planner XLSX + mobile preview</option><option value="organizer">Budget and 12-month organizer XLSX</option><option value="quiz">Offline questions game (HTML)</option></select></label>
+            <label>Language<select id="factoryLanguage"><option value="en">English</option><option value="ar">العربية — RTL</option></select></label>
             <label>File title<input id="factoryTitle" maxlength="100" required placeholder="A practical starter workbook" /></label>
             <label>Topic<input id="factoryTopic" maxlength="120" required placeholder="What the product teaches or organizes" /></label>
-            <label>For whom?<input id="factoryAudience" maxlength="120" placeholder="Learners, families, small businesses…" /></label>
+            <label>Age / audience<input id="factoryAudience" maxlength="120" placeholder="Ages 7–9, families, small businesses…" /></label>
             <label class="full">Desired outcome<input id="factoryOutcome" maxlength="180" placeholder="What should the buyer be able to do?" /></label>
+            <label id="factoryPagesWrap">Pages<input id="factoryPages" type="number" min="1" max="24" value="6" /></label>
             <label id="factoryLevelWrap">Worksheet level<input id="factoryLevel" type="number" min="1" max="12" value="2" /></label>
+            <label id="factoryQuestionCountWrap" class="hidden">Question count (up to this many supplied lines)<input id="factoryQuestionCount" type="number" min="3" max="30" value="10" /></label>
             <label id="factoryQuestionsWrap" class="full hidden">Quiz questions, one per line: Question | correct answer | wrong answer | wrong answer
               <textarea id="factoryQuestions" rows="6" placeholder="What is 2 + 2? | 4 | 3 | 5"></textarea>
             </label>
-            <p id="factoryHint" class="factory-hint full">Templates produce real files from these inputs. PDF text currently supports English/Latin characters; XLSX and quiz files preserve Unicode. Review subject-specific material before selling.</p>
-            <button class="primary full" type="submit">Create and save downloadable file</button>
+            <p id="factoryHint" class="factory-hint full">This local template factory uses the fields you enter; it does not call an AI service. PDF products include a touch-friendly HTML workbook for drawing and saved answers. Arabic PDFs embed a Unicode font and shape RTL text; their interactive companion can also be printed. XLSX budgets include a phone-friendly interactive preview.</p>
+            <button class="primary full" type="submit">Create, preview and save product</button>
           </form>
+          <section class="factory-preview card hidden" aria-label="Product preview"><div class="factory-preview-head"><strong id="factoryPreviewTitle">Product preview</strong><div id="factoryDownloadLinks"></div></div><iframe id="factoryPreview" title="Interactive product preview" sandbox="allow-scripts allow-same-origin"></iframe></section>
           <div id="factoryAssets" class="factory-assets" aria-live="polite"></div>
           <div class="factory-next"><span>Next in the journey: set up the offer and advertisement.</span><button class="secondary" type="button" data-go="ads">Continue to Ad Studio</button></div>
         </article>
