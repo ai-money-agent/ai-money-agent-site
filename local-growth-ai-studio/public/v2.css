@@ -51,5 +51,17 @@ input,textarea,select{width:100%;border:1px solid var(--line);background:#081422
 .factory-preview-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
 .factory-preview iframe{display:block;width:100%;height:min(74vh,760px);min-height:480px;border:1px solid var(--line);border-radius:12px;background:#edf2f8}
 .factory-preview-head a{margin-inline-start:8px}
+.factory-asset-actions a,.factory-preview-head a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;text-align:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 @media(max-width:760px){.factory-form{grid-template-columns:1fr}.factory-form .full{grid-column:1}.factory-next{align-items:stretch;flex-direction:column}.factory-asset{align-items:stretch;flex-direction:column}.factory-asset a{text-align:center}}
 @media(max-width:430px){.factory-preview{padding:8px}.factory-preview iframe{height:66vh;min-height:400px}.factory-preview-head{align-items:flex-start;flex-direction:column}.factory-asset-actions{display:grid!important;grid-template-columns:1fr}.factory-asset-actions a,.factory-asset-actions button{width:100%;text-align:center}}
+
+/* Keep every V2 workspace section reachable when the desktop sidebar is hidden. */
+.mobile-more-menu{display:none}
+.mobile-nav button,.factory-form button,.factory-asset-actions button,.factory-preview-head a{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+@media(max-width:760px){
+  .mobile-nav{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .mobile-more-menu{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:41;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px;border:1px solid var(--line);background:rgba(9,17,31,.97);backdrop-filter:blur(16px);border-radius:16px;box-shadow:var(--shadow)}
+  .mobile-more-menu button{display:flex;align-items:center;gap:9px;min-height:48px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;background:#11223a;color:var(--text);font:inherit;text-align:start}
+  .mobile-more-menu button:focus-visible,.mobile-nav button:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+}
+
