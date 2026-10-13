@@ -175,7 +175,11 @@ export function buildProductBlueprint({ profile = {}, research = null, idea = {}
   const providedPrice = answers.price !== undefined && answers.price !== null && answers.price !== '' && Number.isFinite(Number(answers.price)) && Number(answers.price) > 0;
   const price = providedPrice ? Number(answers.price) : null;
   const priceText = price == null ? (ar ? 'يُحدد بعد إدخال التكلفة والرسوم والتحقق من السوق.' : 'Set after entering costs and fees and validating the market.') : String(price) + ' ' + (answers.currency || 'USD');
-  const delivery = answers.delivery || (type === 'service' ? (ar ? 'تسليم خلال 2–4 أيام عبر رابط/ملف/جلسة حسب الخدمة.' : '2–4 day delivery via link, file or session depending on the service.') : (ar ? 'تحميل أو وصول رقمي فوري بعد الطلب.' : 'Instant digital delivery after purchase.'));
+  const delivery = answers.delivery || (type === 'service'
+    ? (ar ? 'حدد موعد التسليم ونطاق الخدمة بنفسك قبل البيع.' : 'Set the service scope and delivery timing before selling.')
+    : ['physical','dropshipping','print_on_demand','ecommerce'].includes(type)
+      ? (ar ? 'أكد مدة التوريد والشحن والإرجاع من المورد والمنصة قبل الوعد بالتسليم.' : 'Confirm production, shipping and returns with the supplier and platform before promising delivery.')
+      : (ar ? 'حدد طريقة التسليم الرقمي بعد تجهيز الملف واختباره.' : 'Set the digital delivery method after preparing and testing the file.'));
   return {
     name:sourceName.slice(0,160),
     type,
