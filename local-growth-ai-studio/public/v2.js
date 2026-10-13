@@ -329,7 +329,17 @@ function renderIdeas() {
     const actions=document.createElement('div');actions.className='idea-actions';
     const analyze=document.createElement('button');analyze.className='secondary';analyze.textContent='Analyze';analyze.onclick=()=>analyzeIdeaNow(idea);
     const build=document.createElement('button');build.className='ghost';build.textContent='Use this idea';build.onclick=async()=>{state.selectedIdea=idea;renderIdeas();await analyzeIdeaNow(idea);showView('product');};
-    actions.append(analyze,build);card.append(score,h,p,meta,why,actions);root.append(card);
+    const plan=document.createElement('button');plan.className='secondary';plan.textContent='Plan costs & launch';
+    plan.onclick=()=>{
+      fillLaunchForm(null,state.dashboard?.activeProject);
+      const mapped=idea.type==='ecommerce'?'physical':idea.type;
+      if(['digital','physical','service','dropshipping','print_on_demand'].includes(mapped))$('launchBusinessType').value=mapped;
+      $('launchProductName').value=idea.name||'';
+      $('launchAudience').value=idea.targetCustomer||'';
+      $('launchOutcome').value=idea.promise||'';
+      syncLaunchBusinessType();showView('business');
+    };
+    actions.append(analyze,build,plan);card.append(score,h,p,meta,why,actions);root.append(card);
   });
 }
 async function analyzeIdeaNow(idea) {
@@ -416,6 +426,9 @@ function renderAnalysis(a) {
   const mk=(title,arr)=>{const sec=document.createElement('section');const h4=document.createElement('h4');h4.textContent=title;const ul=document.createElement('ul');(arr||[]).forEach(v=>{const li=document.createElement('li');li.textContent=v;ul.append(li);});sec.append(h4,ul);return sec;};
   cols.append(mk('Customer problems',a.customerProblems),mk('Selling angles',a.sellingAngles),mk('Differentiation',a.differentiationOpportunities),mk('Validation plan',a.validationPlan));root.append(cols);
   const foot=document.createElement('small');foot.textContent=a.dataStatus||'';root.append(foot);
+  const next=document.createElement('button');next.className='secondary';next.type='button';next.textContent='Plan costs & launch';
+  next.addEventListener('click',()=>{const idea=state.selectedIdea;if(idea){fillLaunchForm(null,state.dashboard?.activeProject);const mapped=idea.type==='ecommerce'?'physical':idea.type;if(['digital','physical','service','dropshipping','print_on_demand'].includes(mapped))$('launchBusinessType').value=mapped;$('launchProductName').value=idea.name||'';$('launchAudience').value=idea.targetCustomer||'';$('launchOutcome').value=idea.promise||'';syncLaunchBusinessType();}showView('business');});
+  root.append(next);
 }
 
 function syncFactoryControls(){
