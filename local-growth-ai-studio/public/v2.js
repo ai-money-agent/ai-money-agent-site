@@ -1,3 +1,5 @@
+import { createMarketResearchLinks } from './research-links.js';
+
 const $ = (id) => document.getElementById(id);
 const state = {
   health:null, projects:[], activeProjectId:'', dashboard:null, ideas:[], selectedIdea:null, analysis:null,
@@ -375,6 +377,17 @@ function syncLaunchBusinessType() {
   const label=$('launchUnitCostLabel');
   label.childNodes[0].nodeValue=type==='service'?'Delivery / labor cost':type==='digital'?'Production cost':'Supplier / unit cost';
 }
+function prepareMarketSourceLinks() {
+  const root=$('marketSourceLinks');
+  if(!root)return;
+  root.replaceChildren();
+  const links=createMarketResearchLinks({productName:$('launchProductName').value,audience:$('launchAudience').value,country:$('launchCountry').value,businessType:$('launchBusinessType').value});
+  if(!links.length){root.textContent='Enter an offer name and target country first.';return;}
+  for(const item of links){
+    const link=document.createElement('a');link.className='secondary';link.textContent=item.label;link.href=item.url;link.target='_blank';link.rel='noopener noreferrer';root.append(link);
+  }
+}
+$('openMarketSources').addEventListener('click',prepareMarketSourceLinks);
 function resultSection(root,title,body) {
   const section=document.createElement('section');section.className='plan-result-section';
   const h=document.createElement('h3');h.textContent=title;section.append(h);

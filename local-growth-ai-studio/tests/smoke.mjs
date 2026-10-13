@@ -60,6 +60,10 @@ const brief = {mode:'reel',productName:'Mini Blender',description:'USB-C recharg
 
 try {
   await start();
+  const appShell=await (await get('/v2')).text();
+  assert.match(appShell,/type="module" src="\/v2\.js"/);
+  assert.equal((await get('/research-links.js')).status,200,'browser market research helper is served as an app asset');
+  assert.match(await (await get('/research-links.js')).text(),/createMarketResearchLinks/);
   assert.equal((await get('/api/credits')).status,401);
   assert.equal((await get('/api/generations/test-request-000001')).status,401);
   const readyBefore = await (await get('/api/health/ready')).json();

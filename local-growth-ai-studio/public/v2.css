@@ -73,6 +73,10 @@ input,textarea,select{width:100%;border:1px solid var(--line);background:#081422
 .business-plan-form>.full{grid-column:1/-1}
 .planner-trust{border-color:rgba(255,197,103,.38);margin:12px 0;color:#f2d8a5}
 .planner-trust p,.planner-form-note{color:var(--muted);line-height:1.55}
+.research-shortcuts{display:grid;gap:10px;padding:14px;border:1px solid var(--line);border-radius:12px;background:#091727}
+.research-shortcuts p{margin:5px 0 0;color:var(--muted);line-height:1.5}
+.market-source-links{display:flex;flex-wrap:wrap;gap:8px}
+.market-source-links a{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
 .business-plan-result{margin:14px 0;display:grid;gap:12px;min-width:0}
 .business-plan-result h2{margin:0;overflow-wrap:anywhere}
 .planner-simulation{padding:10px 12px;border:1px solid rgba(255,197,103,.38);border-radius:10px;color:#f2d8a5;overflow-wrap:anywhere}

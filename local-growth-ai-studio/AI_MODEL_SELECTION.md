@@ -1,6 +1,6 @@
 # AI provider and model selection
 
-**Review date: 2026-10-14.** Model availability and pricing change; recheck the official catalog before enabling a live provider.
+**Review date: 2026-10-13.** Model availability and pricing change; recheck the official catalog before enabling a live provider.
 
 ## Choice for V2
 

@@ -568,7 +568,7 @@ async function api(req, res, url) {
   throw failure('API route not found.',404);
 }
 
-const assets = { '/':'index.html', '/index.html':'index.html', '/styles.css':'styles.css', '/app.js':'app.js', '/v2':'v2.html', '/v2/':'v2.html', '/v2.html':'v2.html', '/v2.css':'v2.css', '/v2.js':'v2.js' };
+const assets = { '/':'index.html', '/index.html':'index.html', '/styles.css':'styles.css', '/app.js':'app.js', '/v2':'v2.html', '/v2/':'v2.html', '/v2.html':'v2.html', '/v2.css':'v2.css', '/v2.js':'v2.js', '/research-links.js':'research-links.js' };
 const mime = { html:'text/html', css:'text/css', js:'text/javascript' };
 const server = http.createServer(async (req,res) => {
   headers(res);

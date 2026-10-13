@@ -159,6 +159,11 @@
           <label>Customer problem<textarea id="launchProblem" maxlength="500" rows="3" placeholder="Use a problem you heard from a customer"></textarea></label>
           <label>Outcome / delivery<textarea id="launchOutcome" maxlength="500" rows="3" placeholder="What will the buyer receive or achieve?"></textarea></label>
           <label class="full">Market notes you collected<textarea id="launchMarketNotes" maxlength="1800" rows="4" placeholder="Record your own observations, dates, and links. These are not verified by the app."></textarea></label>
+          <div class="research-shortcuts full">
+            <div><strong>Open current market sources</strong><p>These links open real search pages in a new tab. The Studio does not read, verify, or save their results; record your observations and source URL above.</p></div>
+            <button id="openMarketSources" class="secondary" type="button">Prepare search links</button>
+            <div id="marketSourceLinks" class="market-source-links" aria-live="polite"></div>
+          </div>
           <label>Source name<input id="launchMarketSource" maxlength="160" placeholder="Name a source you checked" /></label>
           <label>Source URL<input id="launchMarketSourceUrl" type="url" maxlength="500" placeholder="https://…" /></label>
           <label id="launchSupplierNameWrap">Supplier you found<input id="launchSupplierName" maxlength="160" placeholder="Enter a supplier yourself; no vendor lookup is available" /></label>
@@ -318,7 +323,7 @@
     <button id="mobileMoreToggle" type="button" aria-expanded="false" aria-controls="mobileMoreMenu">⋯<span>More</span></button>
   </nav>
 
-  <script src="/v2.js" defer></script>
+  <script type="module" src="/v2.js"></script>
 </body>
 </html>
 

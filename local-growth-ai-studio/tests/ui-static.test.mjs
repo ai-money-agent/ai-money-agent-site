@@ -55,6 +55,11 @@ test('V2 remains usable on narrow Android screens and reports whether OpenAI is 
   assert.match(v2Html,/user-provided and unverified/);
   assert.match(v2Js,/api\('\/api\/v2\/launch\/plan'/);
   assert.match(v2Js,/renderLaunchPlan/);
+  assert.match(v2Html,/type="module" src="\/v2\.js"/);
+  assert.match(v2Html,/id="openMarketSources"/);
+  assert.match(v2Html,/The Studio does not read, verify, or save their results/);
+  assert.match(v2Js,/createMarketResearchLinks/);
+  assert.match(v2Js,/noopener noreferrer/);
   assert.match(v2Js,/local plan|local template/i);
   assert.match(v2Css,/business-plan-form/);
   assert.match(v2Css,/@media\(max-width:760px\)\{\.business-plan-form/);
