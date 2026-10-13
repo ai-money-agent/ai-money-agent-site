@@ -95,3 +95,27 @@ test('Arabic strategy engine returns actionable structures without provider call
   assert.equal(recipes('en').length,8);
   assert.equal(recipes('ar').length,8);
 });
+
+test('physical, dropshipping and print-on-demand ideas do not invent demand or prices',()=>{
+  for (const businessType of ['physical','dropshipping','print_on_demand']) {
+    const profile={country:'Lebanon',budget:'$50',skills:'design',timeAvailable:'2 hours/day',businessType,marketScope:'local'};
+    const ideas=findProductIdeas(profile,'en');
+    const match=ideas.find(idea=>idea.type===businessType);
+    assert.ok(match);
+    assert.match(match.demandSignal,/No live demand/i);
+    const analysis=analyzeIdea(profile,match,'en');
+    assert.equal(analysis.priceGuidance.target,null);
+    assert.match(analysis.priceGuidance.note,/No market or supplier prices/i);
+  }
+});
+
+test('product blueprint leaves price unset until the user supplies costs and a price',()=>{
+  const product=buildProductBlueprint({
+    profile:{country:'Lebanon',businessType:'dropshipping',skills:'design'},
+    idea:{type:'dropshipping',name:'User selected offer',promise:'Test it'},
+    answers:{name:'Water bottle strap'},
+    language:'en'
+  });
+  assert.equal(product.price,null);
+  assert.match(product.offer,/Set after entering costs/);
+});
