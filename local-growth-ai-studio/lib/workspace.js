@@ -13,6 +13,13 @@ export class WorkspaceStore {
     if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
     this.db = new DatabaseSync(path);
     this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
+      CREATE TABLE IF NOT EXISTS studio_sessions (
+        token_hash TEXT PRIMARY KEY,
+        account TEXT NOT NULL,
+        expires_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_studio_sessions_expires ON studio_sessions(expires_at);
       CREATE TABLE IF NOT EXISTS studio_projects (
         account TEXT NOT NULL,
         id TEXT NOT NULL,
@@ -85,6 +92,27 @@ export class WorkspaceStore {
       CREATE INDEX IF NOT EXISTS idx_studio_outputs_project ON studio_outputs(account,project_id,created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_studio_messages_project ON studio_partner_messages(account,project_id,created_at ASC);
     `);
+  }
+
+  createSession(tokenHash, account, expiresAt) {
+    const createdAt = now();
+    this.db.prepare('DELETE FROM studio_sessions WHERE expires_at<=?').run(createdAt);
+    this.db.prepare('INSERT INTO studio_sessions(token_hash,account,expires_at,created_at) VALUES(?,?,?,?)')
+      .run(tokenHash,account,expiresAt,createdAt);
+  }
+
+  sessionAccount(tokenHash) {
+    const row = this.db.prepare('SELECT account,expires_at FROM studio_sessions WHERE token_hash=?').get(tokenHash);
+    if (!row) return null;
+    if (row.expires_at <= now()) {
+      this.deleteSession(tokenHash);
+      return null;
+    }
+    return row.account;
+  }
+
+  deleteSession(tokenHash) {
+    return this.db.prepare('DELETE FROM studio_sessions WHERE token_hash=?').run(tokenHash).changes > 0;
   }
 
   transaction(fn) {
