@@ -44,6 +44,7 @@
         <button class="nav-item" data-view="partner"><span>✦</span>AI Partner</button>
         <button class="nav-item" data-view="research"><span>⌕</span>Product Research</button>
         <button class="nav-item" data-view="product"><span>▣</span>Product Builder</button>
+        <button class="nav-item" data-view="business"><span>↗</span>Launch Planner</button>
         <button class="nav-item" data-view="ads"><span>◎</span>Ad Studio</button>
         <button class="nav-item" data-view="reels"><span>▶</span>Reel Generator</button>
         <button class="nav-item" data-view="brand"><span>◇</span>Brand Profile</button>
@@ -134,6 +135,58 @@
         <div id="profileSummary" class="profile-strip"></div>
         <div id="ideasGrid" class="idea-grid"></div>
         <div id="analysisPanel" class="card analysis-card hidden"></div>
+      </section>
+
+      <section class="view" data-view-panel="business">
+        <div class="section-head">
+          <div><span class="kicker">BUSINESS LAUNCH PLANNER</span><h1>Plan the offer with evidence you provide.</h1><p>Choose a model, enter current costs and save a launch checklist. No supplier catalog, live market search, invented prices, ads or payments are connected.</p></div>
+        </div>
+        <div class="planner-trust card">
+          <strong>Evidence status: no live market or supplier lookup</strong>
+          <p>Notes and links you enter remain user-provided and unverified. The local planner does not fetch vendors, compare current prices, or claim customer demand. Use a current supplier quote before relying on a physical-product calculation.</p>
+        </div>
+        <form id="businessPlanForm" class="card business-plan-form">
+          <label>Business type
+            <select id="launchBusinessType">
+              <option value="digital">Digital product</option><option value="physical">Physical goods</option>
+              <option value="service">Service</option><option value="dropshipping">Dropshipping</option>
+              <option value="print_on_demand">Print on demand</option>
+            </select>
+          </label>
+          <label>Offer / product name<input id="launchProductName" maxlength="120" required placeholder="Name your offer" /></label>
+          <label>Target audience<input id="launchAudience" maxlength="240" required placeholder="Who is this for?" /></label>
+          <label>Target country<input id="launchCountry" maxlength="80" required placeholder="Country to test first" /></label>
+          <label>Customer problem<textarea id="launchProblem" maxlength="500" rows="3" placeholder="Use a problem you heard from a customer"></textarea></label>
+          <label>Outcome / delivery<textarea id="launchOutcome" maxlength="500" rows="3" placeholder="What will the buyer receive or achieve?"></textarea></label>
+          <label class="full">Market notes you collected<textarea id="launchMarketNotes" maxlength="1800" rows="4" placeholder="Record your own observations, dates, and links. These are not verified by the app."></textarea></label>
+          <label>Source name<input id="launchMarketSource" maxlength="160" placeholder="Name a source you checked" /></label>
+          <label>Source URL<input id="launchMarketSourceUrl" type="url" maxlength="500" placeholder="https://…" /></label>
+          <label id="launchSupplierNameWrap">Supplier you found<input id="launchSupplierName" maxlength="160" placeholder="Enter a supplier yourself; no vendor lookup is available" /></label>
+          <label id="launchSupplierUrlWrap">Current supplier quote URL<input id="launchSupplierUrl" type="url" maxlength="500" placeholder="https://…" /></label>
+          <div class="split full">
+            <label>Selling price<input id="launchSellingPrice" type="number" min="0.01" step="0.01" required inputmode="decimal" /></label>
+            <label>Currency<select id="launchCurrency"><option>USD</option><option>EUR</option><option>LBP</option></select></label>
+          </div>
+          <div class="split full">
+            <label id="launchUnitCostLabel">Unit / production / labor cost<input id="launchUnitCost" type="number" min="0" step="0.01" required inputmode="decimal" value="0" /></label>
+            <label>Shipping / fulfillment cost<input id="launchShippingCost" type="number" min="0" step="0.01" inputmode="decimal" value="0" /></label>
+          </div>
+          <div class="split full">
+            <label>Packaging cost<input id="launchPackagingCost" type="number" min="0" step="0.01" inputmode="decimal" value="0" /></label>
+            <label>Other variable cost<input id="launchOtherCost" type="number" min="0" step="0.01" inputmode="decimal" value="0" /></label>
+          </div>
+          <div class="split full">
+            <label>Platform fee (%)<input id="launchPlatformFee" type="number" min="0" max="50" step="0.01" inputmode="decimal" value="0" /></label>
+            <label>Marketing cost per sale<input id="launchMarketingCost" type="number" min="0" step="0.01" inputmode="decimal" value="0" /></label>
+          </div>
+          <p class="full planner-form-note">Use current amounts from your own quote or records. If you do not know a value, verify it first rather than treating zero as a real quote.</p>
+          <button class="primary full" type="submit">Calculate and save launch plan</button>
+          <p id="businessPlanError" class="error full" role="status"></p>
+        </form>
+        <section id="businessPlanResult" class="card business-plan-result" aria-live="polite">
+          <div class="placeholder"><strong>No launch plan saved yet.</strong><p>Enter your own costs and evidence notes above.</p></div>
+        </section>
+        <div class="factory-next"><span>Digital products can also be made as real downloadable files with the local template factory.</span><button class="secondary" type="button" data-go="product">Open Product Builder</button></div>
       </section>
 
       <section class="view" data-view-panel="product">
@@ -240,7 +293,7 @@
         <label>Budget<input id="newBudget" maxlength="80" placeholder="e.g. $0–50" required /></label>
         <label>Skills<input id="newSkills" maxlength="300" placeholder="e.g. Canva, sales, teaching, beginner" required /></label>
         <label>Time available<input id="newTime" maxlength="80" placeholder="e.g. 2 hours/day" required /></label>
-        <label>Business model<select id="newBusinessType"><option value="unsure">Not sure</option><option value="digital">Digital product</option><option value="service">Service</option><option value="ecommerce">Ecommerce</option></select></label>
+        <label>Business model<select id="newBusinessType"><option value="unsure">Not sure</option><option value="digital">Digital product</option><option value="physical">Physical product</option><option value="service">Service</option><option value="dropshipping">Dropshipping</option><option value="print_on_demand">Print on demand</option></select></label>
         <label>Market<select id="newMarketScope"><option value="unsure">Not sure</option><option value="local">Local</option><option value="global">Global</option><option value="both">Local + Global</option></select></label>
         <label class="full">Available payout methods<input id="newPayouts" maxlength="300" placeholder="e.g. Payoneer, Wise, bank transfer, Whish" required /></label>
         <div class="modal-actions"><button id="cancelProject" class="ghost" type="button">Cancel</button><button class="primary" type="submit">Create & find ideas</button></div>
@@ -253,6 +306,7 @@
     <button type="button" data-view="reels">▶ <span>Reel Generator</span></button>
     <button type="button" data-view="brand">◇ <span>Brand Profile</span></button>
     <button type="button" data-view="saved">☰ <span>Saved Projects</span></button>
+    <button type="button" data-view="business">↗ <span>Launch Planner</span></button>
   </div>
   <nav class="mobile-nav" aria-label="Mobile navigation">
     <button data-view="dashboard" class="active">⌂<span>Home</span></button>
