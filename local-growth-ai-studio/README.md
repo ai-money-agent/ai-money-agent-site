@@ -4,6 +4,8 @@ V2 extends the existing creative beta instead of replacing its backend. Open `/v
 
 ## V2 strategy and OpenAI
 
+OpenAI is the primary optional provider (`gpt-6.1-sol` is the prepared default); an Anthropic adapter remains available as an explicit alternative. Both stay disabled in the sample configuration. In local mode the UI labels the deterministic output as a simulation, not AI. See [AI model selection and official pricing comparison](AI_MODEL_SELECTION.md).
+
 - Create a persistent business project from country, budget, skills, time, business model, market scope and payout methods.
 - Rank executable product/service/ecommerce ideas with an execution-fit score, then analyze an idea, plan the product, set pricing, create a brand, write ads and reels, and respond as a project-aware business partner.
 - Save projects, products, research, creative outputs, partner messages and Recipes/Tasks in SQLite.

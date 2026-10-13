@@ -37,41 +37,84 @@ function extractText(data) {
     .filter(part => typeof part?.text === 'string').map(part => part.text).join('\n').trim();
 }
 
+function providerConfig(config, provider) {
+  if (provider === 'openai') {
+    return {
+      ready: typeof config?.openaiApiKey === 'string' && config.openaiApiKey.length > 0
+        && typeof config?.openaiModel === 'string' && config.openaiModel.length > 0,
+      url: 'https://api.openai.com/v1/responses',
+      headers: { Authorization: `Bearer ${config.openaiApiKey}`, 'Content-Type': 'application/json' }
+    };
+  }
+  if (provider === 'anthropic') {
+    return {
+      ready: typeof config?.anthropicApiKey === 'string' && config.anthropicApiKey.length > 0
+        && typeof config?.anthropicModel === 'string' && config.anthropicModel.length > 0,
+      url: 'https://api.anthropic.com/v1/messages',
+      headers: {
+        'x-api-key': config.anthropicApiKey,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json'
+      }
+    };
+  }
+  throw new Error('Unsupported V2 AI provider.');
+}
+
+function providerRequest(provider, model, operation, context, language, template, schema) {
+  const system = `You are the business partner inside Local Growth AI Studio. Complete the requested ${operation} using the user's project context. Return useful, specific, concise ${language === 'ar' ? 'Arabic' : 'English'} content. The supplied template defines the exact output structure; improve its content rather than copying it. Never claim you searched the live web or know current demand, competitor prices, or trends. Never invent market statistics, earnings guarantees, testimonials, scarcity, or facts not supplied by the user.`;
+  if (provider === 'openai') return {
+    model, store: false, max_output_tokens: 4000,
+    input: [
+      { role: 'system', content: system },
+      { role: 'user', content: JSON.stringify({ operation, context, requiredOutputShape: template }) }
+    ],
+    text: { format: { type: 'json_schema', name: 'local_growth_v2_result', strict: true, schema } }
+  };
+  return {
+    model, max_tokens: 4000, system,
+    messages: [{ role: 'user', content: JSON.stringify({ operation, context, requiredOutputShape: template }) }],
+    output_config: { format: { type: 'json_schema', schema } }
+  };
+}
+
+function extractProviderText(provider, data) {
+  if (provider === 'openai') return extractText(data);
+  if (typeof data?.stop_reason === 'string' && !['end_turn','stop_sequence'].includes(data.stop_reason)) {
+    throw new Error(data.stop_reason === 'max_tokens'
+      ? 'Anthropic reached max_tokens before completing structured content.'
+      : `Anthropic stopped before completing structured content; reason=${data.stop_reason}.`);
+  }
+  return (data?.content || []).filter(part => part?.type === 'text' && typeof part.text === 'string')
+    .map(part => part.text).join('\n').trim();
+}
+
 export async function generateV2({ operation, context, fallback, language = 'en' }, config) {
-  const openAiReady = config?.liveEnabled === true && config?.provider === 'openai'
-    && typeof config.openaiApiKey === 'string' && config.openaiApiKey.length > 0
-    && typeof config.openaiModel === 'string' && config.openaiModel.length > 0;
-  if (!openAiReady) return { value: fallback(), engine: 'local' };
+  const provider = config?.provider || 'openai';
+  const selected = providerConfig(config, provider);
+  if (config?.liveEnabled !== true || !selected.ready) return { value: fallback(), engine: 'local' };
 
   const template = fallback();
   const schema = { type: 'object', properties: { result: schemaFor(template) }, required: ['result'], additionalProperties: false };
-  const response = await fetch('https://api.openai.com/v1/responses', {
+  const model = provider === 'openai' ? config.openaiModel : config.anthropicModel;
+  const response = await fetch(selected.url, {
     method: 'POST',
     signal: AbortSignal.timeout(45000),
-    headers: { Authorization: `Bearer ${config.openaiApiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: config.openaiModel,
-      store: false,
-      max_output_tokens: 4000,
-      input: [
-        { role: 'system', content: `You are the OpenAI business partner inside Local Growth AI Studio. Complete the requested ${operation} using the user's project context. Return useful, specific, concise ${language === 'ar' ? 'Arabic' : 'English'} content. The supplied template defines the exact output structure; improve its content rather than copying it. Never claim you searched the live web or know current demand, competitor prices, or trends. Never invent market statistics, earnings guarantees, testimonials, scarcity, or facts not supplied by the user.` },
-        { role: 'user', content: JSON.stringify({ operation, context, requiredOutputShape: template }) }
-      ],
-      text: { format: { type: 'json_schema', name: 'local_growth_v2_result', strict: true, schema } }
-    })
+    headers: selected.headers,
+    body: JSON.stringify(providerRequest(provider, model, operation, context, language, template, schema))
   });
   let data;
   try { data = await response.json(); }
-  catch { throw new Error(`OpenAI returned invalid JSON (HTTP ${response.status}).`); }
+  catch { throw new Error(`${provider === 'openai' ? 'OpenAI' : 'Anthropic'} returned invalid JSON (HTTP ${response.status}).`); }
   if (!response.ok) {
     const code = typeof data?.error?.code === 'string' ? data.error.code : 'unknown';
-    throw new Error(`OpenAI request failed (HTTP ${response.status}; code=${code}).`);
+    throw new Error(`${provider === 'openai' ? 'OpenAI' : 'Anthropic'} request failed (HTTP ${response.status}; code=${code}).`);
   }
-  const raw = extractText(data);
-  if (!raw) throw new Error('OpenAI returned an empty V2 response.');
+  const raw = extractProviderText(provider, data);
+  if (!raw) throw new Error(`${provider === 'openai' ? 'OpenAI' : 'Anthropic'} returned an empty V2 response.`);
   let parsed;
   try { parsed = JSON.parse(raw); }
-  catch { throw new Error('OpenAI returned malformed V2 structured output.'); }
+  catch { throw new Error(`${provider === 'openai' ? 'OpenAI' : 'Anthropic'} returned malformed V2 structured output.`); }
   validateShape(parsed?.result, template);
-  return { value: parsed.result, engine: 'openai' };
+  return { value: parsed.result, engine: provider };
 }

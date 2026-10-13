@@ -73,6 +73,7 @@ try {
   assert.equal(healthBefore.storageReady,true);
   assert.equal(healthBefore.workspaceReady,true);
   assert.equal(healthBefore.v2AiProvider,'openai');
+  assert.equal(healthBefore.v2AiModel,'gpt-6.1-sol');
   assert.equal(healthBefore.v2AiReady,false);
   assert.equal(healthBefore.v2AiMode,'local');
   assert.equal(healthBefore.providerPaused,true);
@@ -196,6 +197,55 @@ try {
   const savedResearch=await (await get(`/api/v2/dashboard?projectId=${project.id}`)).json();
   assert.equal(savedResearch.research.payload.idea.name,chosen.name);
 
+  // Exercise the selected business model from project setup through plan,
+  // editable offer, and saved ad for every supported customer business type.
+  for (const businessType of ['digital','physical','service','dropshipping','print_on_demand']) {
+    const modelProjectResponse=await post('/api/v2/projects',{
+      name:`Journey ${businessType}`,country:'Lebanon',budget:'$50',skills:'design and writing',
+      timeAvailable:'2 hours/day',businessType,marketScope:'local',payoutMethods:'user-verified option'
+    });
+    assert.equal(modelProjectResponse.status,201,`${businessType} project should be created`);
+    const modelProject=(await modelProjectResponse.json()).project;
+    const modelIdeasResponse=await post('/api/v2/research/ideas',{projectId:modelProject.id,language:'en'});
+    assert.equal(modelIdeasResponse.status,200);
+    const modelIdeas=(await modelIdeasResponse.json()).ideas;
+    const modelIdea=modelIdeas.find(idea=>idea.type===businessType);
+    assert.ok(modelIdea,`${businessType} should have a matching idea`);
+    const planPayload={
+      projectId:modelProject.id,businessType,productName:`${businessType} offer`,audience:'local customers',country:'Lebanon',
+      problem:'save time on a recurring task',outcome:'finish the task with a clear process',currency:'USD',sellingPrice:30,
+      unitCost:['physical','dropshipping','print_on_demand'].includes(businessType)?10:0,
+      shippingCost:['physical','dropshipping','print_on_demand'].includes(businessType)?3:0,
+      platformFeePercent:5,supplierName:['physical','dropshipping','print_on_demand'].includes(businessType)?'Owner-verified supplier':undefined,
+      supplierSourceUrl:['physical','dropshipping','print_on_demand'].includes(businessType)?'https://example.com/quote':undefined,
+      marketNotes:'Test fixture only; no live market research',marketSource:'Owner note',language:'en'
+    };
+    const modelPlanResponse=await post('/api/v2/launch/plan',planPayload);
+    assert.equal(modelPlanResponse.status,201,`${businessType} plan should save`);
+    const modelPlan=(await modelPlanResponse.json()).plan;
+    assert.equal(modelPlan.inputs.businessType,businessType);
+    assert.equal(modelPlan.marketEvidence.status,'user_provided_unverified');
+    assert.equal(modelPlan.economics.estimatedProfit,businessType==='digital'||businessType==='service'?28.5:15.5);
+    assert.equal(modelPlan.supplier.status,['physical','dropshipping','print_on_demand'].includes(businessType)?'user_provided_unverified':'not_required');
+
+    const modelProductResponse=await post('/api/v2/products/build',{
+      projectId:modelProject.id,idea:modelIdea,answers:{name:`${businessType} offer`,price:30,currency:'USD'},language:'en'
+    });
+    assert.equal(modelProductResponse.status,201,`${businessType} offer should build`);
+    const modelProduct=(await modelProductResponse.json()).product;
+    assert.equal(modelProduct.type,businessType);
+    assert.ok(modelProduct.delivery);
+    const modelAdResponse=await post('/api/v2/ads/generate',{projectId:modelProject.id,productId:modelProduct.id,language:'en'});
+    assert.equal(modelAdResponse.status,200,`${businessType} ad should generate`);
+    const modelAds=(await modelAdResponse.json()).pack;
+    assert.equal(modelAds.variants.length,4);
+    assert.ok(modelAds.variants.every(ad=>ad.primaryText.includes(modelProduct.name)));
+    assert.ok((await (await get(`/api/v2/dashboard?projectId=${modelProject.id}`)).json()).outputs.some(output=>output.type==='ad-pack'));
+  }
+  const modelProjectsAsSecond=(await (await getAs('/api/v2/projects',secondCookie)).json()).projects;
+  assert.deepEqual(modelProjectsAsSecond.map(item=>item.id),[secondProject.id],
+    'business-model projects remain isolated from the second account');
+
   const builtResponse=await post('/api/v2/products/build',{projectId:project.id,answers:{name:'خدمة كانفا',price:25},language:'ar'});
   assert.equal(builtResponse.status,201);
   const builtBody=await builtResponse.json();
@@ -245,6 +295,15 @@ try {
   assert.match(mobileBudgetHtml,/Monthly budget preview/);
   assert.match(mobileBudgetHtml,/localStorage/);
   assert.match(mobileBudgetHtml,/income-total/);
+  const organizerResponse=await post('/api/v2/factory/generate',{
+    projectId:project.id,productId:updated.id,type:'organizer',language:'ar',title:'منظم السنة',topic:'التخطيط السنوي'
+  });
+  assert.equal(organizerResponse.status,201);
+  const organizer=(await organizerResponse.json()).asset;
+  assert.equal(organizer.contentType,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  const organizerDownload=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${organizer.fileId}`);
+  assert.equal(organizerDownload.status,200);
+  assert.equal(Buffer.from(await organizerDownload.arrayBuffer()).readUInt32LE(0),0x04034b50);
   const arabicResponse=await post('/api/v2/factory/generate',{
     projectId:project.id,productId:updated.id,type:'coloring',language:'ar',title:'كتاب التلوين',topic:'الحيوانات',audience:'الأطفال من ٦ إلى ٨ سنوات',pages:2
   });
@@ -275,7 +334,7 @@ try {
   assert.equal(quizResponse.status,201);
   const quiz=(await quizResponse.json()).asset;
   assert.equal(quiz.contentType,'text/html; charset=utf-8');
-  assert.equal((await (await get(`/api/v2/factory/assets?projectId=${project.id}`)).json()).assets.length,5);
+  assert.equal((await (await get(`/api/v2/factory/assets?projectId=${project.id}`)).json()).assets.length,6);
   const ebookDownload=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${ebook.fileId}`);
   assert.equal(ebookDownload.status,200);
   assert.equal(ebookDownload.headers.get('content-type'),'application/pdf');
@@ -299,7 +358,7 @@ try {
   assert.equal(reelResponse.status,200);
   assert.equal((await reelResponse.json()).aiEngine,'local');
   const savedWorkspace=await (await get(`/api/v2/dashboard?projectId=${project.id}`)).json();
-  assert.equal(savedWorkspace.outputs.length,8);
+  assert.equal(savedWorkspace.outputs.length,9);
   assert.equal(savedWorkspace.outputs.find(output=>output.type==='ad-pack').type,'ad-pack');
   assert.match(savedWorkspace.outputs.find(output=>output.type==='ad-pack').payload.variants[0].primaryText,/خدمة كانفا المطورة/);
   const partnerResponse=await post('/api/v2/partner',{projectId:project.id,message:'أريد أن أربح من الإنترنت ولا أعرف ماذا أبيع.'});
@@ -322,11 +381,11 @@ try {
   assert.equal(restoredPlan.plan.economics.estimatedProfit,16);
   assert.equal(restoredPlan.plan.inputs.supplierName,'Supplier selected by owner');
   assert.equal(recoveredWorkspace.products[0].name,'خدمة كانفا المطورة');
-  assert.equal(recoveredWorkspace.outputs.length,8);
+  assert.equal(recoveredWorkspace.outputs.length,9);
   assert.ok(recoveredWorkspace.outputs.some(output=>output.type==='ad-pack'));
   assert.ok(recoveredWorkspace.outputs.some(output=>output.type==='reel'));
   const recoveredAssets=(await (await get(`/api/v2/factory/assets?projectId=${project.id}`)).json()).assets;
-  assert.equal(recoveredAssets.length,5);
+  assert.equal(recoveredAssets.length,6);
   const recoveredEbook=recoveredAssets.find(asset=>asset.fileId===ebook.fileId);
   assert.ok(recoveredEbook);
   assert.equal(recoveredEbook.previewFileId,ebook.previewFileId);
@@ -359,7 +418,9 @@ try {
   const ownerReauth=await fetch(base+'/api/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessCode})});
   assert.equal(ownerReauth.status,200);
   cookie=ownerReauth.headers.get('set-cookie').split(';')[0];
-  assert.equal((await (await get('/api/v2/projects')).json()).projects.length,1);
+  const recoveredProjects=(await (await get('/api/v2/projects')).json()).projects;
+  assert.equal(recoveredProjects.length,6);
+  assert.ok(recoveredProjects.some(item=>item.id===project.id),'owner project is restored after restart');
   console.log('PASS: hashed durable sessions, account/project/file isolation, plan isolation/recovery, deprovision revocation, logout, CSRF, Demo/Live isolation, provider recovery, validation, protected files, factory downloads and UI.');
 } finally {
   await stop();

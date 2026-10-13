@@ -117,6 +117,39 @@ test('V2 uses local templates without credentials and validates mocked OpenAI ou
   } finally { globalThis.fetch=original; }
 });
 
+test('V2 provider router keeps local simulation offline and supports mocked Anthropic strict output',async()=>{
+  const original=globalThis.fetch;
+  const fallback={reply:'قالب محلي',nextAction:'research'};
+  try {
+    globalThis.fetch=async()=>{throw new Error('local simulation must not call an API');};
+    const local=await generateV2({operation:'partner reply',context:{},language:'ar',fallback:()=>fallback},{
+      liveEnabled:false,provider:'anthropic',anthropicApiKey:'never-use-in-local-mode',anthropicModel:'test-model'
+    });
+    assert.deepEqual(local,{value:fallback,engine:'local'});
+
+    globalThis.fetch=async(url,options)=>{
+      assert.equal(url,'https://api.anthropic.com/v1/messages');
+      assert.equal(options.headers['x-api-key'],'server-only-test-secret');
+      assert.equal(options.headers['anthropic-version'],'2023-06-01');
+      const body=JSON.parse(options.body);
+      assert.equal(body.model,'mock-anthropic-model');
+      assert.equal(body.output_config.format.type,'json_schema');
+      assert.match(body.system,/never claim you searched the live web/i);
+      return {ok:true,json:async()=>({stop_reason:'end_turn',content:[{type:'text',text:JSON.stringify({result:{reply:'رد تجريبي من مزود محاكى',nextAction:'research'}})}]})};
+    };
+    const simulated=await generateV2({operation:'partner reply',context:{note:'private project context'},language:'ar',fallback:()=>fallback},{
+      liveEnabled:true,provider:'anthropic',anthropicApiKey:'server-only-test-secret',anthropicModel:'mock-anthropic-model'
+    });
+    assert.equal(simulated.engine,'anthropic');
+    assert.equal(simulated.value.reply,'رد تجريبي من مزود محاكى');
+
+    globalThis.fetch=async()=>({ok:true,json:async()=>({stop_reason:'max_tokens',content:[{type:'text',text:'{"result":'}]})});
+    await assert.rejects(()=>generateV2({operation:'partner reply',context:{},fallback:()=>fallback},{
+      liveEnabled:true,provider:'anthropic',anthropicApiKey:'test',anthropicModel:'mock'
+    }),/max_tokens/);
+  } finally { globalThis.fetch=original; }
+});
+
 test('Anthropic adapter sends schema and image server-side without exposing credentials',async()=>{
   const original=globalThis.fetch;
   const good={hook:'Hook',reelScript:'Script',shotList:['Shot'],onScreenText:['Text'],caption:'Caption',cta:'CTA',adIdeas:['Idea']};
