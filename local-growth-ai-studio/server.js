@@ -116,8 +116,14 @@ function sessionToken(req) {
 }
 function authenticated(req) {
   const token = sessionToken(req);
-  const account = token ? workspace.sessionAccount(sessionHash(token)) : null;
-  return account && loginAccounts.has(account) ? account : null;
+  if (!token) return null;
+  const tokenHash = sessionHash(token);
+  const account = workspace.sessionAccount(tokenHash);
+  if (account && !loginAccounts.has(account)) {
+    workspace.deleteSession(tokenHash);
+    return null;
+  }
+  return account;
 }
 function headers(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
