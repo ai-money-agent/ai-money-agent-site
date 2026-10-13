@@ -110,7 +110,7 @@ function refundStaleReservations() {
 refundStaleReservations();
 
 function sessionToken(req) {
-  const token = /(?:^|;\\s*)studio_session=([A-Za-z0-9_-]{40,60})(?:;|$)/.exec(req.headers.cookie || '')?.[1] || '';
+  const token = /(?:^|;\s*)studio_session=([A-Za-z0-9_-]{43})(?:;|$)/.exec(req.headers.cookie || '')?.[1] || '';
   return token || null;
 }
 function authenticated(req) {
