@@ -10,6 +10,7 @@ import { generate } from './lib/generator.js';
 import { generateV2 } from './lib/v2-ai.js';
 import { prepareVideoRequest, videoCapability } from './lib/video.js';
 import { createDigitalProduct } from './lib/digital-product-factory.js';
+import { buildBusinessLaunchPlan } from './lib/business-planner.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const intEnv = (name, fallback, min, max) => {
@@ -278,7 +279,7 @@ async function api(req, res, url) {
       budget:text(body.budget || '0',80,'Budget',1),
       skills:text(body.skills || 'Beginner',300,'Skills',2),
       timeAvailable:text(body.timeAvailable || '5 hours/week',80,'Available time',2),
-      businessType:['digital','service','ecommerce','unsure'].includes(body.businessType) ? body.businessType : 'unsure',
+      businessType:['digital','physical','service','ecommerce','dropshipping','print_on_demand','unsure'].includes(body.businessType) ? body.businessType : 'unsure',
       marketScope:['local','global','both','unsure'].includes(body.marketScope) ? body.marketScope : 'unsure',
       payoutMethods:text(body.payoutMethods || 'Not set yet',300,'Payout methods',2)
     };
@@ -300,6 +301,20 @@ async function api(req, res, url) {
     const projectId = url.searchParams.get('projectId');
     if (projectId) projectOrFail(projectId);
     return json(res,200,{ok:true,...workspace.dashboard(v2Account,projectId || null)});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/launch/plan') {
+    const project = projectOrFail(url.searchParams.get('projectId'));
+    const saved = workspace.listOutputs(v2Account,project.id,1000).find(item => item.type === 'business-launch-plan');
+    return json(res,200,{ok:true,plan:saved?.payload || null,outputId:saved?.id || null,createdAt:saved?.createdAt || null});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/launch/plan') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    let plan;
+    try { plan = buildBusinessLaunchPlan({...body,country:body.country || project.profile.country}); }
+    catch (error) { throw failure(error.message || 'Could not calculate this launch plan.',422); }
+    const saved = workspace.saveOutput(v2Account,project.id,'business-launch-plan',plan.title,plan);
+    return json(res,201,{ok:true,plan:saved.payload,outputId:saved.id,createdAt:saved.createdAt});
   }
   if (req.method === 'POST' && url.pathname === '/api/v2/research/ideas') {
     const body = await readBody(req);
