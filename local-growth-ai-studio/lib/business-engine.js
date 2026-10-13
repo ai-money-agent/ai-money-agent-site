@@ -96,6 +96,29 @@ export function findProductIdeas(profile = {}, language = 'en') {
       differentiation: ar ? 'منتج واضح + زاوية استخدام محلية + عرض بسيط.' : 'One clear product + localized use case + simple offer.'
     }
   ];
+  const selectedPhysicalType = ['physical','dropshipping','print_on_demand'].includes(profile.businessType) ? profile.businessType : '';
+  if (selectedPhysicalType) {
+    const names = {
+      physical: ar ? 'منتج مادي بدفعة صغيرة بعد التحقق من المورد' : 'Small-batch physical product after supplier validation',
+      dropshipping: ar ? 'عرض دروبشيبينغ بمورد تختاره وتتحقق منه بنفسك' : 'Dropshipping offer with a supplier you independently verify',
+      print_on_demand: ar ? 'منتج طباعة عند الطلب بتصميم تملك حق استخدامه' : 'Print-on-demand item using artwork you have rights to use'
+    };
+    const promises = {
+      physical: ar ? 'اختبر عرضًا ماديًا صغيرًا بعد إدخال تكلفة المورد والشحن الفعلية.' : 'Test a small physical offer after entering a real supplier and shipping quote.',
+      dropshipping: ar ? 'تحقق من الجودة والتوفر ووقت الشحن مع المورد قبل عرض المنتج.' : 'Verify quality, availability and shipping time with the supplier before listing.',
+      print_on_demand: ar ? 'اختبر التصميم وتكلفة الطباعة والتنفيذ قبل نشر العرض.' : 'Test the artwork and production/fulfillment cost before listing.'
+    };
+    ideas.unshift({
+      type:selectedPhysicalType,
+      name:names[selectedPhysicalType],
+      promise:promises[selectedPhysicalType],
+      targetCustomer:ar ? 'حدد الجمهور بعد مقابلات واختبار عروض حقيقية في السوق الذي اخترته.' : 'Define the audience after interviews and checking real offers in your selected market.',
+      setupCost:ar ? 'يتطلب عروض أسعار فعلية؛ لا توجد أسعار موردين هنا.' : 'Real quotes required; no supplier prices are provided here.',
+      speed:55,margin:55,competition:'unverified',
+      demandSignal:ar ? 'لا توجد بيانات طلب أو منافسين مباشرة؛ هذا اقتراح قالب للاختبار فقط.' : 'No live demand or competitor data was retrieved; this is a template idea to validate.',
+      differentiation:ar ? 'اعتمد على ميزة يثبتها المنتج والعرض الفعلي، لا على افتراضات.' : 'Use a differentiator you can demonstrate with the actual product and offer.'
+    });
+  }
   return ideas.map((idea,index) => ({
     id:`idea-${index+1}`,
     ...idea,
@@ -128,11 +151,8 @@ export function analyzeIdea(profile = {}, idea = {}, language = 'en') {
     competitorTypes: ar
       ? ['مزودون مستقلون يقدمون الخدمة نفسها.','قوالب أو أدوات رخيصة على منصات رقمية.','حلول مجانية مبعثرة على السوشيال ميديا.']
       : ['Freelancers offering a similar outcome.','Low-cost templates or tools on digital marketplaces.','Free fragmented advice on social media.'],
-    priceGuidance: idea.type === 'service'
-      ? { low:25, target:75, premium:150, currency:'USD' }
-      : idea.type === 'ecommerce'
-        ? { low:15, target:29, premium:49, currency:'USD' }
-        : { low:5, target:15, premium:29, currency:'USD' },
+    priceGuidance:{low:null,target:null,premium:null,currency:'USD',status:'cost_inputs_required',note:ar ? 'أدخل التكاليف والرسوم وعرض السعر بنفسك. لم نسترجع أسعارًا أو عروض سوق.' : 'Enter costs, fees and price yourself. No market or supplier prices were retrieved.'},
+    dataStatus:ar ? 'تقييم قابلية تنفيذ محلي فقط؛ لا توجد بيانات طلب أو منافسين أو أسعار مباشرة.' : 'Local execution-fit only; no live demand, competitor or price data was retrieved.',
     sellingAngles: ar
       ? ['مشكلة → حل مباشر','توفير وقت','خطوات جاهزة بدل البدء من الصفر','عرض واضح للمبتدئ']
       : ['Problem → direct solution','Save time','Ready-to-use instead of starting from zero','Beginner-friendly clarity'],
@@ -152,7 +172,9 @@ export function buildProductBlueprint({ profile = {}, research = null, idea = {}
   const type = idea.type || answers.type || 'digital';
   const audience = answers.audience || research?.targetCustomer || idea.targetCustomer || (ar ? 'جمهور محدد لديه مشكلة واضحة' : 'A focused audience with a clear problem');
   const coreOutcome = answers.outcome || idea.promise || (ar ? 'الوصول إلى نتيجة محددة بخطوات أبسط وأسرع.' : 'Reach one specific outcome with fewer, clearer steps.');
-  const price = Number(answers.price) || Number(research?.priceGuidance?.target) || (type === 'service' ? 75 : type === 'ecommerce' ? 29 : 15);
+  const providedPrice = answers.price !== undefined && answers.price !== null && answers.price !== '' && Number.isFinite(Number(answers.price)) && Number(answers.price) > 0;
+  const price = providedPrice ? Number(answers.price) : null;
+  const priceText = price == null ? (ar ? 'يُحدد بعد إدخال التكلفة والرسوم والتحقق من السوق.' : 'Set after entering costs and fees and validating the market.') : String(price) + ' ' + (answers.currency || 'USD');
   const delivery = answers.delivery || (type === 'service' ? (ar ? 'تسليم خلال 2–4 أيام عبر رابط/ملف/جلسة حسب الخدمة.' : '2–4 day delivery via link, file or session depending on the service.') : (ar ? 'تحميل أو وصول رقمي فوري بعد الطلب.' : 'Instant digital delivery after purchase.'));
   return {
     name:sourceName.slice(0,160),
@@ -164,7 +186,7 @@ export function buildProductBlueprint({ profile = {}, research = null, idea = {}
     usp: answers.usp || (ar ? 'نتيجة واحدة واضحة، خطوات قليلة، ومادة قابلة للاستخدام مباشرة.' : 'One clear result, fewer steps and ready-to-use execution assets.'),
     price,
     currency:answers.currency || 'USD',
-    offer: answers.offer || (ar ? `${sourceName} + مثال جاهز + Checklist تنفيذ بسعر ${price} USD.` : `${sourceName} + ready example + execution checklist for ${price} USD.`),
+    offer: answers.offer || (ar ? `${sourceName} + مثال جاهز + Checklist تنفيذ — السعر: ${priceText}` : `${sourceName} + ready example + execution checklist — price: ${priceText}`),
     bonus: answers.bonus || (ar ? 'Bonus: نموذج/Template جاهز للتطبيق.' : 'Bonus: ready-to-use template.'),
     refundPolicy: answers.refundPolicy || (type === 'service'
       ? (ar ? 'تُحدد حسب مرحلة بدء التنفيذ ونطاق العمل.' : 'Defined by scope and whether delivery work has started.')
