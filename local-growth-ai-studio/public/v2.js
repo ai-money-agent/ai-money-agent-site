@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const state = {
   health:null, projects:[], activeProjectId:'', dashboard:null, ideas:[], selectedIdea:null, analysis:null,
-  products:[], currentProduct:null, factoryAssets:[], currentView:'dashboard', recipes:[], pendingPartnerMessage:''
+  products:[], currentProduct:null, factoryAssets:[], launchPlan:null, currentView:'dashboard', recipes:[], pendingPartnerMessage:''
 };
 
 const notice = (text, type='info') => {
@@ -35,7 +35,7 @@ function showView(name) {
   document.querySelectorAll('[data-view-panel]').forEach(el=>el.classList.toggle('active',el.dataset.viewPanel===name));
   document.querySelectorAll('[data-view]').forEach(el=>el.classList.toggle('active',el.dataset.view===name));
   const moreToggle=$('mobileMoreToggle'),moreMenu=$('mobileMoreMenu');
-  moreToggle?.classList.toggle('active',['reels','brand','saved'].includes(name));
+  moreToggle?.classList.toggle('active',['reels','brand','saved','business'].includes(name));
   if(moreMenu)moreMenu.classList.add('hidden');
   moreToggle?.setAttribute('aria-expanded','false');
   window.scrollTo({top:0,behavior:'smooth'});
@@ -260,6 +260,10 @@ async function loadWorkspace(showLoading=true) {
   const query=state.activeProjectId?`?projectId=${encodeURIComponent(state.activeProjectId)}`:'';
   state.dashboard=await api('/api/v2/dashboard'+query);
   state.factoryAssets=state.activeProjectId?(await api('/api/v2/factory/assets'+query)).assets||[]:[];
+  const savedPlan=state.activeProjectId?await api('/api/v2/launch/plan'+query):{plan:null};
+  state.launchPlan=savedPlan.plan||null;
+  fillLaunchForm(state.launchPlan,state.dashboard.activeProject);
+  renderLaunchPlan(state.launchPlan);
   state.products=state.dashboard.products||[];
   state.analysis=state.dashboard.research?.payload||null;
   state.selectedIdea=state.analysis?.idea||null;
@@ -335,6 +339,74 @@ async function analyzeIdeaNow(idea) {
     state.analysis=data.analysis;renderAnalysis(data.analysis);await loadWorkspace(false);notice('Idea analysis saved to the project.','success');
   }catch(e){notice(e.message,'error');}
 }
+function fillLaunchForm(plan=null,project=null) {
+  const values=plan?.inputs||{};
+  const defaults={businessType:project?.profile?.businessType, country:project?.profile?.country};
+  const map={businessType:'launchBusinessType',productName:'launchProductName',audience:'launchAudience',country:'launchCountry',problem:'launchProblem',outcome:'launchOutcome',marketNotes:'launchMarketNotes',marketSource:'launchMarketSource',marketSourceUrl:'launchMarketSourceUrl',supplierName:'launchSupplierName',supplierSourceUrl:'launchSupplierUrl',currency:'launchCurrency',sellingPrice:'launchSellingPrice',unitCost:'launchUnitCost',shippingCost:'launchShippingCost',packagingCost:'launchPackagingCost',otherCost:'launchOtherCost',platformFeePercent:'launchPlatformFee',marketingCostPerSale:'launchMarketingCost'};
+  for(const [key,id] of Object.entries(map)){
+    const el=$(id),value=values[key]??defaults[key];
+    if(value!==undefined&&value!==null&&value!=='')el.value=String(value);
+    else if(['productName','audience','problem','outcome','marketNotes','marketSource','marketSourceUrl','supplierName','supplierSourceUrl','sellingPrice'].includes(key))el.value='';
+    else if(['unitCost','shippingCost','packagingCost','otherCost','platformFeePercent','marketingCostPerSale'].includes(key))el.value='0';
+  }
+  syncLaunchBusinessType();
+}
+function syncLaunchBusinessType() {
+  const type=$('launchBusinessType').value;
+  const supplierRequired=['physical','dropshipping','print_on_demand'].includes(type);
+  $('launchSupplierNameWrap').classList.toggle('hidden',!supplierRequired);
+  $('launchSupplierUrlWrap').classList.toggle('hidden',!supplierRequired);
+  const label=$('launchUnitCostLabel');
+  label.childNodes[0].nodeValue=type==='service'?'Delivery / labor cost':type==='digital'?'Production cost':'Supplier / unit cost';
+}
+function resultSection(root,title,body) {
+  const section=document.createElement('section');section.className='plan-result-section';
+  const h=document.createElement('h3');h.textContent=title;section.append(h);
+  if(typeof body==='string'){const p=document.createElement('p');p.textContent=body;section.append(p);}
+  else if(Array.isArray(body)){const ul=document.createElement('ul');body.forEach(item=>{const li=document.createElement('li');li.textContent=item;ul.append(li);});section.append(ul);}
+  root.append(section);
+}
+function renderLaunchPlan(plan) {
+  const root=$('businessPlanResult');root.replaceChildren();
+  if(!plan){root.innerHTML='<div class="placeholder"><strong>No launch plan saved yet.</strong><p>Enter your own costs and evidence notes above.</p></div>';return;}
+  const title=document.createElement('h2');title.textContent=plan.title;root.append(title);
+  const badge=document.createElement('p');badge.className='planner-simulation';badge.textContent=plan.simulationLabel;root.append(badge);
+  resultSection(root,plan.marketEvidence.label,plan.marketEvidence.note+(plan.marketEvidence.notes?' '+plan.marketEvidence.notes:''));
+  if(plan.marketEvidence.source)resultSection(root,'User-entered market source',plan.marketEvidence.source+(plan.marketEvidence.sourceUrl?' · '+plan.marketEvidence.sourceUrl:''));
+  resultSection(root,plan.supplier.status==='not_required'?'Supplier details':'Supplier evidence',plan.supplier.note+(plan.supplier.name?' '+plan.supplier.name:'')+(plan.supplier.quoteUrl?' · '+plan.supplier.quoteUrl:''));
+  const e=plan.economics,table=document.createElement('div');table.className='plan-economics';
+  const rows=[['Selling price',e.sellingPrice],['Unit / delivery cost',e.unitCost],['Shipping / fulfillment',e.shippingCost],['Packaging',e.packagingCost],['Other variable cost',e.otherCost],['Platform fee',e.platformFee],['Marketing cost per sale',e.marketingCostPerSale],['Total costs',e.totalCosts],['Estimated profit',e.estimatedProfit],['Estimated margin',e.marginPercent+'%'],['Break-even ad cost ceiling',e.breakEvenAdCost]];
+  rows.forEach(([label,value])=>{const row=document.createElement('div');const a=document.createElement('span'),b=document.createElement('strong');a.textContent=label;b.textContent=String(value)+' '+(label.includes('%')?'':e.currency);row.append(a,b);table.append(row);});
+  root.append(table);resultSection(root,'Calculation',e.formula);
+  resultSection(root,'Customer validation checklist',plan.researchChecklist);
+  if(plan.supplierChecklist?.length)resultSection(root,'Supplier checks',plan.supplierChecklist);
+  const ad=document.createElement('section');ad.className='plan-result-section';const h=document.createElement('h3');h.textContent=plan.adDraft.status;const p=document.createElement('p');p.textContent=plan.adDraft.copy;ad.append(h,p);root.append(ad);
+  resultSection(root,'Launch checklist',plan.launchChecklist);
+  if(plan.digitalFactoryNextStep)resultSection(root,'Digital product file',plan.digitalFactoryNextStep);
+}
+$('launchBusinessType').addEventListener('change',syncLaunchBusinessType);
+$('businessPlanForm').addEventListener('submit',async event=>{
+  event.preventDefault();$('businessPlanError').textContent='';
+  if(!state.activeProjectId){openProjectModal();return;}
+  const payload={
+    projectId:state.activeProjectId,businessType:$('launchBusinessType').value,
+    productName:$('launchProductName').value.trim(),audience:$('launchAudience').value.trim(),
+    country:$('launchCountry').value.trim(),problem:$('launchProblem').value.trim(),outcome:$('launchOutcome').value.trim(),
+    marketNotes:$('launchMarketNotes').value.trim(),marketSource:$('launchMarketSource').value.trim(),marketSourceUrl:$('launchMarketSourceUrl').value.trim(),
+    supplierName:$('launchSupplierName').value.trim(),supplierSourceUrl:$('launchSupplierUrl').value.trim(),
+    currency:$('launchCurrency').value,sellingPrice:Number($('launchSellingPrice').value),unitCost:Number($('launchUnitCost').value),
+    shippingCost:Number($('launchShippingCost').value||0),packagingCost:Number($('launchPackagingCost').value||0),
+    otherCost:Number($('launchOtherCost').value||0),platformFeePercent:Number($('launchPlatformFee').value||0),
+    marketingCostPerSale:Number($('launchMarketingCost').value||0),language:profileLanguage()
+  };
+  try{
+    notice('Calculating from the costs you entered; no market or supplier lookup is running.');
+    const data=await api('/api/v2/launch/plan',{method:'POST',body:JSON.stringify(payload)});
+    state.launchPlan=data.plan;renderLaunchPlan(data.plan);
+    notice('Launch plan saved to this project. Verify every quote before using the estimate.','success');
+  }catch(error){$('businessPlanError').textContent=error.message;}
+});
+
 function renderAnalysis(a) {
   const root=$('analysisPanel');root.classList.remove('hidden');root.replaceChildren();
   const title=document.createElement('div');title.className='card-head';const h=document.createElement('h3');h.textContent=a.ideaName;const verdict=document.createElement('span');verdict.className='status-pill';verdict.textContent=a.verdict;title.append(h,verdict);root.append(title);
