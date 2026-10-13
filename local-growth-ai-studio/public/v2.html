@@ -248,14 +248,21 @@
     </div>
   </div>
 
+  <div id="mobileMoreMenu" class="mobile-more-menu hidden" aria-label="More workspace sections">
+    <button type="button" data-view="reels">▶ <span>Reel Generator</span></button>
+    <button type="button" data-view="brand">◇ <span>Brand Profile</span></button>
+    <button type="button" data-view="saved">☰ <span>Saved Projects</span></button>
+  </div>
   <nav class="mobile-nav" aria-label="Mobile navigation">
     <button data-view="dashboard" class="active">⌂<span>Home</span></button>
     <button data-view="partner">✦<span>Partner</span></button>
     <button data-view="research">⌕<span>Research</span></button>
     <button data-view="product">▣<span>Product</span></button>
     <button data-view="ads">◎<span>Ads</span></button>
+    <button id="mobileMoreToggle" type="button" aria-expanded="false" aria-controls="mobileMoreMenu">⋯<span>More</span></button>
   </nav>
 
   <script src="/v2.js" defer></script>
 </body>
 </html>
+
