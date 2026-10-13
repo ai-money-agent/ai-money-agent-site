@@ -9,6 +9,7 @@ import { DatabaseSync } from 'node:sqlite';
 const dir = await mkdtemp(join(tmpdir(),'studio-test-'));
 const base = 'http://127.0.0.1:8799';
 const accessCode = 'test-only-access-code-123456789';
+const secondAccessCode = 'second-test-access-code-987654321';
 let child;
 
 async function start() {
@@ -25,7 +26,7 @@ async function start() {
       ENABLE_LIVE_AI:'1',
       OPENAI_PROVIDER_ENABLED:'0',
       APP_ORIGIN:'',
-      STUDIO_ACCESS_CODE:accessCode,
+      STUDIO_ACCOUNTS_JSON:JSON.stringify({'beta-owner':accessCode,'test-customer':secondAccessCode}),
       ALLOW_MOCK_GENERATION:'1',
       INITIAL_CREDITS:'7',
       GENERATION_CREDIT_COST:'2'
@@ -44,9 +45,15 @@ async function stop(){
 }
 let cookie = '';
 const get = path => fetch(base+path,{headers:{cookie}});
+const getAs = (path,sessionCookie) => fetch(base+path,{headers:{cookie:sessionCookie}});
 const post = (path,body,id='test-request-000001',extra={}) => fetch(base+path,{
   method:'POST',
   headers:{'Content-Type':'application/json','Idempotency-Key':id,cookie,...extra},
+  body:JSON.stringify(body)
+});
+const postAs = (path,body,sessionCookie,id='cross-account-request-0001') => fetch(base+path,{
+  method:'POST',
+  headers:{'Content-Type':'application/json','Idempotency-Key':id,cookie:sessionCookie},
   body:JSON.stringify(body)
 });
 const brief = {mode:'reel',productName:'Mini Blender',description:'USB-C rechargeable blender.',language:'bilingual',audience:'busy students'};
@@ -75,7 +82,19 @@ try {
   const session = await post('/api/session',{accessCode});
   assert.equal(session.status,200);
   assert.match(session.headers.get('set-cookie'),/HttpOnly/);
+  assert.match(session.headers.get('set-cookie'),/SameSite=Strict/);
   cookie = session.headers.get('set-cookie').split(';')[0];
+  const ownerToken = cookie.slice('studio_session='.length);
+  assert.equal(ownerToken.length,43);
+  const secondLogin = await fetch(base+'/api/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessCode:secondAccessCode})});
+  assert.equal(secondLogin.status,200);
+  const secondCookie = secondLogin.headers.get('set-cookie').split(';')[0];
+  assert.notEqual(secondCookie,cookie);
+  const sessionDb = new DatabaseSync(join(dir,'workspace.sqlite'));
+  const sessionRows=sessionDb.prepare('SELECT account,token_hash FROM studio_sessions ORDER BY account').all();
+  assert.deepEqual(sessionRows.map(row=>row.account),['beta-owner','test-customer']);
+  assert.ok(sessionRows.every(row=>row.token_hash!==ownerToken&&row.token_hash!==secondCookie.slice('studio_session='.length)));
+  sessionDb.close();
 
   // Completed Live results remain readable even when the provider is paused,
   // and stale Live reservations are refunded without any provider call.
@@ -133,6 +152,15 @@ try {
   });
   assert.equal(projectResponse.status,201);
   const project=(await projectResponse.json()).project;
+  assert.deepEqual((await (await getAs('/api/v2/projects',secondCookie)).json()).projects,[]);
+  assert.equal((await getAs(`/api/v2/dashboard?projectId=${project.id}`,secondCookie)).status,404);
+  assert.equal((await getAs(`/api/v2/factory/assets?projectId=${project.id}`,secondCookie)).status,404);
+  const secondProjectResponse=await postAs('/api/v2/projects',{name:'Second isolated project',country:'Jordan',budget:'50',skills:'Design'},secondCookie);
+  assert.equal(secondProjectResponse.status,201);
+  const secondProject=(await secondProjectResponse.json()).project;
+  assert.notEqual(secondProject.id,project.id);
+  assert.equal((await get(`/api/v2/dashboard?projectId=${secondProject.id}`)).status,404);
+  assert.equal((await getAs(`/api/v2/factory/download?projectId=${project.id}&fileId=00000000-0000-4000-8000-000000000000`,secondCookie)).status,404);
   const ideasResponse=await post('/api/v2/research/ideas',{projectId:project.id,language:'ar'});
   assert.equal(ideasResponse.status,200);
   const ideasBody=await ideasResponse.json();
@@ -203,6 +231,8 @@ try {
   });
   assert.equal(arabicResponse.status,201);
   const arabic=(await arabicResponse.json()).asset;
+  assert.equal((await getAs(`/api/v2/factory/download?projectId=${project.id}&fileId=${arabic.fileId}`,secondCookie)).status,404);
+  assert.equal((await getAs(`/api/v2/factory/download?projectId=${project.id}&fileId=${arabic.previewFileId}&inline=1`,secondCookie)).status,404);
   assert.equal(arabic.contentType,'application/pdf');
   assert.match(arabic.filename,/arabic-coloring\.pdf$/);
   const arabicPdf=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${arabic.fileId}`);
@@ -297,7 +327,11 @@ try {
   assert.equal((await get('/api/generations/missing-request-0001')).status,404);
   assert.equal((await get('/api/generations/invalid')).status,400);
   assert.equal((await (await get('/api/credits')).json()).balance,7);
-  console.log('PASS: auth, CSRF, Demo/Live isolation, stale-credit recovery, paused-provider result recovery, validation, persistence, protected files, video contract, offline digital factory downloads and UI.');
+  const logout=await fetch(base+'/api/session',{method:'DELETE',headers:{cookie}});
+  assert.equal(logout.status,200);
+  assert.equal((await get('/api/credits')).status,401);
+  assert.equal((await getAs('/api/v2/projects',secondCookie)).status,200);
+  console.log('PASS: hashed durable sessions, account/project/file isolation, logout revocation, CSRF, Demo/Live isolation, stale-credit recovery, provider recovery, validation, persistence, protected files, video contract, offline factory downloads and UI.');
 } finally {
   await stop();
   await rm(dir,{recursive:true,force:true});
