@@ -9,6 +9,7 @@ Mobile use is a product requirement. Customers should use the complete workspace
 | Responsive V2 navigation, forms, and product previews | Yes | Static page delivery and login session |
 | Touch drawing, editable answers, and local preview autosave | Yes, in the same-origin HTML preview | The preview file must first be generated and served |
 | Project creation, project recovery, and saved product lists | No | Yes, SQLite in `WORKSPACE_DB` |
+| Business model, cost plan, user-entered market notes, and launch checklist | Responsive form and preview | Authenticated API; project-scoped SQLite output |
 | PDF/XLSX/HTML generation and authenticated download | No | Yes, generation routes and `PRODUCT_FILES_DIR` |
 | Budget preview recalculation and editable fields | Yes, in HTML | Server creates and protects the companion HTML and XLSX |
 | Arabic PDF font embedding and RTL PDF layout | No | Yes, server-side PDF generator and bundled DejaVu font |
@@ -42,6 +43,8 @@ Configure persistent storage for `/app/data`, HTTPS, and the host's owner-only a
 ### Phone acceptance run
 
 Open the owner-only staging URL directly in Chrome on Android and Safari on iPhone. Sign in, create a test project, then verify:
+
+0. Choose digital, physical, service, dropshipping, or print-on-demand. On the Launch Planner, enter a supplier name and current unit quote for a physical model; confirm the app labels it user-provided/unverified and calculates the expected profit from your numbers. Confirm it does not display a fabricated vendor or market price.
 
 1. Every section is reachable, including Reels, Brand Profile, and Saved Projects from the mobile **More** menu.
 2. Create an Arabic coloring/activity book. Open its in-app preview, draw with a finger or stylus, type into the answer field, reload the project, and confirm the drawing and answer remain saved.
