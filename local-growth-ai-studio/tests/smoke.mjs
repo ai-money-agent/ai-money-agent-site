@@ -12,7 +12,7 @@ const accessCode = 'test-only-access-code-123456789';
 const secondAccessCode = 'second-test-access-code-987654321';
 let child;
 
-async function start() {
+async function start(accountMap = {'beta-owner':accessCode,'test-customer':secondAccessCode}) {
   child = spawn(process.execPath,['server.js'], {
     cwd:new URL('..',import.meta.url),
     env:{
@@ -26,7 +26,7 @@ async function start() {
       ENABLE_LIVE_AI:'1',
       OPENAI_PROVIDER_ENABLED:'0',
       APP_ORIGIN:'',
-      STUDIO_ACCOUNTS_JSON:JSON.stringify({'beta-owner':accessCode,'test-customer':secondAccessCode}),
+      STUDIO_ACCOUNTS_JSON:JSON.stringify(accountMap),
       ALLOW_MOCK_GENERATION:'1',
       INITIAL_CREDITS:'7',
       GENERATION_CREDIT_COST:'2'
@@ -353,7 +353,14 @@ try {
   assert.equal(logout.status,200);
   assert.equal((await get('/api/credits')).status,401);
   assert.equal((await getAs('/api/v2/projects',secondCookie)).status,200);
-  console.log('PASS: hashed durable sessions, account/project/file isolation, logout revocation, CSRF, Demo/Live isolation, stale-credit recovery, provider recovery, validation, persistence, protected files, video contract, offline factory downloads and UI.');
+  await stop();
+  await start({'beta-owner':accessCode});
+  assert.equal((await getAs('/api/v2/projects',secondCookie)).status,401);
+  const ownerReauth=await fetch(base+'/api/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessCode})});
+  assert.equal(ownerReauth.status,200);
+  cookie=ownerReauth.headers.get('set-cookie').split(';')[0];
+  assert.equal((await (await get('/api/v2/projects')).json()).projects.length,1);
+  console.log('PASS: hashed durable sessions, account/project/file isolation, plan isolation/recovery, deprovision revocation, logout, CSRF, Demo/Live isolation, provider recovery, validation, protected files, factory downloads and UI.');
 } finally {
   await stop();
   await rm(dir,{recursive:true,force:true});
