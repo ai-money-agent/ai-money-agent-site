@@ -376,7 +376,7 @@ function renderLaunchPlan(plan) {
   resultSection(root,plan.supplier.status==='not_required'?'Supplier details':'Supplier evidence',plan.supplier.note+(plan.supplier.name?' '+plan.supplier.name:'')+(plan.supplier.quoteUrl?' · '+plan.supplier.quoteUrl:''));
   const e=plan.economics,table=document.createElement('div');table.className='plan-economics';
   const rows=[['Selling price',e.sellingPrice],['Unit / delivery cost',e.unitCost],['Shipping / fulfillment',e.shippingCost],['Packaging',e.packagingCost],['Other variable cost',e.otherCost],['Platform fee',e.platformFee],['Marketing cost per sale',e.marketingCostPerSale],['Total costs',e.totalCosts],['Estimated profit',e.estimatedProfit],['Estimated margin',e.marginPercent+'%'],['Break-even ad cost ceiling',e.breakEvenAdCost]];
-  rows.forEach(([label,value])=>{const row=document.createElement('div');const a=document.createElement('span'),b=document.createElement('strong');a.textContent=label;b.textContent=String(value)+' '+(label.includes('%')?'':e.currency);row.append(a,b);table.append(row);});
+  rows.forEach(([label,value])=>{const row=document.createElement('div');const a=document.createElement('span'),b=document.createElement('strong');a.textContent=label;b.textContent=label==='Estimated margin'?String(value)+'%':String(value)+' '+e.currency;row.append(a,b);table.append(row);});
   root.append(table);resultSection(root,'Calculation',e.formula);
   resultSection(root,'Customer validation checklist',plan.researchChecklist);
   if(plan.supplierChecklist?.length)resultSection(root,'Supplier checks',plan.supplierChecklist);
