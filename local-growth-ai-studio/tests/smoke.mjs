@@ -135,6 +135,12 @@ try {
   assert.ok(outputs.every(o=>o.ok));
   assert.deepEqual(outputs[0].result,outputs[1].result);
   assert.equal((await (await get('/api/credits?userId=attacker')).json()).balance,7);
+  const isolatedCredits=(await getAs('/api/credits',secondCookie));
+  assert.equal(isolatedCredits.status,200);
+  assert.equal((await isolatedCredits.json()).balance,7);
+  const sameRequestOtherAccount=await postAs('/api/generate',{...brief,generationMode:'demo'},secondCookie,'test-request-000001');
+  assert.equal(sameRequestOtherAccount.status,200);
+  assert.equal((await sameRequestOtherAccount.json()).replayed,undefined);
   assert.equal((await post('/api/generate',{...brief,productName:'Other product',generationMode:'demo'})).status,409);
 
   const badVideo = await post('/api/video/prepare',{script:'Test',aspectRatio:'4:3',durationSeconds:20},'video-request-00001');
