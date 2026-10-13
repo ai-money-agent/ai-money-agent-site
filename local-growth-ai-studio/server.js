@@ -2,7 +2,7 @@ import http from 'node:http';
 import { readFile, writeFile, mkdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHash, createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
+import { createHash, timingSafeEqual, randomUUID, randomBytes } from 'node:crypto';
 import { Ledger } from './lib/ledger.js';
 import { WorkspaceStore } from './lib/workspace.js';
 import { findProductIdeas, analyzeIdea, buildProductBlueprint, buildBrandProfile, createAdPack, createReelPack, partnerReply, recipes } from './lib/business-engine.js';
@@ -38,9 +38,30 @@ const config = {
   pendingJobTimeoutMinutes: intEnv('PENDING_JOB_TIMEOUT_MINUTES', 15, 2, 1440),
   demoGenerationCost: 0
 };
-const ACCESS_CODE = process.env.STUDIO_ACCESS_CODE || '';
 const ORIGIN = process.env.APP_ORIGIN || '';
 const PORT = Number(process.env.PORT || 8787);
+function loadLoginAccounts() {
+  let configured = {};
+  if (process.env.STUDIO_ACCOUNTS_JSON) {
+    try { configured = JSON.parse(process.env.STUDIO_ACCOUNTS_JSON); }
+    catch { throw new Error('STUDIO_ACCOUNTS_JSON must be valid JSON.'); }
+    if (!configured || Array.isArray(configured) || typeof configured !== 'object') {
+      throw new Error('STUDIO_ACCOUNTS_JSON must be an object mapping account IDs to access codes.');
+    }
+  } else if (process.env.STUDIO_ACCESS_CODE) {
+    configured = { 'beta-owner': process.env.STUDIO_ACCESS_CODE };
+  }
+  const entries = Object.entries(configured);
+  const seenCodes = new Set();
+  for (const [account, code] of entries) {
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(account)) throw new Error('Studio account IDs must use 1-64 letters, numbers, hyphens or underscores.');
+    if (typeof code !== 'string' || code.length < 24) throw new Error('Each Studio access code must be at least 24 characters.');
+    if (seenCodes.has(code)) throw new Error('Each Studio account must have a unique access code.');
+    seenCodes.add(code);
+  }
+  return new Map(entries);
+}
+const loginAccounts = loadLoginAccounts();
 if (config.liveEnabled) {
   const missing = [];
   if (config.provider === 'anthropic') {
@@ -50,21 +71,21 @@ if (config.liveEnabled) {
     if (!config.openaiApiKey) missing.push('OPENAI_API_KEY');
     if (!config.openaiModel) missing.push('OPENAI_MODEL');
   }
-  if (ACCESS_CODE.length < 24) missing.push('STUDIO_ACCESS_CODE(24+ chars)');
+  if (loginAccounts.size === 0) missing.push('STUDIO_ACCOUNTS_JSON or STUDIO_ACCESS_CODE');
   if (!ORIGIN.startsWith('https://')) missing.push('APP_ORIGIN(https://...)');
   if (missing.length) throw new Error(`Live AI config invalid: ${missing.join(', ')}`);
 }
 const ledger = new Ledger(process.env.CREDIT_DB || join(ROOT, 'data', 'credits.sqlite'), config.initialCredits);
 const workspace = new WorkspaceStore(process.env.WORKSPACE_DB || join(ROOT, 'data', 'workspace.sqlite'));
 const productFilesRoot = process.env.PRODUCT_FILES_DIR || join(ROOT,'data','generated-products');
-const accounts = { demo: 'demo-shared', live: 'beta-owner' };
+const ledgerAccounts = { demo: 'demo-shared', live: 'beta-owner' };
 const rates = new Map();
 const equal = (a, b) => {
   const x = createHash('sha256').update(a).digest();
   const y = createHash('sha256').update(b).digest();
   return timingSafeEqual(x, y);
 };
-const sign = value => createHmac('sha256', ACCESS_CODE).update(value).digest('hex');
+const sessionHash = token => createHash('sha256').update(token).digest('hex');
 const runtimeMode = () => config.liveEnabled ? 'live' : 'demo';
 function generationMode(value, fallback = runtimeMode()) {
   if (value == null || value === '') return fallback;
@@ -75,7 +96,7 @@ function ensureModeAvailable(mode) {
   if (mode === 'demo' && !config.allowDemo) throw failure('Demo mode is disabled.',503);
   if (mode === 'live' && !config.liveEnabled) throw failure('Live AI is not enabled yet.',503);
 }
-const accountFor = mode => mode === 'demo' ? accounts.demo : accounts.live;
+const accountFor = mode => mode === 'demo' ? ledgerAccounts.demo : ledgerAccounts.live;
 const costFor = mode => mode === 'demo' ? config.demoGenerationCost : config.generationCost;
 function logEvent(level,event,details={}) {
   const payload = { time:new Date().toISOString(), event, ...details };
@@ -88,11 +109,13 @@ function refundStaleReservations() {
 }
 refundStaleReservations();
 
+function sessionToken(req) {
+  const token = /(?:^|;\\s*)studio_session=([A-Za-z0-9_-]{40,60})(?:;|$)/.exec(req.headers.cookie || '')?.[1] || '';
+  return token || null;
+}
 function authenticated(req) {
-  if (!ACCESS_CODE) return true;
-  const cookie = /(?:^|;\s*)studio_session=([^;]+)/.exec(req.headers.cookie || '')?.[1] || '';
-  const [expires, signature] = cookie.split('.');
-  return /^\d+$/.test(expires || '') && Number(expires) > Date.now() && equal(signature || '', sign(expires));
+  const token = sessionToken(req);
+  return token ? workspace.sessionAccount(sessionHash(token)) : null;
 }
 function headers(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -200,17 +223,31 @@ async function api(req, res, url) {
       requiresLogin:!authenticated(req)
     });
   }
+
   if (req.method === 'POST' && url.pathname === '/api/session') {
     const body = await readBody(req);
-    if (!ACCESS_CODE || typeof body.accessCode !== 'string' || !equal(body.accessCode,ACCESS_CODE)) throw failure('Invalid access code.',401);
-    const expires = String(Date.now()+8*3600000);
-    res.setHeader('Set-Cookie',`studio_session=${expires}.${sign(expires)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800${ORIGIN.startsWith('https://') ? '; Secure' : ''}`);
+    if (typeof body.accessCode !== 'string' || loginAccounts.size === 0) throw failure('Invalid access code.',401);
+    let account = null;
+    for (const [accountId, accessCode] of loginAccounts) {
+      if (equal(body.accessCode,accessCode)) account = accountId;
+    }
+    if (!account) throw failure('Invalid access code.',401);
+    const token = randomBytes(32).toString('base64url');
+    const expiresAt = Date.now()+8*3600000;
+    workspace.createSession(sessionHash(token),account,expiresAt);
+    res.setHeader('Set-Cookie',`studio_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800${ORIGIN.startsWith('https://') ? '; Secure' : ''}`);
     return json(res,200,{ok:true});
   }
-  if (!authenticated(req)) throw failure('Enter your Studio access code first.',401);
+  if (req.method === 'DELETE' && url.pathname === '/api/session') {
+    const token = sessionToken(req);
+    if (token) workspace.deleteSession(sessionHash(token));
+    res.setHeader('Set-Cookie',`studio_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${ORIGIN.startsWith('https://') ? '; Secure' : ''}`);
+    return json(res,200,{ok:true});
+  }
+  const authenticatedAccount = authenticated(req);
+  if (!authenticatedAccount) throw failure('Enter your Studio access code first.',401);
 
-
-  const v2Account = accounts.live;
+  const v2Account = authenticatedAccount;
   const v2Language = (value, sample = '') => {
     if (value === 'ar' || value === 'en') return value;
     return /[\u0600-\u06ff]/.test(String(sample || '')) ? 'ar' : 'en';
