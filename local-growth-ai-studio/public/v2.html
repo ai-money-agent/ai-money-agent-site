@@ -186,7 +186,7 @@
         <section id="businessPlanResult" class="card business-plan-result" aria-live="polite">
           <div class="placeholder"><strong>No launch plan saved yet.</strong><p>Enter your own costs and evidence notes above.</p></div>
         </section>
-        <div class="factory-next"><span>Digital products can also be made as real downloadable files with the local template factory.</span><button class="secondary" type="button" data-go="product">Open Product Builder</button></div>
+        <div class="factory-next"><span>Continue from your saved cost plan into a draft ad. Review it before use; nothing is launched.</span><button class="secondary" type="button" data-go="ads">Open Ad Studio</button><button class="secondary" type="button" data-go="product">Open Digital Product Factory</button></div>
       </section>
 
       <section class="view" data-view-panel="product">
@@ -200,10 +200,11 @@
             <label>Problem<textarea id="productProblem" maxlength="700" rows="3" placeholder="What problem does the buyer have?"></textarea></label>
             <label>Outcome<textarea id="productOutcome" maxlength="700" rows="3" placeholder="What result should they get?"></textarea></label>
             <div class="split">
-              <label>Price<input id="productPrice" type="number" min="0" step="1" placeholder="15" /></label>
+              <label>Price after cost check<input id="productPrice" type="number" min="0" step="0.01" placeholder="Calculate in Launch Planner first" /></label>
               <label>Currency<select id="productCurrency"><option>USD</option><option>EUR</option><option>LBP</option></select></label>
             </div>
-            <button class="primary" type="submit">Build product</button>
+            <button class="primary" type="submit">Build offer draft</button>
+            <button class="secondary" type="button" data-go="business">Calculate costs & plan launch</button>
           </form>
           <div id="productResult" class="card output-card"><div class="placeholder"><strong>No product built yet.</strong><p>Choose an idea in Research, or fill the fields and build.</p></div></div>
         </div>
