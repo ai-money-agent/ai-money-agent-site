@@ -52,6 +52,9 @@ export function buildBusinessLaunchPlan(input = {}) {
   if (SUPPLIER_TYPES.has(businessType) && supplierName.length < 2) {
     throw new Error('Enter a supplier you found yourself; this app does not invent or look up suppliers.');
   }
+  if (SUPPLIER_TYPES.has(businessType) && unitCost <= 0) {
+    throw new Error('Enter a positive unit cost from a current supplier quote before calculating physical-product profit.');
+  }
 
   const platformFee = round(sellingPrice * platformFeePercent / 100);
   const totalCosts = round(unitCost + shippingCost + packagingCost + otherCost + platformFee + marketingCostPerSale);
