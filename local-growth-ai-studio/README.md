@@ -32,16 +32,18 @@ Requires Node.js 24 or later. No npm dependencies or paid services are needed fo
 
 ```sh
 cd local-growth-ai-studio
+cp .env.staging.example .env
+# For local HTTP, replace APP_ORIGIN with http://localhost:8787 and use a private random access code.
 npm start
 ```
 
-Open http://localhost:8787. Demo mode uses clearly labeled sample templates; it does **not** analyze the uploaded image or generate AI content. The image preview, product form, language/audience controls, bilingual outputs, Ad/Reel flows, copy/export actions, validation, recovery and persistent ledger all work locally. The UI now has an explicit **Demo / Live AI** selector; Demo always costs 0 Studio credits and never calls a provider.
+Open http://localhost:8787. The server is locked unless a valid `STUDIO_ACCOUNTS_JSON` or legacy `STUDIO_ACCESS_CODE` is configured; never use a real customer code for local testing. Demo mode uses clearly labeled sample templates; it does **not** analyze the uploaded image or generate AI content. The image preview, product form, language/audience controls, bilingual outputs, Ad/Reel flows, copy/export actions, validation, recovery and persistent ledger all work locally. The UI now has an explicit **Demo / Live AI** selector; Demo always costs 0 Studio credits and never calls a provider.
 
 ```sh
 npm test
 ```
 
-The test suite covers the credit ledger, provider adapter contract, future video request contract, UI structure/mobile breakpoints, authentication, CSRF/origin checks, image validation, retry/idempotency behavior, persistent credits and protected server files. GitHub Actions runs these tests on `main`, the Studio branch, and relevant pull requests.
+The test suite covers the credit ledger, provider adapter contract, future video request contract, UI structure/mobile breakpoints, durable account sessions, cross-account project/product/file/credit isolation, logout revocation, CSRF/origin checks, image validation, retry/idempotency behavior, persistence and protected server files. GitHub Actions runs these tests on `main`, the Studio branch, and relevant pull requests.
 
 ## Live generation and provider gates
 
@@ -52,7 +54,7 @@ Live execution still requires the existing safety gates:
 - `ENABLE_LIVE_AI=1`.
 - The selected provider gate (`ANTHROPIC_PROVIDER_ENABLED=1` or `OPENAI_PROVIDER_ENABLED=1`).
 - The selected provider API key and model in server environment variables.
-- A private `STUDIO_ACCESS_CODE` at least 24 characters long.
+- A private `STUDIO_ACCOUNTS_JSON` account map with unique access codes of at least 24 characters, or the legacy one-account `STUDIO_ACCESS_CODE`.
 - An HTTPS `APP_ORIGIN` matching the public application URL.
 
 The browser can explicitly select **Demo** even when Live AI is configured. Demo never calls Claude or OpenAI, which allows full UI and workflow testing while provider billing is unavailable. Selecting **Live AI** is the only path that can send a provider request.
@@ -79,13 +81,14 @@ Before choosing a paid host or enabling paid AI, obtain the owner's approval. No
 
 ## Beta scope
 
-- Private access-code login with HttpOnly, SameSite cookies; production cookies require HTTPS.
-- One private beta account and one separate shared demo account; supplied `userId` values are ignored.
+- Pre-provisioned private access-code accounts use opaque random HttpOnly, SameSite=Strict sessions. Only token hashes are stored in SQLite; HTTPS cookies add Secure, sessions expire in eight hours, and sign-out revokes the server session.
+- Account IDs are resolved server-side from unique access codes. V2 projects, research, products, messages, tasks, outputs, factory downloads, and credit/idempotency records are scoped to the authenticated account; client `userId` values are ignored.
+- Account provisioning is manual through the server-only `STUDIO_ACCOUNTS_JSON` environment value. There is no public signup, password reset, or payment flow.
 - SQLite durable credit reservations and deduplicated request IDs survive restarts.
 - Failed operations return the Studio credit. Provider-side charges on a timeout may still occur; requests are not automatically retried against the provider.
 - Pending jobs after an abrupt crash are not retried against the provider. Once they are older than `PENDING_JOB_TIMEOUT_MINUTES` (15 minutes by default), the reservation is marked failed and its Studio credit is refunded exactly once. This avoids permanent credit loss while still leaving a buffer beyond the provider request timeout.
 - Outputs are retained locally for retry recovery. Uploaded images are not stored; only a request fingerprint is retained.
-- This is **not yet a multi-customer credit-selling service**. Add individual accounts, provisioning, quotas, purchase fulfillment, retention policy and operational monitoring before selling customer credit balances.
+- This is **not yet a customer credit-selling service**. Before selling access, add quotas, purchase fulfillment, retention policy, customer support/recovery and operational monitoring.
 - Video generation remains unavailable and never charges credits. The backend now validates a future video job shape (script, duration, aspect ratio), but no provider or video credit price has been selected.
 
 ## Mobile recovery and export
@@ -109,7 +112,7 @@ Files are stored under the persistent `data/generated-products` directory by def
 
 ## Mobile-first product requirement
 
-The full workspace is intended to run in a mobile browser, with no customer-side computer, terminal, or app installation. On screens up to 760px the bottom navigation exposes the primary sections and a touch-friendly **More** menu exposes Reels, Brand Profile, and Saved Projects. The product factory uses a single-column form, large touch targets, safe-area spacing, and same-origin HTML previews for drawing, writing, budget calculations, and downloads. See [MOBILE_FIRST.md](MOBILE_FIRST.md) for server requirements, the private phone-preview runbook, and current customer-account limitations.
+The full workspace is intended to run in a mobile browser, with no customer-side computer, terminal, or app installation. On screens up to 760px the bottom navigation exposes the primary sections and a touch-friendly **More** menu exposes Reels, Brand Profile, and Saved Projects. The product factory uses a single-column form, large touch targets, safe-area spacing, and same-origin HTML previews for drawing, writing, budget calculations, and downloads. See [MOBILE_FIRST.md](MOBILE_FIRST.md) for server requirements, the private phone-preview runbook, account isolation details and the current hosting blocker.
 
-Mobile access still requires the Node backend on an HTTPS host. It handles authentication, project persistence, file generation, and protected downloads; GitHub Pages alone cannot provide these features. The current access-code beta has one shared workspace identity and is not ready for multiple independent customers until per-user accounts and project isolation are added.
+Mobile access still requires the Node backend on an HTTPS host. It handles authentication, project persistence, file generation, and protected downloads; GitHub Pages alone cannot provide these features. The backend supports manually provisioned account isolation, but there is no hosted staging instance or phone URL yet. The checked-in [.env.staging.example](.env.staging.example) and Docker volume settings prepare owner-only HTTPS staging; the owner still needs to approve/select a host, private hostname, persistent volume and host-level access gate. No public hosting, tunnel or deployment has been created.
 
