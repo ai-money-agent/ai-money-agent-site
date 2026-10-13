@@ -31,7 +31,7 @@ OPENAI_PROVIDER_ENABLED=0
 ANTHROPIC_PROVIDER_ENABLED=0
 OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
-STUDIO_ACCESS_CODE=<temporary random value of at least 24 characters>
+STUDIO_ACCOUNTS_JSON={"owner":"<temporary unique random value of at least 24 characters>"}
 APP_ORIGIN=https://<private-staging-hostname>
 WORKSPACE_DB=/app/data/workspace.sqlite
 PRODUCT_FILES_DIR=/app/data/generated-products
@@ -51,8 +51,16 @@ Open the owner-only staging URL directly in Chrome on Android and Safari on iPho
 
 Record actual device, OS, browser version, viewport, and results. CSS assertions and server smoke tests are not substitutes for this physical-device run.
 
-## Customer-data isolation limit
+## Account and project isolation
 
-The current beta uses a single `STUDIO_ACCESS_CODE` and one `beta-owner` workspace account. Different customers using that same access code would share the same project namespace. Owner-only staging is suitable for the owner's phone test, but this build must not be opened to multiple customers until individual account provisioning, session-to-account binding, per-account project/file isolation, account recovery, and abuse/rate limits are implemented and tested.
+The server supports pre-provisioned accounts through `STUDIO_ACCOUNTS_JSON`, a server-only JSON mapping from account IDs to distinct, randomly generated access codes. The legacy `STUDIO_ACCESS_CODE` remains as a one-account compatibility option and maps to `beta-owner`. There is no self-service sign-up, password reset or payment flow.
 
-Do not publish or invite customers to the current beta as a multi-tenant service. No paid API, payment flow, or public deployment is required for the private template-factory preview.
+Each login creates an opaque random session token. Only its SHA-256 hash, account ID and expiration are stored in SQLite. The browser receives the token in an HttpOnly, SameSite=Strict cookie; HTTPS adds Secure. Sessions expire after eight hours and can be revoked with **Sign out**. All V2 projects, research, products, messages, tasks, outputs and factory file lookups use the authenticated account ID. File downloads also require a project and matching saved output record, so knowing another user's project/file ID is insufficient. The legacy credit ledger now scopes Demo balances and idempotency records per account; the original beta-owner ledger key is retained for migration compatibility.
+
+To provision accounts, create different high-entropy 24+ character codes off-repository and place the JSON in the host secret manager. Never commit actual codes or share one code between customers. The owner must distribute each code using a secure channel. Staging should use its own account codes, SQLite files and product volume, with host-level owner-only access in addition to the app login.
+
+## Deployment status and exact preview requirement
+
+No staging server, hostname, TLS certificate, access policy, or persistent host volume is provisioned by this repository, and no phone-preview URL is available. The checked-in `.env.staging.example` and Docker configuration prepare the app but do not create a hosted instance. To make an actual HTTPS phone preview available, the owner must choose or approve a container host and private hostname, provide a persistent volume mounted at `/app/data`, configure HTTPS and owner-only access at the host, and add the environment values from the example to the host's secret store. This work has not been performed.
+
+Keep Live AI disabled for phone acceptance. The local factory remains deterministic template generation and costs no provider API spend. Do not expose the staging URL to customers until account provisioning, retention, monitoring and support/recovery policies are ready.
