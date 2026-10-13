@@ -158,6 +158,15 @@ try {
   });
   assert.equal(projectResponse.status,201);
   const project=(await projectResponse.json()).project;
+  const launchInput={projectId:project.id,businessType:'dropshipping',productName:'Bottle carrier',audience:'hikers',country:'Lebanon',problem:'carrying water comfortably',outcome:'keep a bottle close',marketNotes:'Manually reviewed three listings',marketSource:'Owner check',marketSourceUrl:'https://example.com/research',supplierName:'Supplier selected by owner',supplierSourceUrl:'https://example.com/quote',currency:'USD',sellingPrice:40,unitCost:12,shippingCost:4,packagingCost:1,otherCost:2,platformFeePercent:5,marketingCostPerSale:3};
+  const launchResponse=await post('/api/v2/launch/plan',launchInput);
+  assert.equal(launchResponse.status,201);
+  const launchPlan=(await launchResponse.json()).plan;
+  assert.equal(launchPlan.economics.estimatedProfit,16);
+  assert.equal(launchPlan.marketEvidence.status,'user_provided_unverified');
+  assert.equal(launchPlan.supplier.status,'user_provided_unverified');
+  assert.match(launchPlan.simulationLabel,/not live research/i);
+  assert.equal((await getAs(`/api/v2/launch/plan?projectId=${project.id}`,secondCookie)).status,404);
   assert.deepEqual((await (await getAs('/api/v2/projects',secondCookie)).json()).projects,[]);
   assert.equal((await getAs(`/api/v2/dashboard?projectId=${project.id}`,secondCookie)).status,404);
   assert.equal((await getAs(`/api/v2/factory/assets?projectId=${project.id}`,secondCookie)).status,404);
@@ -167,6 +176,9 @@ try {
   assert.notEqual(secondProject.id,project.id);
   assert.equal((await get(`/api/v2/dashboard?projectId=${secondProject.id}`)).status,404);
   assert.equal((await getAs(`/api/v2/factory/download?projectId=${project.id}&fileId=00000000-0000-4000-8000-000000000000`,secondCookie)).status,404);
+  const secondPlanResponse=await postAs('/api/v2/launch/plan',{...launchInput,projectId:secondProject.id,productName:'Private second offer',supplierName:'Second user quote',marketNotes:'Private notes'},secondCookie);
+  assert.equal(secondPlanResponse.status,201);
+  assert.equal((await get(`/api/v2/launch/plan?projectId=${secondProject.id}`)).status,404);
   const ideasResponse=await post('/api/v2/research/ideas',{projectId:project.id,language:'ar'});
   assert.equal(ideasResponse.status,200);
   const ideasBody=await ideasResponse.json();
@@ -286,7 +298,7 @@ try {
   assert.equal(reelResponse.status,200);
   assert.equal((await reelResponse.json()).aiEngine,'local');
   const savedWorkspace=await (await get(`/api/v2/dashboard?projectId=${project.id}`)).json();
-  assert.equal(savedWorkspace.outputs.length,7);
+  assert.equal(savedWorkspace.outputs.length,8);
   assert.equal(savedWorkspace.outputs.find(output=>output.type==='ad-pack').type,'ad-pack');
   assert.match(savedWorkspace.outputs.find(output=>output.type==='ad-pack').payload.variants[0].primaryText,/خدمة كانفا المطورة/);
   const partnerResponse=await post('/api/v2/partner',{projectId:project.id,message:'أريد أن أربح من الإنترنت ولا أعرف ماذا أبيع.'});
@@ -305,8 +317,11 @@ try {
   await start();
   assert.equal((await (await get('/api/credits')).json()).balance,7);
   const recoveredWorkspace=await (await get(`/api/v2/dashboard?projectId=${project.id}`)).json();
+  const restoredPlan=await (await get(`/api/v2/launch/plan?projectId=${project.id}`)).json();
+  assert.equal(restoredPlan.plan.economics.estimatedProfit,16);
+  assert.equal(restoredPlan.plan.inputs.supplierName,'Supplier selected by owner');
   assert.equal(recoveredWorkspace.products[0].name,'خدمة كانفا المطورة');
-  assert.equal(recoveredWorkspace.outputs.length,7);
+  assert.equal(recoveredWorkspace.outputs.length,8);
   assert.ok(recoveredWorkspace.outputs.some(output=>output.type==='ad-pack'));
   assert.ok(recoveredWorkspace.outputs.some(output=>output.type==='reel'));
   const recoveredAssets=(await (await get(`/api/v2/factory/assets?projectId=${project.id}`)).json()).assets;
