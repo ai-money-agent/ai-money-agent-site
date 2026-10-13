@@ -110,6 +110,14 @@ PDF books and worksheets include a matching touch-friendly HTML copy with printa
 
 Files are stored under the persistent `data/generated-products` directory by default (override with `PRODUCT_FILES_DIR`). SQLite saves each file and companion's project, type, filename, and download identifier, so the project can restore downloads after restart. Generated templates are labeled as local work and should be checked and customized before sale. The simulated AI connectivity check is separate from file creation; no result from the factory is presented as AI output.
 
+## Business Launch Planner
+
+The Launch Planner supports digital products, physical goods, services, dropshipping, and print on demand. It carries the user's chosen idea into an offer draft, transparent unit economics, customer-validation tasks, supplier checks where required, an ad-copy draft, and a manual launch checklist. Digital products can continue to the existing downloadable-file factory.
+
+All market notes, source links, suppliers, quotes, and costs must be entered by the user. The server does not search the web or supplier catalogs. Submitted notes and quote details are labeled user-provided and unverified. Physical models require a supplier name and a positive unit cost entered from a current quote before profit is calculated. No supplier names, customer-demand claims, or market prices are invented. Fee, shipping, unit, packaging, other, and per-sale marketing costs are shown in the calculation; profit and margin are derived from those inputs. The plan is stored in the authenticated project's SQLite output history and restored for that same account.
+
+This planner is a local template calculation, not an AI answer or market report. The draft copy and checklist are starting points and do not publish ads, create supplier orders, or spend money.
+
 ## Mobile-first product requirement
 
 The full workspace is intended to run in a mobile browser, with no customer-side computer, terminal, or app installation. On screens up to 760px the bottom navigation exposes the primary sections and a touch-friendly **More** menu exposes Reels, Brand Profile, and Saved Projects. The product factory uses a single-column form, large touch targets, safe-area spacing, and same-origin HTML previews for drawing, writing, budget calculations, and downloads. See [MOBILE_FIRST.md](MOBILE_FIRST.md) for server requirements, the private phone-preview runbook, account isolation details and the current hosting blocker.
