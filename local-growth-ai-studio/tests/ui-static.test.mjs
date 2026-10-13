@@ -47,6 +47,15 @@ test('V2 remains usable on narrow Android screens and reports whether OpenAI is 
   assert.match(v2Css,/factory-preview iframe/);
   assert.match(v2Css,/factory-asset-actions/);
   assert.match(v2Css,/factory-form/);
+  assert.match(v2Html,/id="mobileMoreMenu"[\s\S]*data-view="reels"[\s\S]*data-view="brand"[\s\S]*data-view="saved"/,
+    'mobile users can reach every section hidden from the desktop sidebar');
+  assert.match(v2Html,/id="mobileMoreToggle"[^>]*aria-expanded="false"[^>]*aria-controls="mobileMoreMenu"/);
+  assert.match(v2Js,/mobileMoreToggle/);
+  assert.match(v2Js,/event\.key==='Escape'/,'the mobile section menu can be dismissed accessibly');
+  assert.match(v2Css,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
+  assert.match(v2Css,/mobile-more-menu button\{[^}]*min-height:48px/);
+  assert.match(v2Css,/factory-asset-actions a,[^{]*\{[^}]*min-height:44px/,'mobile download links meet the touch target minimum');
+  assert.match(v2Css,/bottom:calc\(76px \+ env\(safe-area-inset-bottom\)\)/,'the mobile menu clears phone safe areas');
 });
 
 test('frontend is mobile-first, self-contained and does not contain provider secrets',()=>{
@@ -68,3 +77,4 @@ test('deployment config uses the readiness endpoint and matching app version',()
   const pkg=JSON.parse(packageText);
   assert.equal(pkg.version,'0.7.0');
 });
+
