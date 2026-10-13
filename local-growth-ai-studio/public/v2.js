@@ -357,7 +357,8 @@ function fillLaunchForm(plan=null,project=null) {
     const el=$(id),value=values[key]??defaults[key];
     if(value!==undefined&&value!==null&&value!=='')el.value=String(value);
     else if(['productName','audience','problem','outcome','marketNotes','marketSource','marketSourceUrl','supplierName','supplierSourceUrl','sellingPrice'].includes(key))el.value='';
-    else if(['unitCost','shippingCost','packagingCost','otherCost','platformFeePercent','marketingCostPerSale'].includes(key))el.value='0';
+    else if(key==='unitCost')el.value='';
+    else if(['shippingCost','packagingCost','otherCost','platformFeePercent','marketingCostPerSale'].includes(key))el.value='0';
   }
   syncLaunchBusinessType();
 }
