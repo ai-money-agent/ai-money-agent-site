@@ -170,10 +170,11 @@ try {
   assert.deepEqual((await (await getAs('/api/v2/projects',secondCookie)).json()).projects,[]);
   assert.equal((await getAs(`/api/v2/dashboard?projectId=${project.id}`,secondCookie)).status,404);
   assert.equal((await getAs(`/api/v2/factory/assets?projectId=${project.id}`,secondCookie)).status,404);
-  const secondProjectResponse=await postAs('/api/v2/projects',{name:'Second isolated project',country:'Jordan',budget:'50',skills:'Design'},secondCookie);
+  const secondProjectResponse=await postAs('/api/v2/projects',{name:'Second isolated project',country:'Jordan',budget:'50',skills:'Design',businessType:'dropshipping'},secondCookie);
   assert.equal(secondProjectResponse.status,201);
   const secondProject=(await secondProjectResponse.json()).project;
   assert.notEqual(secondProject.id,project.id);
+  assert.equal(secondProject.profile.businessType,'dropshipping');
   assert.equal((await get(`/api/v2/dashboard?projectId=${secondProject.id}`)).status,404);
   assert.equal((await getAs(`/api/v2/factory/download?projectId=${project.id}&fileId=00000000-0000-4000-8000-000000000000`,secondCookie)).status,404);
   const secondPlanResponse=await postAs('/api/v2/launch/plan',{...launchInput,projectId:secondProject.id,productName:'Private second offer',supplierName:'Second user quote',marketNotes:'Private notes'},secondCookie);
