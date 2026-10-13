@@ -46,6 +46,17 @@ test('V2 remains usable on narrow Android screens and reports whether OpenAI is 
   assert.match(v2Js,/showFactoryPreview/);
   assert.match(v2Html,/id="signOutButton"/);
   assert.match(v2Js,/api\/session.*method:'DELETE'/);
+  assert.match(v2Html,/data-view="business"/);
+  assert.match(v2Html,/Physical goods[\s\S]*Dropshipping[\s\S]*Print on demand/);
+  for(const id of ['businessPlanForm','launchBusinessType','launchMarketNotes','launchSupplierName','launchSellingPrice','launchUnitCost','businessPlanResult']) assert.match(v2Html,new RegExp(`id=["']${id}["']`));
+  assert.match(v2Html,/No supplier catalog, live market search, invented prices/);
+  assert.match(v2Html,/user-provided and unverified/);
+  assert.match(v2Js,/api\('\/api\/v2\/launch\/plan'/);
+  assert.match(v2Js,/renderLaunchPlan/);
+  assert.match(v2Js,/local plan|local template/i);
+  assert.match(v2Css,/business-plan-form/);
+  assert.match(v2Css,/@media\(max-width:760px\)\{\.business-plan-form/);
+
   assert.match(v2Css,/sign-out/);
   assert.match(v2Css,/factory-preview iframe/);
   assert.match(v2Css,/factory-asset-actions/);
