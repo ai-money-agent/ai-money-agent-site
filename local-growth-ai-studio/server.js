@@ -116,7 +116,8 @@ function sessionToken(req) {
 }
 function authenticated(req) {
   const token = sessionToken(req);
-  return token ? workspace.sessionAccount(sessionHash(token)) : null;
+  const account = token ? workspace.sessionAccount(sessionHash(token)) : null;
+  return account && loginAccounts.has(account) ? account : null;
 }
 function headers(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
