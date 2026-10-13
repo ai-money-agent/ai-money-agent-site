@@ -356,10 +356,13 @@ function fillLaunchForm(plan=null,project=null) {
   for(const [key,id] of Object.entries(map)){
     const el=$(id),value=values[key]??defaults[key];
     if(value!==undefined&&value!==null&&value!=='')el.value=String(value);
+    else if(key==='businessType')el.value='';
     else if(['productName','audience','problem','outcome','marketNotes','marketSource','marketSourceUrl','supplierName','supplierSourceUrl','sellingPrice'].includes(key))el.value='';
     else if(key==='unitCost')el.value='';
     else if(['shippingCost','packagingCost','otherCost','platformFeePercent','marketingCostPerSale'].includes(key))el.value='0';
   }
+  if(!plan&&project?.profile?.businessType==='ecommerce')$('launchBusinessType').value='physical';
+  else if(!plan&&!['digital','physical','service','dropshipping','print_on_demand'].includes(project?.profile?.businessType))$('launchBusinessType').value='';
   syncLaunchBusinessType();
 }
 function syncLaunchBusinessType() {
