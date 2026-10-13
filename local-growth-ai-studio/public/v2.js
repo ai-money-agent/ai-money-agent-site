@@ -34,11 +34,25 @@ function showView(name) {
   state.currentView=name;
   document.querySelectorAll('[data-view-panel]').forEach(el=>el.classList.toggle('active',el.dataset.viewPanel===name));
   document.querySelectorAll('[data-view]').forEach(el=>el.classList.toggle('active',el.dataset.view===name));
+  const moreToggle=$('mobileMoreToggle'),moreMenu=$('mobileMoreMenu');
+  moreToggle?.classList.toggle('active',['reels','brand','saved'].includes(name));
+  if(moreMenu)moreMenu.classList.add('hidden');
+  moreToggle?.setAttribute('aria-expanded','false');
   window.scrollTo({top:0,behavior:'smooth'});
   if (name==='partner') loadPartner();
 }
 document.querySelectorAll('[data-view]').forEach(btn=>btn.addEventListener('click',()=>showView(btn.dataset.view)));
 document.querySelectorAll('[data-go]').forEach(btn=>btn.addEventListener('click',()=>showView(btn.dataset.go)));
+$('mobileMoreToggle').addEventListener('click',()=>{
+  const menu=$('mobileMoreMenu'),open=menu.classList.toggle('hidden')===false;
+  $('mobileMoreToggle').setAttribute('aria-expanded',String(open));
+  if(open)menu.querySelector('button')?.focus();
+});
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&!$('mobileMoreMenu').classList.contains('hidden')){
+    $('mobileMoreMenu').classList.add('hidden');$('mobileMoreToggle').setAttribute('aria-expanded','false');$('mobileMoreToggle').focus();
+  }
+});
 
 function openProjectModal() { $('projectModal').classList.remove('hidden'); $('newCountry').focus(); }
 function closeProjectModal() { $('projectModal').classList.add('hidden'); $('projectFormError').textContent=''; }
@@ -479,4 +493,5 @@ $('loginForm').addEventListener('submit',async e=>{
   }catch(err){$('loginError').textContent=err.message;}
 });
 boot();
+
 
