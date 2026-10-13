@@ -68,3 +68,19 @@ input,textarea,select{width:100%;border:1px solid var(--line);background:#081422
 
 .sign-out{min-height:40px;white-space:nowrap}
 @media(max-width:520px){.top-meta{gap:6px}.sign-out{padding:7px 9px;font-size:12px}}
+
+.business-plan-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-content:start}
+.business-plan-form>.full{grid-column:1/-1}
+.planner-trust{border-color:rgba(255,197,103,.38);margin:12px 0;color:#f2d8a5}
+.planner-trust p,.planner-form-note{color:var(--muted);line-height:1.55}
+.business-plan-result{margin:14px 0;display:grid;gap:12px;min-width:0}
+.business-plan-result h2{margin:0;overflow-wrap:anywhere}
+.planner-simulation{padding:10px 12px;border:1px solid rgba(255,197,103,.38);border-radius:10px;color:#f2d8a5;overflow-wrap:anywhere}
+.plan-result-section{min-width:0;padding:12px;background:#091727;border:1px solid var(--line);border-radius:12px}
+.plan-result-section h3{margin:0 0 8px;font-size:15px;color:var(--accent)}
+.plan-result-section p,.plan-result-section li{color:#cbd6e5;line-height:1.55;overflow-wrap:anywhere}
+.plan-result-section ul{padding-left:22px;margin-bottom:0}
+.plan-economics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.plan-economics>div{display:flex;justify-content:space-between;gap:8px;min-width:0;padding:10px;background:#091727;border-radius:9px}
+.plan-economics span,.plan-economics strong{overflow-wrap:anywhere}
+@media(max-width:760px){.business-plan-form{grid-template-columns:1fr}.business-plan-form>.full{grid-column:auto}.plan-economics{grid-template-columns:1fr}.planner-trust{padding:14px}.business-plan-result{padding:14px}}
