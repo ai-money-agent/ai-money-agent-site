@@ -170,6 +170,7 @@ export function buildProductBlueprint({ profile = {}, research = null, idea = {}
   const ar = isArabic(language, answers.name || idea.name || profile.skills);
   const sourceName = String(answers.name || idea.name || research?.ideaName || (ar ? 'منتج عملي' : 'Practical Product')).trim();
   const type = idea.type || answers.type || 'digital';
+  const physicalOffer = ['physical','dropshipping','print_on_demand','ecommerce'].includes(type);
   const audience = answers.audience || research?.targetCustomer || idea.targetCustomer || (ar ? 'جمهور محدد لديه مشكلة واضحة' : 'A focused audience with a clear problem');
   const coreOutcome = answers.outcome || idea.promise || (ar ? 'الوصول إلى نتيجة محددة بخطوات أبسط وأسرع.' : 'Reach one specific outcome with fewer, clearer steps.');
   const providedPrice = answers.price !== undefined && answers.price !== null && answers.price !== '' && Number.isFinite(Number(answers.price)) && Number(answers.price) > 0;
@@ -194,14 +195,20 @@ export function buildProductBlueprint({ profile = {}, research = null, idea = {}
     bonus: answers.bonus || (ar ? 'Bonus: نموذج/Template جاهز للتطبيق.' : 'Bonus: ready-to-use template.'),
     refundPolicy: answers.refundPolicy || (type === 'service'
       ? (ar ? 'تُحدد حسب مرحلة بدء التنفيذ ونطاق العمل.' : 'Defined by scope and whether delivery work has started.')
-      : (ar ? 'سياسة واضحة للمنتجات الرقمية؛ راجع قوانين المنصة والبلد قبل النشر.' : 'Clear digital-product policy; verify platform and local legal requirements before publishing.')),
+      : physicalOffer
+        ? (ar ? 'تحقق من سياسة الإرجاع والاسترداد لدى المورد والمنصة والقوانين المحلية قبل عرضها.' : 'Verify the supplier, platform and local return/refund rules before stating a policy.')
+        : (ar ? 'سياسة واضحة للمنتجات الرقمية؛ راجع قوانين المنصة والبلد قبل النشر.' : 'Clear digital-product policy; verify platform and local legal requirements before publishing.')),
     delivery,
-    firstVersion: ar
-      ? ['المحتوى الأساسي فقط','مثال واحد جاهز','صفحة بيع قصيرة','طريقة تسليم واضحة']
-      : ['Core content only','One ready example','Short sales page','Clear delivery method'],
-    launchChecklist: ar
-      ? ['تأكيد المنتج والسعر','تجهيز طريقة الدفع/الاستلام','إنشاء 4 زوايا إعلان','إنشاء Reel واحد','إطلاق اختبار صغير بعد موافقة المستخدم']
-      : ['Confirm product and price','Prepare payment/delivery route','Create 4 ad angles','Create one Reel','Run a small test only after user approval']
+    firstVersion: physicalOffer
+      ? (ar ? ['عينة أو دفعة اختبار صغيرة','عرض يوضح المقاس/المادة/التصنيع','تكلفة المورد والشحن المؤكدة','سياسة التسليم والإرجاع'] : ['Sample or small test batch','Listing with material/size/production details','Confirmed supplier and shipping costs','Delivery and returns policy'])
+      : type === 'service'
+        ? (ar ? ['نطاق خدمة محدود','نتيجة وتسليم واضحان','نموذج عمل واحد','موعد تسليم تؤكده بنفسك'] : ['Narrow service scope','Clear outcome and deliverable','One work sample','Delivery timing you can meet'])
+        : (ar ? ['المحتوى الأساسي فقط','مثال واحد جاهز','صفحة بيع قصيرة','طريقة تسليم واضحة'] : ['Core content only','One ready example','Short sales page','Clear delivery method']),
+    launchChecklist: physicalOffer
+      ? (ar ? ['تأكيد عينة وتكلفة مورد حديثة','حساب الشحن والرسوم والربح من التكاليف المدخلة','مراجعة شروط الإرجاع والتسليم','تجهيز عرض وصور تملك حق استخدامها','أطلق يدويًا فقط بعد موافقتك'] : ['Confirm a sample and current supplier quote','Calculate shipping, fees and profit from entered costs','Review return and delivery terms','Prepare an offer and images you have rights to use','Launch manually only after your approval'])
+      : ar
+        ? ['تأكيد المنتج والسعر بعد حساب التكلفة','تجهيز طريقة التسليم','إنشاء 4 زوايا إعلان','إنشاء Reel واحد','إطلاق اختبار صغير بعد موافقة المستخدم']
+        : ['Confirm the product and price after costing','Prepare the delivery method','Create 4 ad angles','Create one Reel','Run a small test only after user approval']
   };
 }
 
