@@ -29,6 +29,7 @@ test('launch planner calculates profit and break-even marketing from entered quo
 
 test('physical models require a user-supplied supplier and never return fabricated vendor data',()=>{
   assert.throws(()=>buildBusinessLaunchPlan({...physical,supplierName:''}),/does not invent or look up suppliers/i);
+  assert.throws(()=>buildBusinessLaunchPlan({...physical,unitCost:0}),/positive unit cost from a current supplier quote/i);
   const plan=buildBusinessLaunchPlan({...physical,businessType:'print_on_demand',supplierName:'My print shop'});
   assert.equal(plan.supplier.name,'My print shop');
   assert.equal(plan.supplier.quoteUrl,'https://example.com/quote');
