@@ -65,3 +65,6 @@ input,textarea,select{width:100%;border:1px solid var(--line);background:#081422
   .mobile-more-menu button:focus-visible,.mobile-nav button:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
 }
 
+
+.sign-out{min-height:40px;white-space:nowrap}
+@media(max-width:520px){.top-meta{gap:6px}.sign-out{padding:7px 9px;font-size:12px}}
