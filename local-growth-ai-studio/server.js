@@ -181,7 +181,7 @@ function validateInput(body) {
   };
 }
 function rateLimit(req, path) {
-  const key = `${req.socket.remoteAddress}:${path === '/api/session' ? 'login' : 'api'}`;
+  const key = `${req.socket.remoteAddress}:${path}`;
   const now = Date.now();
   for (const [storedKey,bucket] of rates) if (bucket.until <= now) rates.delete(storedKey);
   const bucket = rates.get(key) || { count: 0, until: now + 60000 };
