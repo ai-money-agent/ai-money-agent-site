@@ -477,8 +477,10 @@ async function boot() {
     state.health=await res.json();
     $('v2Engine').textContent=state.health.v2AiReady ? 'OpenAI business partner · Live' : 'Local templates · OpenAI needs API setup';
     if(state.health.requiresLogin){
+      $('signOutButton').classList.add('hidden');
       $('loginPanel').classList.remove('hidden'); $('studioApp').classList.add('hidden'); return;
     }
+    $('signOutButton').classList.remove('hidden');
     $('loginPanel').classList.add('hidden');$('studioApp').classList.remove('hidden');
     await loadRecipes();await loadWorkspace();
   }catch(e){
@@ -489,8 +491,18 @@ $('loginForm').addEventListener('submit',async e=>{
   e.preventDefault();$('loginError').textContent='';
   try{
     await api('/api/session',{method:'POST',body:JSON.stringify({accessCode:$('loginCode').value})});
-    $('loginCode').value='';$('loginPanel').classList.add('hidden');$('studioApp').classList.remove('hidden');await loadRecipes();await loadWorkspace();
+    $('loginCode').value='';$('signOutButton').classList.remove('hidden');$('loginPanel').classList.add('hidden');$('studioApp').classList.remove('hidden');await loadRecipes();await loadWorkspace();
   }catch(err){$('loginError').textContent=err.message;}
+});
+$('signOutButton').addEventListener('click',async()=>{
+  try{
+    await api('/api/session',{method:'DELETE'});
+    $('signOutButton').classList.add('hidden');
+    $('studioApp').classList.add('hidden');
+    $('loginPanel').classList.remove('hidden');
+    state.activeProjectId=null;
+    notice('You are signed out.','success');
+  }catch(err){notice(err.message,'error');}
 });
 boot();
 
