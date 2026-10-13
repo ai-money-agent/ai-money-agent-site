@@ -45,7 +45,7 @@ test('V2 remains usable on narrow Android screens and reports whether OpenAI is 
   assert.match(v2Js,/\/api\/v2\/factory\/download/);
   assert.match(v2Js,/showFactoryPreview/);
   assert.match(v2Html,/id="signOutButton"/);
-  assert.match(v2Js,/api\\/session.*method:'DELETE'/);
+  assert.match(v2Js,/api\/session.*method:'DELETE'/);
   assert.match(v2Css,/sign-out/);
   assert.match(v2Css,/factory-preview iframe/);
   assert.match(v2Css,/factory-asset-actions/);
