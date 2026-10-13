@@ -96,7 +96,7 @@ function ensureModeAvailable(mode) {
   if (mode === 'demo' && !config.allowDemo) throw failure('Demo mode is disabled.',503);
   if (mode === 'live' && !config.liveEnabled) throw failure('Live AI is not enabled yet.',503);
 }
-const accountFor = mode => mode === 'demo' ? ledgerAccounts.demo : ledgerAccounts.live;
+const accountFor = (mode, owner = 'beta-owner') => mode === 'demo' ? (owner === 'beta-owner' ? ledgerAccounts.demo : `${owner}:demo`) : owner;
 const costFor = mode => mode === 'demo' ? config.demoGenerationCost : config.generationCost;
 function logEvent(level,event,details={}) {
   const payload = { time:new Date().toISOString(), event, ...details };
@@ -488,7 +488,7 @@ async function api(req, res, url) {
   if (req.method === 'GET' && url.pathname.startsWith('/api/generations/')) {
     const mode = generationMode(url.searchParams.get('mode'));
     refundStaleReservations();
-    const accountId = accountFor(mode);
+    const accountId = accountFor(mode,authenticatedAccount);
     const id = url.pathname.slice('/api/generations/'.length);
     if (!/^[A-Za-z0-9_-]{16,100}$/.test(id)) throw failure('Invalid request ID.',400);
     const job = ledger.job(accountId,id);
@@ -503,7 +503,7 @@ async function api(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/credits') {
     const mode = generationMode(url.searchParams.get('mode'));
     ensureModeAvailable(mode);
-    const accountId = accountFor(mode);
+    const accountId = accountFor(mode,authenticatedAccount);
     return json(res,200,{ok:true,...ledger.account(accountId),generationCost:costFor(mode),generationMode:mode,videoCostEstimate:null});
   }
   if (req.method === 'POST' && url.pathname === '/api/video/prepare') {
@@ -520,7 +520,7 @@ async function api(req, res, url) {
     const mode = generationMode(body.generationMode);
     ensureModeAvailable(mode);
     const input = validateInput(body);
-    const accountId = accountFor(mode);
+    const accountId = accountFor(mode,authenticatedAccount);
     const generationCost = costFor(mode);
     const id = req.headers['idempotency-key'];
     if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{16,100}$/.test(id)) throw failure('A valid request ID is required.',400);
