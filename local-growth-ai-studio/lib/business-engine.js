@@ -191,8 +191,12 @@ export function buildProductBlueprint({ profile = {}, research = null, idea = {}
     usp: answers.usp || (ar ? 'نتيجة واحدة واضحة، خطوات قليلة، ومادة قابلة للاستخدام مباشرة.' : 'One clear result, fewer steps and ready-to-use execution assets.'),
     price,
     currency:answers.currency || 'USD',
-    offer: answers.offer || (ar ? `${sourceName} + مثال جاهز + Checklist تنفيذ — السعر: ${priceText}` : `${sourceName} + ready example + execution checklist — price: ${priceText}`),
-    bonus: answers.bonus || (ar ? 'Bonus: نموذج/Template جاهز للتطبيق.' : 'Bonus: ready-to-use template.'),
+    offer: answers.offer || (physicalOffer
+      ? (ar ? `${sourceName} + تفاصيل المنتج والتسليم التي تؤكدها بنفسك — السعر: ${priceText}` : `${sourceName} + product and delivery details you confirm — price: ${priceText}`)
+      : (ar ? `${sourceName} + مثال جاهز + Checklist تنفيذ — السعر: ${priceText}` : `${sourceName} + ready example + execution checklist — price: ${priceText}`)),
+    bonus: answers.bonus || (physicalOffer
+      ? (ar ? 'لا تعد بإضافة قبل احتساب تكلفتها.' : 'Do not promise an add-on until its cost is included.')
+      : (ar ? 'Bonus: نموذج/Template جاهز للتطبيق.' : 'Bonus: ready-to-use template.')),
     refundPolicy: answers.refundPolicy || (type === 'service'
       ? (ar ? 'تُحدد حسب مرحلة بدء التنفيذ ونطاق العمل.' : 'Defined by scope and whether delivery work has started.')
       : physicalOffer
