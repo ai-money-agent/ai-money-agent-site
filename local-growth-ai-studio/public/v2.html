@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <meta name="description" content="Local Growth AI Studio V2 — AI business partner from idea to launch." />
+  <title>Local Growth AI Studio V2</title>
+  <link rel="stylesheet" href="/v2.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/v2" aria-label="Local Growth AI Studio V2">
+      <span class="logo">LG</span>
+      <span><strong>Local Growth</strong><small>AI Studio V2</small></span>
+    </a>
+    <div class="top-meta">
+      <span id="v2Engine" class="badge">Strategy Engine</span>
+      <a class="legacy-link" href="/">Creative MVP</a>
+      <button id="signOutButton" class="ghost sign-out hidden" type="button">Sign out</button>
+    </div>
+  </header>
+
+  <section id="loginPanel" class="login-card hidden">
+    <span class="kicker">PRIVATE BETA</span>
+    <h1>Open your Studio</h1>
+    <p>Use the existing Studio access code. No payment or provider API is required for the V2 strategy flows.</p>
+    <form id="loginForm">
+      <input id="loginCode" type="password" autocomplete="current-password" placeholder="Studio access code" required />
+      <button type="submit">Continue</button>
+      <p id="loginError" class="error" role="status"></p>
+    </form>
+  </section>
+
+  <div id="studioApp" class="app hidden">
+    <aside class="sidebar" aria-label="Studio sections">
+      <div class="project-box">
+        <label for="projectSelect">Active project</label>
+        <select id="projectSelect"></select>
+        <button id="newProjectButton" class="ghost" type="button">＋ New project</button>
+      </div>
+      <nav id="nav">
+        <button class="nav-item active" data-view="dashboard"><span>⌂</span>Dashboard</button>
+        <button class="nav-item" data-view="partner"><span>✦</span>AI Partner</button>
+        <button class="nav-item" data-view="research"><span>⌕</span>Product Research</button>
+        <button class="nav-item" data-view="product"><span>▣</span>Product Builder</button>
+        <button class="nav-item" data-view="business"><span>↗</span>Launch Planner</button>
+        <button class="nav-item" data-view="ads"><span>◎</span>Ad Studio</button>
+        <button class="nav-item" data-view="reels"><span>▶</span>Reel Generator</button>
+        <button class="nav-item" data-view="brand"><span>◇</span>Brand Profile</button>
+        <button class="nav-item" data-view="saved"><span>☰</span>Saved Projects</button>
+      </nav>
+      <div class="safety">
+        <strong>Approval gate</strong>
+        <p>No ad launch, publishing, payment or paid API action happens from V2.</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section id="globalNotice" class="notice" role="status">Loading workspace…</section>
+
+      <section class="view active" data-view-panel="dashboard">
+        <div class="hero">
+          <div>
+            <span class="kicker">AI BUSINESS PARTNER</span>
+            <h1>From “what should I sell?” to a real launch plan.</h1>
+            <p>One project keeps your idea, research, product, brand, ads, Reels, tasks and saved generations together.</p>
+          </div>
+          <button class="primary" data-go="partner">Talk to AI Partner</button>
+        </div>
+
+        <div id="emptyDashboard" class="empty-card hidden">
+          <h2>Start from zero</h2>
+          <p>Answer seven short questions. The Studio will rank ideas you can actually execute with your budget, time and payout options.</p>
+          <button class="primary" id="emptyStart">Create my first project</button>
+        </div>
+
+        <div id="dashboardContent">
+          <div class="section-head">
+            <div><span class="kicker">CURRENT PROJECT</span><h2 id="dashboardProjectName">—</h2></div>
+            <span id="projectStatus" class="status-pill">idea</span>
+          </div>
+          <div id="progressGrid" class="progress-grid"></div>
+
+          <div class="grid two">
+            <article class="card">
+              <div class="card-head"><h3>Next best action</h3><span>01</span></div>
+              <p id="nextActionText">Complete your project profile.</p>
+              <button id="nextActionButton" class="secondary" type="button">Continue</button>
+            </article>
+            <article class="card">
+              <div class="card-head"><h3>Saved assets</h3><span>02</span></div>
+              <div class="metrics">
+                <div><strong id="metricProducts">0</strong><span>Products</span></div>
+                <div><strong id="metricOutputs">0</strong><span>Creative packs</span></div>
+                <div><strong id="metricTasks">0</strong><span>Tasks</span></div>
+              </div>
+            </article>
+          </div>
+
+          <div class="section-head recipes-head"><div><span class="kicker">RECIPES</span><h2>Start with a task, not a blank screen.</h2></div></div>
+          <div id="recipeGrid" class="recipe-grid"></div>
+        </div>
+      </section>
+
+      <section class="view" data-view-panel="partner">
+        <div class="section-head">
+          <div><span class="kicker">AI PARTNER</span><h1>Your business co-pilot</h1><p>Ask in normal language. The Partner reads the current project and routes you to the next action.</p></div>
+        </div>
+        <div class="partner-layout">
+          <div class="chat-card">
+            <div id="chatMessages" class="chat-messages"></div>
+            <div class="quick-prompts">
+              <button type="button" data-prompt="I want to make money online and I do not know what to sell.">What should I sell?</button>
+              <button type="button" data-prompt="I have no sales. Review my project and tell me what to test next.">I have no sales</button>
+              <button type="button" data-prompt="Create the best next advertising test for this product.">What ad should I test?</button>
+            </div>
+            <form id="partnerForm" class="chat-form">
+              <textarea id="partnerInput" rows="2" maxlength="4000" placeholder="Ask your AI business partner…" required></textarea>
+              <button class="primary" type="submit">Send</button>
+            </form>
+          </div>
+          <aside class="context-card">
+            <span class="kicker">PROJECT CONTEXT</span>
+            <div id="partnerContext"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" data-view-panel="research">
+        <div class="section-head">
+          <div><span class="kicker">PRODUCT RESEARCH</span><h1>Find an idea you can actually execute.</h1><p>First we score founder-fit and execution economics. Live web market data is clearly separated and not fabricated.</p></div>
+          <button id="findIdeasButton" class="primary" type="button">Find ideas</button>
+        </div>
+        <div id="profileSummary" class="profile-strip"></div>
+        <div id="ideasGrid" class="idea-grid"></div>
+        <div id="analysisPanel" class="card analysis-card hidden"></div>
+      </section>
+
+      <section class="view" data-view-panel="business">
+        <div class="section-head">
+          <div><span class="kicker">BUSINESS LAUNCH PLANNER</span><h1>Plan the offer with evidence you provide.</h1><p>Choose a model, search source leads when the free search connector is configured, enter current costs and save a launch checklist. No supplier catalog, verified price feed, ads or payments are connected.</p></div>
+        </div>
+        <div class="planner-trust card">
+          <strong>Evidence status: source search is optional; supplier prices are unverified</strong>
+          <p>Your notes and links remain user-provided and unverified. Search results are source leads, not verified market data or supplier quotes. The planner does not compare current prices or claim customer demand. Use a current supplier quote before relying on a physical-product calculation.</p>
+        </div>
+        <form id="businessPlanForm" class="card business-plan-form">
+          <label>Business type
+            <select id="launchBusinessType" required>
+              <option value="" disabled selected>Choose a business type</option><option value="digital">Digital product</option><option value="physical">Physical goods</option>
+              <option value="service">Service</option><option value="dropshipping">Dropshipping</option>
+              <option value="print_on_demand">Print on demand</option>
+            </select>
+          </label>
+          <label>Offer / product name<input id="launchProductName" maxlength="120" required placeholder="Name your offer" /></label>
+          <label>Target audience<input id="launchAudience" maxlength="240" required placeholder="Who is this for?" /></label>
+          <label>Target country<input id="launchCountry" maxlength="80" required placeholder="Country to test first" /></label>
+          <label>Customer problem<textarea id="launchProblem" maxlength="500" rows="3" placeholder="Use a problem you heard from a customer"></textarea></label>
+          <label>Outcome / delivery<textarea id="launchOutcome" maxlength="500" rows="3" placeholder="What will the buyer receive or achieve?"></textarea></label>
+          <label class="full">Market notes you collected<textarea id="launchMarketNotes" maxlength="1800" rows="4" placeholder="Record your own observations, dates, and links. These are not verified by the app."></textarea></label>
+          <div class="research-shortcuts full">
+            <div><strong>Search live market sources</strong><p>When the owner enables a server-side Tavily key, these are live search results saved to this project. Otherwise, use the links below manually. Search snippets are evidence leads; verify prices, availability, and suppliers at their source.</p></div>
+            <div class="market-actions"><button id="searchMarketSources" class="primary" type="button">Search live sources</button><button id="openMarketSources" class="secondary" type="button">Open source pages</button></div>
+            <p id="marketSearchStatus" class="market-search-status" aria-live="polite">Checking live search availability…</p>
+            <div id="marketEvidenceResults" class="market-evidence-results" aria-live="polite"></div>
+            <div id="marketSourceLinks" class="market-source-links" aria-live="polite"></div>
+          </div>
+          <label>Source name<input id="launchMarketSource" maxlength="160" placeholder="Name a source you checked" /></label>
+          <label>Source URL<input id="launchMarketSourceUrl" type="url" maxlength="500" placeholder="https://…" /></label>
+          <label id="launchSupplierNameWrap">Supplier you found<input id="launchSupplierName" maxlength="160" placeholder="Enter a supplier yourself; no vendor lookup is available" /></label>
+          <label id="launchSupplierUrlWrap">Current supplier quote URL<input id="launchSupplierUrl" type="url" maxlength="500" placeholder="https://…" /></label>
+          <div class="split full">
+            <label>Selling price<input id="launchSellingPrice" type="number" min="0.01" step="0.01" required inputmode="decimal" /></label>
+            <label>Currency<select id="launchCurrency"><option>USD</option><option>EUR</option><option>LBP</option></select></label>
+          </div>
+          <div class="split full">
+            <label id="launchUnitCostLabel">Unit / production / labor cost<input id="launchUnitCost" type="number" min="0" step="0.01" required inputmode="decimal" /></label>
+            <label>Shipping / fulfillment cost<input id="launchShippingCost" type="number" min="0" step="0.01" inputmode="decimal" value="0" /></label>
+          </div>
+          <div class="split full">
+            <label>Packaging cost<input id="launchPackagingCost" type="number" min="0" step="0.01" inputmode="decimal" value="0" /></label>
+            <label>Other variable cost<input id="launchOtherCost" type="number" min="0" step="0.01" inputmode="decimal" value="0" /></label>
+          </div>
+          <div class="split full">
+            <label>Platform fee (%)<input id="launchPlatformFee" type="number" min="0" max="50" step="0.01" inputmode="decimal" value="0" /></label>
+            <label>Marketing cost per sale<input id="launchMarketingCost" type="number" min="0" step="0.01" inputmode="decimal" value="0" /></label>
+          </div>
+          <p class="full planner-form-note">Use current amounts from your own quote or records. If you do not know a value, verify it first rather than treating zero as a real quote.</p>
+          <button class="primary full" type="submit">Calculate and save launch plan</button>
+          <p id="businessPlanError" class="error full" role="status"></p>
+        </form>
+        <section id="businessPlanResult" class="card business-plan-result" aria-live="polite">
+          <div class="placeholder"><strong>No launch plan saved yet.</strong><p>Enter your own costs and evidence notes above.</p></div>
+        </section>
+        <div class="factory-next"><span>Continue from your saved cost plan into a draft ad. Review it before use; nothing is launched.</span><button class="secondary" type="button" data-go="ads">Open Ad Studio</button><button class="secondary" type="button" data-go="product">Open Digital Product Factory</button></div>
+      </section>
+
+      <section class="view" data-view-panel="product">
+        <div class="section-head">
+          <div><span class="kicker">PRODUCT BUILDER</span><h1>Turn the idea into an offer.</h1><p>Build the smallest sellable version first. You can edit and save the result.</p></div>
+        </div>
+        <div class="builder-layout">
+          <form id="productForm" class="card form-card">
+            <label>Product name<input id="productNameV2" maxlength="160" placeholder="Leave blank to use the selected idea" /></label>
+            <label>Target audience<input id="productAudience" maxlength="300" placeholder="Who is it for?" /></label>
+            <label>Problem<textarea id="productProblem" maxlength="700" rows="3" placeholder="What problem does the buyer have?"></textarea></label>
+            <label>Outcome<textarea id="productOutcome" maxlength="700" rows="3" placeholder="What result should they get?"></textarea></label>
+            <div class="split">
+              <label>Price after cost check<input id="productPrice" type="number" min="0" step="0.01" placeholder="Calculate in Launch Planner first" /></label>
+              <label>Currency<select id="productCurrency"><option>USD</option><option>EUR</option><option>LBP</option></select></label>
+            </div>
+            <button class="primary" type="submit">Build offer draft</button>
+            <button class="secondary" type="button" data-go="business">Calculate costs & plan launch</button>
+          </form>
+          <div id="productResult" class="card output-card"><div class="placeholder"><strong>No product built yet.</strong><p>Choose an idea in Research, or fill the fields and build.</p></div></div>
+        </div>
+      </section>
+
+        <article class="card factory-card">
+          <div class="section-head">
+            <div><span class="kicker">DIGITAL PRODUCT FACTORY</span><h2>Create the downloadable product file.</h2><p>Uses your details and editable local templates. This step does not call an AI provider.</p></div>
+          </div>
+          <form id="factoryForm" class="factory-form">
+            <label>Product format<select id="factoryType"><option value="ebook">Multi-page ebook / workbook</option><option value="coloring">Coloring and activity book</option><option value="worksheet">Educational worksheets + answer key</option><option value="budget">Budget planner XLSX + mobile preview</option><option value="organizer">Budget and 12-month organizer XLSX</option><option value="quiz">Offline questions game (HTML)</option></select></label>
+            <label>Language<select id="factoryLanguage"><option value="en">English</option><option value="ar">العربية — RTL</option></select></label>
+            <label>File title<input id="factoryTitle" maxlength="100" required placeholder="A practical starter workbook" /></label>
+            <label>Topic<input id="factoryTopic" maxlength="120" required placeholder="What the product teaches or organizes" /></label>
+            <label>Age / audience<input id="factoryAudience" maxlength="120" placeholder="Ages 7–9, families, small businesses…" /></label>
+            <label class="full">Desired outcome<input id="factoryOutcome" maxlength="180" placeholder="What should the buyer be able to do?" /></label>
+            <label id="factoryPagesWrap">Pages<input id="factoryPages" type="number" min="1" max="24" value="6" /></label>
+            <label id="factoryLevelWrap">Worksheet level<input id="factoryLevel" type="number" min="1" max="12" value="2" /></label>
+            <label id="factoryQuestionCountWrap" class="hidden">Question count (up to this many supplied lines)<input id="factoryQuestionCount" type="number" min="3" max="30" value="10" /></label>
+            <label id="factoryQuestionsWrap" class="full hidden">Quiz questions, one per line: Question | correct answer | wrong answer | wrong answer
+              <textarea id="factoryQuestions" rows="6" placeholder="What is 2 + 2? | 4 | 3 | 5"></textarea>
+            </label>
+            <p id="factoryHint" class="factory-hint full">This local template factory uses the fields you enter; it does not call an AI service. PDF products include a touch-friendly HTML workbook for drawing and saved answers. Arabic PDFs embed a Unicode font and shape RTL text; their interactive companion can also be printed. XLSX budgets include a phone-friendly interactive preview.</p>
+            <button class="primary full" type="submit">Create, preview and save product</button>
+          </form>
+          <section class="factory-preview card hidden" aria-label="Product preview"><div class="factory-preview-head"><strong id="factoryPreviewTitle">Product preview</strong><div id="factoryDownloadLinks"></div></div><iframe id="factoryPreview" title="Interactive product preview" sandbox="allow-scripts allow-same-origin"></iframe></section>
+          <div id="factoryAssets" class="factory-assets" aria-live="polite"></div>
+          <div class="factory-next"><span>Next in the journey: set up the offer and advertisement.</span><button class="secondary" type="button" data-go="ads">Continue to Ad Studio</button></div>
+        </article>
+      <section class="view" data-view-panel="ads">
+        <div class="section-head">
+          <div><span class="kicker">AD STUDIO</span><h1>Generate four testable angles.</h1><p>Problem/Solution, Curiosity, Outcome and Direct Offer. Nothing is launched automatically.</p></div>
+          <button id="generateAds" class="primary" type="button">Generate 4 ads</button>
+        </div>
+        <div class="toolbar">
+          <label>Product<select id="adsProductSelect"></select></label>
+          <label>Language<select id="adsLanguage"><option value="en">English</option><option value="ar">العربية</option></select></label>
+        </div>
+        <div id="adsGrid" class="ad-grid"></div>
+      </section>
+
+      <section class="view" data-view-panel="reels">
+        <div class="section-head">
+          <div><span class="kicker">REEL GENERATOR</span><h1>Script, scenes, shots and CTA in one pass.</h1><p>The V2 local strategy engine works without paid AI. Live AI enhancement can be added later.</p></div>
+          <button id="generateReel" class="primary" type="button">Generate Reel</button>
+        </div>
+        <div class="toolbar">
+          <label>Product<select id="reelProductSelect"></select></label>
+          <label>Language<select id="reelLanguage"><option value="en">English</option><option value="ar">العربية</option></select></label>
+        </div>
+        <div id="reelResult" class="card output-card"><div class="placeholder"><strong>No Reel yet.</strong><p>Select a product and generate.</p></div></div>
+      </section>
+
+      <section class="view" data-view-panel="brand">
+        <div class="section-head">
+          <div><span class="kicker">BRAND PROFILE</span><h1>Build once. Reuse everywhere.</h1><p>Name, colors, voice, description and buyer persona are stored with the project.</p></div>
+          <button id="generateBrand" class="primary" type="button">Generate Brand Profile</button>
+        </div>
+        <div class="toolbar">
+          <label>Product<select id="brandProductSelect"></select></label>
+          <label>Language<select id="brandLanguage"><option value="en">English</option><option value="ar">العربية</option></select></label>
+        </div>
+        <div id="brandResult" class="card output-card"><div class="placeholder"><strong>No brand profile yet.</strong><p>Generate one after creating a product.</p></div></div>
+      </section>
+
+      <section class="view" data-view-panel="saved">
+        <div class="section-head">
+          <div><span class="kicker">SAVED PROJECTS</span><h1>Your business memory.</h1><p>Projects, products, research and creative packs stay attached to the project.</p></div>
+        </div>
+        <div class="grid two">
+          <div class="card"><h3>Projects</h3><div id="savedProjects"></div></div>
+          <div class="card"><h3>Saved generations</h3><div id="savedOutputs"></div></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="projectModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="projectModalTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div><span class="kicker">START FROM ZERO</span><h2 id="projectModalTitle">Create a business project</h2></div>
+        <button id="closeProjectModal" class="icon-button" type="button" aria-label="Close">×</button>
+      </div>
+      <form id="projectForm" class="project-form">
+        <label>Project name<input id="newProjectName" maxlength="120" placeholder="e.g. First online income project" /></label>
+        <label>Country<input id="newCountry" maxlength="80" placeholder="Lebanon" required /></label>
+        <label>Budget<input id="newBudget" maxlength="80" placeholder="e.g. $0–50" required /></label>
+        <label>Skills<input id="newSkills" maxlength="300" placeholder="e.g. Canva, sales, teaching, beginner" required /></label>
+        <label>Time available<input id="newTime" maxlength="80" placeholder="e.g. 2 hours/day" required /></label>
+        <label>Business model<select id="newBusinessType"><option value="unsure">Not sure</option><option value="digital">Digital product</option><option value="physical">Physical product</option><option value="service">Service</option><option value="dropshipping">Dropshipping</option><option value="print_on_demand">Print on demand</option></select></label>
+        <label>Market<select id="newMarketScope"><option value="unsure">Not sure</option><option value="local">Local</option><option value="global">Global</option><option value="both">Local + Global</option></select></label>
+        <label class="full">Available payout methods<input id="newPayouts" maxlength="300" placeholder="e.g. Payoneer, Wise, bank transfer, Whish" required /></label>
+        <div class="modal-actions"><button id="cancelProject" class="ghost" type="button">Cancel</button><button class="primary" type="submit">Create & find ideas</button></div>
+        <p id="projectFormError" class="error" role="status"></p>
+      </form>
+    </div>
+  </div>
+
+  <div id="mobileMoreMenu" class="mobile-more-menu hidden" aria-label="More workspace sections">
+    <button type="button" data-view="reels">▶ <span>Reel Generator</span></button>
+    <button type="button" data-view="brand">◇ <span>Brand Profile</span></button>
+    <button type="button" data-view="saved">☰ <span>Saved Projects</span></button>
+    <button type="button" data-view="business">↗ <span>Launch Planner</span></button>
+  </div>
+  <nav class="mobile-nav" aria-label="Mobile navigation">
+    <button data-view="dashboard" class="active">⌂<span>Home</span></button>
+    <button data-view="partner">✦<span>Partner</span></button>
+    <button data-view="research">⌕<span>Research</span></button>
+    <button data-view="product">▣<span>Product</span></button>
+    <button data-view="ads">◎<span>Ads</span></button>
+    <button id="mobileMoreToggle" type="button" aria-expanded="false" aria-controls="mobileMoreMenu">⋯<span>More</span></button>
+  </nav>
+
+  <script type="module" src="/v2.js"></script>
+</body>
+</html>
+

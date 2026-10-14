@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { Ledger } from '../lib/ledger.js';
 import { generate, validateOutput } from '../lib/generator.js';
 import { prepareVideoRequest, videoCapability } from '../lib/video.js';
+import { generateV2 } from '../lib/v2-ai.js';
 
 test('reservations prevent overspending and failure releases exactly once',()=>{
   const db=new Ledger(':memory:',1);
@@ -87,6 +88,65 @@ test('demo generation never calls a paid provider',async()=>{
     );
     assert.equal(output.engine,'demo');
     assert.match(output.result.hook,/Demo Product/);
+  } finally { globalThis.fetch=original; }
+});
+
+test('V2 uses local templates without credentials and validates mocked OpenAI output',async()=>{
+  const original=globalThis.fetch;
+  const fallback={name:'Local idea',score:70,types:['service','digital']};
+  try {
+    globalThis.fetch=async()=>{ throw new Error('local mode must not call a provider'); };
+    const local=await generateV2({operation:'ideas',context:{skills:'Canva'},language:'en',fallback:()=>fallback},{liveEnabled:false,provider:'openai'});
+    assert.deepEqual(local,{value:fallback,engine:'local'});
+
+    globalThis.fetch=async(url,options)=>{
+      assert.equal(url,'https://api.openai.com/v1/responses');
+      assert.equal(options.headers.Authorization,'Bearer test-only');
+      const body=JSON.parse(options.body);
+      assert.equal(body.model,'test-model');
+      assert.equal(body.store,false);
+      assert.equal(body.text.format.strict,true);
+      assert.match(body.input[1].content,/Canva/);
+      return {ok:true,json:async()=>({output_text:JSON.stringify({result:{name:'AI idea',score:88,types:['service','digital']}})})};
+    };
+    const live=await generateV2({operation:'ideas',context:{skills:'Canva'},language:'en',fallback:()=>fallback},{liveEnabled:true,provider:'openai',openaiApiKey:'test-only',openaiModel:'test-model'});
+    assert.deepEqual(live,{value:{name:'AI idea',score:88,types:['service','digital']},engine:'openai'});
+
+    globalThis.fetch=async()=>({ok:true,json:async()=>({output_text:JSON.stringify({result:{name:'bad',score:'eighty',types:['service']}})})});
+    await assert.rejects(()=>generateV2({operation:'ideas',context:{},fallback:()=>fallback},{liveEnabled:true,provider:'openai',openaiApiKey:'test-only',openaiModel:'test-model'}),/invalid result.score/);
+  } finally { globalThis.fetch=original; }
+});
+
+test('V2 provider router keeps local simulation offline and supports mocked Anthropic strict output',async()=>{
+  const original=globalThis.fetch;
+  const fallback={reply:'قالب محلي',nextAction:'research'};
+  try {
+    globalThis.fetch=async()=>{throw new Error('local simulation must not call an API');};
+    const local=await generateV2({operation:'partner reply',context:{},language:'ar',fallback:()=>fallback},{
+      liveEnabled:false,provider:'anthropic',anthropicApiKey:'never-use-in-local-mode',anthropicModel:'test-model'
+    });
+    assert.deepEqual(local,{value:fallback,engine:'local'});
+
+    globalThis.fetch=async(url,options)=>{
+      assert.equal(url,'https://api.anthropic.com/v1/messages');
+      assert.equal(options.headers['x-api-key'],'server-only-test-secret');
+      assert.equal(options.headers['anthropic-version'],'2023-06-01');
+      const body=JSON.parse(options.body);
+      assert.equal(body.model,'mock-anthropic-model');
+      assert.equal(body.output_config.format.type,'json_schema');
+      assert.match(body.system,/never claim you searched the live web/i);
+      return {ok:true,json:async()=>({stop_reason:'end_turn',content:[{type:'text',text:JSON.stringify({result:{reply:'رد تجريبي من مزود محاكى',nextAction:'research'}})}]})};
+    };
+    const simulated=await generateV2({operation:'partner reply',context:{note:'private project context'},language:'ar',fallback:()=>fallback},{
+      liveEnabled:true,provider:'anthropic',anthropicApiKey:'server-only-test-secret',anthropicModel:'mock-anthropic-model'
+    });
+    assert.equal(simulated.engine,'anthropic');
+    assert.equal(simulated.value.reply,'رد تجريبي من مزود محاكى');
+
+    globalThis.fetch=async()=>({ok:true,json:async()=>({stop_reason:'max_tokens',content:[{type:'text',text:'{"result":'}]})});
+    await assert.rejects(()=>generateV2({operation:'partner reply',context:{},fallback:()=>fallback},{
+      liveEnabled:true,provider:'anthropic',anthropicApiKey:'test',anthropicModel:'mock'
+    }),/max_tokens/);
   } finally { globalThis.fetch=original; }
 });
 
