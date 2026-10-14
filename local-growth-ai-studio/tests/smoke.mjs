@@ -23,6 +23,8 @@ async function start(accountMap = {'beta-owner':accessCode,'test-customer':secon
       WORKSPACE_DB:join(dir,'workspace.sqlite'),
       PRODUCT_FILES_DIR:join(dir,'generated-products'),
       OPENAI_API_KEY:'',
+      TAVILY_API_KEY:'',
+      ENABLE_MARKET_SEARCH:'0',
       ENABLE_LIVE_AI:'1',
       OPENAI_PROVIDER_ENABLED:'0',
       APP_ORIGIN:'',
@@ -78,6 +80,8 @@ try {
   assert.equal(healthBefore.workspaceReady,true);
   assert.equal(healthBefore.v2AiProvider,'openai');
   assert.equal(healthBefore.v2AiModel,'gpt-6.1-sol');
+  assert.equal(healthBefore.marketSearchProvider,'tavily');
+  assert.equal(healthBefore.marketSearchAvailable,false);
   assert.equal(healthBefore.v2AiReady,false);
   assert.equal(healthBefore.v2AiMode,'local');
   assert.equal(healthBefore.providerPaused,true);
@@ -163,6 +167,14 @@ try {
   });
   assert.equal(projectResponse.status,201);
   const project=(await projectResponse.json()).project;
+  const disabledSearch=await post('/api/v2/research/market',{projectId:project.id,productName:'دفتر أنشطة للأطفال',country:'لبنان',audience:'الأطفال',businessType:'digital'});
+  assert.equal(disabledSearch.status,200);
+  const disabledSearchBody=(await disabledSearch.json()).search;
+  assert.equal(disabledSearchBody.status,'disabled');
+  assert.equal(disabledSearchBody.sources.length,0);
+  assert.match(disabledSearchBody.message,/No web search was performed/);
+  assert.equal((await get(`/api/v2/research/market?projectId=${project.id}`)).status,200);
+  assert.equal((await getAs(`/api/v2/research/market?projectId=${project.id}`,secondCookie)).status,404);
   const launchInput={projectId:project.id,businessType:'dropshipping',productName:'Bottle carrier',audience:'hikers',country:'Lebanon',problem:'carrying water comfortably',outcome:'keep a bottle close',marketNotes:'Manually reviewed three listings',marketSource:'Owner check',marketSourceUrl:'https://example.com/research',supplierName:'Supplier selected by owner',supplierSourceUrl:'https://example.com/quote',currency:'USD',sellingPrice:40,unitCost:12,shippingCost:4,packagingCost:1,otherCost:2,platformFeePercent:5,marketingCostPerSale:3};
   const launchResponse=await post('/api/v2/launch/plan',launchInput);
   assert.equal(launchResponse.status,201);
@@ -178,6 +190,8 @@ try {
   const secondProjectResponse=await postAs('/api/v2/projects',{name:'Second isolated project',country:'Jordan',budget:'50',skills:'Design',businessType:'dropshipping'},secondCookie);
   assert.equal(secondProjectResponse.status,201);
   const secondProject=(await secondProjectResponse.json()).project;
+  const crossAccountSearch=await postAs('/api/v2/research/market',{projectId:project.id,productName:'Private query',country:'Jordan',businessType:'physical'},secondCookie);
+  assert.equal(crossAccountSearch.status,404,'live research endpoint enforces account isolation');
   assert.notEqual(secondProject.id,project.id);
   assert.equal(secondProject.profile.businessType,'dropshipping');
   assert.equal((await get(`/api/v2/dashboard?projectId=${secondProject.id}`)).status,404);

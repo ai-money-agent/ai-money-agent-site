@@ -139,11 +139,11 @@
 
       <section class="view" data-view-panel="business">
         <div class="section-head">
-          <div><span class="kicker">BUSINESS LAUNCH PLANNER</span><h1>Plan the offer with evidence you provide.</h1><p>Choose a model, enter current costs and save a launch checklist. No supplier catalog, live market search, invented prices, ads or payments are connected.</p></div>
+          <div><span class="kicker">BUSINESS LAUNCH PLANNER</span><h1>Plan the offer with evidence you provide.</h1><p>Choose a model, search source leads when the free search connector is configured, enter current costs and save a launch checklist. No supplier catalog, verified price feed, ads or payments are connected.</p></div>
         </div>
         <div class="planner-trust card">
-          <strong>Evidence status: no live market or supplier lookup</strong>
-          <p>Notes and links you enter remain user-provided and unverified. The local planner does not fetch vendors, compare current prices, or claim customer demand. Use a current supplier quote before relying on a physical-product calculation.</p>
+          <strong>Evidence status: source search is optional; supplier prices are unverified</strong>
+          <p>Your notes and links remain user-provided and unverified. Search results are source leads, not verified market data or supplier quotes. The planner does not compare current prices or claim customer demand. Use a current supplier quote before relying on a physical-product calculation.</p>
         </div>
         <form id="businessPlanForm" class="card business-plan-form">
           <label>Business type
@@ -160,8 +160,10 @@
           <label>Outcome / delivery<textarea id="launchOutcome" maxlength="500" rows="3" placeholder="What will the buyer receive or achieve?"></textarea></label>
           <label class="full">Market notes you collected<textarea id="launchMarketNotes" maxlength="1800" rows="4" placeholder="Record your own observations, dates, and links. These are not verified by the app."></textarea></label>
           <div class="research-shortcuts full">
-            <div><strong>Open current market sources</strong><p>These links open real search pages in a new tab. The Studio does not read, verify, or save their results; record your observations and source URL above.</p></div>
-            <button id="openMarketSources" class="secondary" type="button">Prepare search links</button>
+            <div><strong>Search live market sources</strong><p>When the owner enables a server-side Tavily key, these are live search results saved to this project. Otherwise, use the links below manually. Search snippets are evidence leads; verify prices, availability, and suppliers at their source.</p></div>
+            <div class="market-actions"><button id="searchMarketSources" class="primary" type="button">Search live sources</button><button id="openMarketSources" class="secondary" type="button">Open source pages</button></div>
+            <p id="marketSearchStatus" class="market-search-status" aria-live="polite">Checking live search availability…</p>
+            <div id="marketEvidenceResults" class="market-evidence-results" aria-live="polite"></div>
             <div id="marketSourceLinks" class="market-source-links" aria-live="polite"></div>
           </div>
           <label>Source name<input id="launchMarketSource" maxlength="160" placeholder="Name a source you checked" /></label>

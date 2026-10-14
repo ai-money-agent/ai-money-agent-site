@@ -11,6 +11,7 @@ import { generateV2 } from './lib/v2-ai.js';
 import { prepareVideoRequest, videoCapability } from './lib/video.js';
 import { createDigitalProduct } from './lib/digital-product-factory.js';
 import { buildBusinessLaunchPlan } from './lib/business-planner.js';
+import { searchMarketSources } from './lib/market-search.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const intEnv = (name, fallback, min, max) => {
@@ -38,6 +39,11 @@ const config = {
   generationCost: intEnv('GENERATION_CREDIT_COST', 1, 1, 1000),
   pendingJobTimeoutMinutes: intEnv('PENDING_JOB_TIMEOUT_MINUTES', 15, 2, 1440),
   demoGenerationCost: 0
+};
+const marketSearchConfig = {
+  enabled: process.env.ENABLE_MARKET_SEARCH === '1',
+  provider: 'tavily',
+  apiKey: process.env.TAVILY_API_KEY || ''
 };
 const ORIGIN = process.env.APP_ORIGIN || '';
 const PORT = Number(process.env.PORT || 8787);
@@ -225,6 +231,8 @@ async function api(req, res, url) {
       v2AiModel:config.provider === 'anthropic' ? config.anthropicModel : config.openaiModel,
       v2AiReady:config.liveEnabled,
       v2AiMode:config.liveEnabled ? config.provider : 'local',
+      marketSearchProvider:marketSearchConfig.provider,
+      marketSearchAvailable:marketSearchConfig.enabled && Boolean(marketSearchConfig.apiKey),
       pendingJobTimeoutMinutes:config.pendingJobTimeoutMinutes,
       uptimeSeconds:Math.floor(process.uptime()),
       storageReady:ledger.ping(),
@@ -276,6 +284,26 @@ async function api(req, res, url) {
 
   if (req.method === 'GET' && url.pathname === '/api/v2/recipes') {
     return json(res,200,{ok:true,recipes:recipes(v2Language(url.searchParams.get('language')))});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/research/market') {
+    const project = projectOrFail(url.searchParams.get('projectId'));
+    const saved = workspace.listOutputs(v2Account,project.id,1000).find(item => item.type === 'market-search-evidence');
+    return json(res,200,{ok:true,search:marketSearchConfig.enabled && marketSearchConfig.apiKey ? saved?.payload || null : null,available:marketSearchConfig.enabled && Boolean(marketSearchConfig.apiKey)});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/research/market') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const productName = text(body.productName || '',120,'Product or market name',2);
+    const country = text(body.country || project.profile.country || '',80,'Target country',2);
+    const audience = typeof body.audience === 'string' ? body.audience.trim().slice(0,180) : '';
+    const type = ['digital','physical','service','dropshipping','print_on_demand'].includes(body.businessType) ? body.businessType : 'digital';
+    const focus = ['physical','dropshipping','print_on_demand'].includes(type) ? 'market listings and suppliers' : 'market demand, customer problems, and competitors';
+    const query = [productName,audience,country,focus].filter(Boolean).join(' ');
+    let result;
+    try { result = await searchMarketSources({query,apiKey:marketSearchConfig.apiKey,enabled:marketSearchConfig.enabled}); }
+    catch (error) { throw failure(error.message || 'Market search failed.',error.status || 502); }
+    if (result.available) workspace.saveOutput(v2Account,project.id,'market-search-evidence',`Market sources: ${productName}`,result);
+    return json(res,200,{ok:true,search:result});
   }
   if (req.method === 'GET' && url.pathname === '/api/v2/projects') {
     return json(res,200,{ok:true,projects:workspace.listProjects(v2Account)});

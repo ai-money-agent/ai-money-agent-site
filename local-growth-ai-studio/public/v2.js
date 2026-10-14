@@ -3,7 +3,7 @@ import { createMarketResearchLinks } from './research-links.js';
 const $ = (id) => document.getElementById(id);
 const state = {
   health:null, projects:[], activeProjectId:'', dashboard:null, ideas:[], selectedIdea:null, analysis:null,
-  products:[], currentProduct:null, factoryAssets:[], launchPlan:null, currentView:'dashboard', recipes:[], pendingPartnerMessage:''
+  products:[], currentProduct:null, factoryAssets:[], launchPlan:null, marketSearch:null, currentView:'dashboard', recipes:[], pendingPartnerMessage:''
 };
 
 const notice = (text, type='info') => {
@@ -264,6 +264,9 @@ async function loadWorkspace(showLoading=true) {
   state.factoryAssets=state.activeProjectId?(await api('/api/v2/factory/assets'+query)).assets||[]:[];
   const savedPlan=state.activeProjectId?await api('/api/v2/launch/plan'+query):{plan:null};
   state.launchPlan=savedPlan.plan||null;
+  const savedMarket=state.activeProjectId?await api('/api/v2/research/market'+query):{search:null,available:false};
+  state.marketSearch=savedMarket.search||null;
+  renderMarketEvidence(state.marketSearch,savedMarket.available);
   fillLaunchForm(state.launchPlan,state.dashboard.activeProject);
   renderLaunchPlan(state.launchPlan);
   state.products=state.dashboard.products||[];
@@ -388,6 +391,42 @@ function prepareMarketSourceLinks() {
   }
 }
 $('openMarketSources').addEventListener('click',prepareMarketSourceLinks);
+function renderMarketEvidence(search, available=Boolean(state.health?.marketSearchAvailable)) {
+  const status=$('marketSearchStatus'),root=$('marketEvidenceResults');
+  if(!status||!root)return;
+  root.replaceChildren();
+  if(!available){
+    status.textContent='Live search is unavailable in this preview. No web request was made; the Studio is using local templates. A server-side Tavily key and ENABLE_MARKET_SEARCH=1 are required.';
+    return;
+  }
+  if(!search){status.textContent='Live search is ready. Search results will be retrieved from Tavily and saved to this project.';return;}
+  if(search.status!=='live_search_results'){
+    status.textContent=search.message||'Live search was not performed.';return;
+  }
+  status.textContent=`Live search results from ${search.provider} · ${new Date(search.retrievedAt).toLocaleString()} · ${search.sources.length} sources. Snippets and vendor claims are unverified; open source pages before relying on them.`;
+  for(const item of search.sources){
+    const article=document.createElement('article');article.className='market-evidence-item';
+    const title=document.createElement('a');title.textContent=item.title;title.href=item.url;title.target='_blank';title.rel='noopener noreferrer';
+    const excerpt=document.createElement('p');excerpt.textContent=item.excerpt;
+    const meta=document.createElement('small');meta.textContent=[item.publishedAt,item.score===null?'':`Search relevance ${Math.round(item.score*100)}%`].filter(Boolean).join(' · ');
+    article.append(title,excerpt,meta);root.append(article);
+  }
+  if(!search.sources.length)root.textContent='The provider returned no usable HTTPS sources for this query.';
+}
+$('searchMarketSources').addEventListener('click',async()=>{
+  const button=$('searchMarketSources');
+  if(!state.activeProjectId){notice('Create or select a project before searching.','error');return;}
+  const productName=$('launchProductName').value.trim(),country=$('launchCountry').value.trim();
+  if(productName.length<2||country.length<2){notice('Enter an offer name and target country before searching.','error');return;}
+  button.disabled=true;button.textContent='Searching…';
+  try{
+    const data=await api('/api/v2/research/market',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,productName,country,audience:$('launchAudience').value.trim(),businessType:$('launchBusinessType').value})});
+    state.marketSearch=data.search;renderMarketEvidence(data.search,data.search.available);
+    if(data.search.available)notice('Live source results saved to this project. Verify source pages and current offers.','success');
+    else notice(data.search.message||'Live search is not configured; no web request was made.');
+  }catch(error){notice(error.message,'error');}
+  finally{button.disabled=false;button.textContent='Search live sources';}
+});
 function resultSection(root,title,body) {
   const section=document.createElement('section');section.className='plan-result-section';
   const h=document.createElement('h3');h.textContent=title;section.append(h);

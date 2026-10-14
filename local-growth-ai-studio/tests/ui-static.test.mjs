@@ -38,6 +38,7 @@ test('V2 remains usable on narrow Android screens and reports whether OpenAI is 
   assert.match(v2Js,/simulated output, not live AI/);
   assert.match(v2Js,/\/api\/v2\/dashboard/);
   assert.doesNotMatch(v2Html+v2Js,/OPENAI_API_KEY|sk-[A-Za-z0-9_-]{12,}/);
+  assert.doesNotMatch(v2Html+v2Js,/TAVILY_API_KEY|BRAVE_API_KEY|SERPAPI_API_KEY/,'web-search secrets stay server-side');
   assert.match(v2Html,/DIGITAL PRODUCT FACTORY/);
   assert.match(v2Html,/Quiz questions, one per line/);
   for(const id of ['factoryLanguage','factoryPages','factoryAudience','factoryPreview','factoryDownloadLinks','factoryQuestionCount']) assert.match(v2Html,new RegExp(`id=["']${id}["']`));
@@ -51,17 +52,24 @@ test('V2 remains usable on narrow Android screens and reports whether OpenAI is 
   assert.match(v2Html,/data-view="business"/);
   assert.match(v2Html,/Physical goods[\s\S]*Dropshipping[\s\S]*Print on demand/);
   for(const id of ['businessPlanForm','launchBusinessType','launchMarketNotes','launchSupplierName','launchSellingPrice','launchUnitCost','businessPlanResult']) assert.match(v2Html,new RegExp(`id=["']${id}["']`));
-  assert.match(v2Html,/No supplier catalog, live market search, invented prices/);
+  assert.match(v2Html,/No supplier catalog, verified price feed/);
   assert.match(v2Html,/user-provided and unverified/);
   assert.match(v2Js,/api\('\/api\/v2\/launch\/plan'/);
   assert.match(v2Js,/renderLaunchPlan/);
   assert.match(v2Html,/type="module" src="\/v2\.js"/);
   assert.match(v2Html,/id="openMarketSources"/);
-  assert.match(v2Html,/The Studio does not read, verify, or save their results/);
+  assert.match(v2Html,/Search live market sources/);
+  assert.match(v2Html,/Search snippets are evidence leads; verify prices, availability, and suppliers/);
+  assert.match(v2Html,/id="searchMarketSources"/);
+  assert.match(v2Html,/id="marketEvidenceResults"/);
+  assert.match(v2Js,/\/api\/v2\/research\/market/);
+  assert.match(v2Js,/Live search results from/);
+  assert.match(v2Js,/noopener noreferrer/);
   assert.match(v2Js,/createMarketResearchLinks/);
   assert.match(v2Js,/noopener noreferrer/);
   assert.match(v2Js,/local plan|local template/i);
   assert.match(v2Css,/business-plan-form/);
+  assert.match(v2Css,/market-evidence-item/);
   assert.match(v2Css,/@media\(max-width:760px\)\{\.business-plan-form/);
 
   assert.match(v2Css,/sign-out/);
@@ -102,5 +110,7 @@ test('deployment config uses the readiness endpoint and matching app version',()
   assert.match(envExample,/ENABLE_LIVE_AI=0/);
   assert.match(envExample,/OPENAI_PROVIDER_ENABLED=0/);
   assert.match(envExample,/OPENAI_API_KEY=\s*(?:#.*)?$/m,'the example has no provider credential');
+  assert.match(envExample,/ENABLE_MARKET_SEARCH=0/);
+  assert.match(envExample,/TAVILY_API_KEY=\s*$/m,'market-search secret is optional and unset in the example');
 });
 

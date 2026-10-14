@@ -9,7 +9,7 @@ Mobile use is a product requirement. Customers should use the complete workspace
 | Responsive V2 navigation, forms, and product previews | Yes | Static page delivery and login session |
 | Touch drawing, editable answers, and local preview autosave | Yes, in the same-origin HTML preview | The preview file must first be generated and served |
 | Project creation, project recovery, and saved product lists | No | Yes, SQLite in `WORKSPACE_DB` |
-| Business model, cost plan, user-entered market notes, and launch checklist | Responsive form and preview | Authenticated API; project-scoped SQLite output |
+| Business model, cost plan, user-entered market notes, optional live web evidence, and launch checklist | Responsive form and preview | Authenticated API; project-scoped SQLite output; optional server-side Tavily key |
 | PDF/XLSX/HTML generation and authenticated download | No | Yes, generation routes and `PRODUCT_FILES_DIR` |
 | Budget preview recalculation and editable fields | Yes, in HTML | Server creates and protects the companion HTML and XLSX |
 | Arabic PDF font embedding and RTL PDF layout | No | Yes, server-side PDF generator and bundled DejaVu font |
@@ -17,6 +17,8 @@ Mobile use is a product requirement. Customers should use the complete workspace
 | OpenAI/Anthropic strategy enhancement | No | Optional provider setup; disabled for private preview |
 
 The database and generated files must live on persistent storage. An ephemeral container filesystem can lose projects and downloads after a restart. Host the app from `local-growth-ai-studio/Dockerfile` or run Node 24 behind an HTTPS reverse proxy. GitHub Pages can only serve static files and cannot replace the API server, SQLite, or protected file storage.
+
+Optional live market search uses Tavily's server API. `ENABLE_MARKET_SEARCH` defaults to `0`; no search is performed unless both the flag and `TAVILY_API_KEY` are set on the server. The browser never receives the key. Keep it disabled in local/phone tests unless the owner separately provisions the no-card free tier. Snippets are source leads and do not establish price, supplier reliability, inventory, or demand.
 
 ## Private phone preview before public launch
 
@@ -53,6 +55,18 @@ Open the owner-only staging URL directly in Chrome on Android and Safari on iPho
 5. Close/reopen the browser, sign in again, and confirm the project, asset list, preview, and downloads are restored.
 
 Record actual device, OS, browser version, viewport, and results. CSS assertions and server smoke tests are not substitutes for this physical-device run.
+
+### Device result sheet
+
+Use one row per browser/device combination and record **Pass / Fail / Not run**. Test at normal text size and with the on-screen keyboard open. Repeat touch items after rotating the device if orientation changes are part of the intended use.
+
+| Device and browser | Login + project recovery | Arabic PDF + RTL | Finger drawing + saved writing | XLSX preview recalculation | PDF/HTML/XLSX downloads | Notes / browser version |
+| --- | --- | --- | --- | --- | --- | --- |
+| Samsung Android 13 · Chrome | Not run | Not run | Not run | Not run | Not run | Owner device test required |
+| iPhone · Safari | Not run | Not run | Not run | Not run | Not run | Record exact iOS version |
+| iPhone · Chrome | Not run | Not run | Not run | Not run | Not run | Test separately from Safari |
+
+For failures, record the project/test asset ID (never the user's access code), a screenshot, and the browser console or download behavior. Do not capture session cookies or API credentials in screenshots.
 
 ## Account and project isolation
 
