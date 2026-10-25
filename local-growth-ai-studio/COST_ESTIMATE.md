@@ -1,4 +1,4 @@
-# Cost estimate (14 October 2026)
+# Cost estimate (25 October 2026)
 
 This is a planning estimate, not a purchase or a deployment. Current code remains on PR 4. No hosting account, domain, key, paid plan, or payment method was created. The figures are USD, before taxes, and should be rechecked at checkout because provider pricing and quotas can change.
 
@@ -9,7 +9,7 @@ This is a planning estimate, not a purchase or a deployment. Current code remain
 | Unit, API, security-isolation, persistence, factory, formula and UI static tests | $0 | Runs locally; real provider calls are disabled. |
 | Android/iPhone acceptance on devices already owned | $0 | Manual device use only; no device was available in this environment. |
 | Real OpenAI integration test | $0 until enabled | Code already supports server-side OpenAI; a valid key and billable API usage are required. Never put a key in the browser. |
-| Real market search test | $0 on Tavily Researcher | 1,000 free API credits per month; no card required. The integration is coded but disabled until the owner provisions a key and enables it. |
+| Real market search test | $0 on Tavily Researcher | 1,000 free API credits per month; no card required. The integration is coded but disabled until the owner provisions a key and enables it. |\n| Real video generation test | $0 until explicitly enabled | HeyGen API uses separate pay-as-you-go credits; current launch promo lists 480p text-to-video at $0.01/second, so a 10-second clip is about $0.10 before tax. No subscription is required; no free API credits are offered. The rate is promotional and can change. |
 | Temporary private hosted phone preview | $7.25 for a full month | Proposed Render Starter service ($7) plus a 1 GB persistent disk ($0.25). No preview is running now. |
 
 For a future real-provider smoke test, a **$5 usage allowance** is a useful planning amount, not a required subscription. With the example request sizes below it covers about 277 Sol calls or 5,555 Luna calls. The code and tests do not consume this allowance.
@@ -22,7 +22,7 @@ For a future real-provider smoke test, a **$5 usage allowance** is a useful plan
 | OpenAI GPT-6 Luna | No API free quota assumed | $0.10 / 1M input, $0.50 / 1M output (short context); usage-metered | Lower-cost high-volume alternative; current provider adapter can switch the server model through `OPENAI_MODEL`. |
 | OpenAI web search tool | No free quota assumed | $10 / 1,000 search calls plus model tokens; usage-metered | Not currently connected. Prefer Tavily for a low-cost separate search path. |
 | OpenAI image generation | No fixed per-image price | GPT Image 2.5 low square example: $0.00588 image-output tokens, plus prompt/input tokens; usage-metered and varies by size/quality | Not connected to the factory. Existing book illustrations are generated locally as vector artwork, so the factory's incremental image API cost is $0. |
-| Tavily Search API | 1,000 credits/month; no card required | $30/month for 4,000; $100/month for 15,000; $220/month for 38,000; $500/month for 100,000; or $0.008/credit pay-as-you-go | Implemented as optional server-side search. Basic search is configured and source leads are saved to the project. |
+| Tavily Search API | 1,000 credits/month; no card required | $30/month for 4,000; $100/month for 15,000; $220/month for 38,000; $500/month for 100,000; or $0.008/credit pay-as-you-go | Implemented as optional server-side search. Global product and competitor source leads are saved to the project. |\n| HeyGen Video 1 API | No free API credits | Launch promotion lists $0.01/second at 480p; 10 seconds is about $0.10. No subscription; pay-as-you-go API credits are separate from regular HeyGen plans. | Implemented as an optional 10-second video endpoint. Disabled until the owner adds a server key and enables it. The promotional price is not guaranteed. |
 | SerpAPI | 250 searches/month; 50/hour | Starter $25/month, month-to-month; enterprise custom | Alternative Google SERP source; not implemented. |
 | Brave Search API | $5 monthly credit (about 1,000 queries at $5/1,000) | $5 / 1,000 requests; usage-metered | Official FAQ says even its free plan requires a card for identity verification; excluded from a no-card trial. Not implemented. |
 | DataForSEO | Small sandbox/trial allowance is advertised | $50 minimum prepaid top-up; credits do not expire | Not implemented; not suitable for the current no-payment constraint. |
@@ -68,7 +68,7 @@ These estimates exclude taxes, domain purchase, unusually large PDFs, extra egre
 ## Official price and capability references
 
 - [OpenAI models](https://developers.openai.com/api/docs/models) · [OpenAI API pricing](https://developers.openai.com/api/docs/pricing) · [web search pricing](https://developers.openai.com/api/docs/guides/tools-web-search) · [image generation costs](https://developers.openai.com/api/docs/guides/image-generation)
-- [Tavily pricing](https://www.tavily.com/pricing) · [Tavily plan details](https://help.tavily.com/articles/8816424538-pricing)
+- [Tavily pricing](https://www.tavily.com/pricing) · [Tavily plan details](https://help.tavily.com/articles/8816424538-pricing) · [HeyGen API pricing](https://help.heygen.com/en/articles/10060327-heygen-api-pricing-explained)
 - [SerpAPI pricing](https://serpapi.com/pricing) · [Brave Search API pricing and card requirement](https://brave.com/search/api/)
 - [Render pricing](https://render.com/pricing) · [persistent disks and free-tier limits](https://render.com/articles/how-much-does-cloud-application-hosting-cost-for-small-businesses) · [Render managed TLS](https://render.com/docs/custom-domains)
 - [Railway pricing](https://docs.railway.com/pricing) · [Railway plan and included usage](https://docs.railway.com/pricing/plans)
