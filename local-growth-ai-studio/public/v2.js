@@ -259,6 +259,7 @@ async function runRecipe(recipe) {
 async function loadWorkspace(showLoading=true) {
   if(showLoading) notice('Loading workspace…');
   await refreshProjects();
+  restoreFactoryDraft();
   const query=state.activeProjectId?`?projectId=${encodeURIComponent(state.activeProjectId)}`:'';
   state.dashboard=await api('/api/v2/dashboard'+query);
   state.factoryAssets=state.activeProjectId?(await api('/api/v2/factory/assets'+query)).assets||[]:[];
