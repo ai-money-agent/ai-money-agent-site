@@ -91,7 +91,9 @@ Before choosing a paid host or enabling paid AI, obtain the owner's approval. No
 - Pending jobs after an abrupt crash are not retried against the provider. Once they are older than `PENDING_JOB_TIMEOUT_MINUTES` (15 minutes by default), the reservation is marked failed and its Studio credit is refunded exactly once. This avoids permanent credit loss while still leaving a buffer beyond the provider request timeout.
 - Outputs are retained locally for retry recovery. Uploaded images are not stored; only a request fingerprint is retained.
 - This is **not yet a customer credit-selling service**. Before selling access, add quotas, purchase fulfillment, retention policy, customer support/recovery and operational monitoring.
-- Video generation remains unavailable and never charges credits. The backend now validates a future video job shape (script, duration, aspect ratio), but no provider or video credit price has been selected.
+- Optional live market search now runs during product discovery and idea analysis when `ENABLE_MARKET_SEARCH=1` and a server-side `TAVILY_API_KEY` are configured. Global projects search worldwide; results remain unverified source leads and are never presented as proof of demand or current pricing.
+- Product listings are saved as drafts inside the project. No storefront publishing, checkout, payment processing, or ad launch is connected.
+- Optional HeyGen Video 1 generation creates a 10-second 480p video draft from the selected offer. It stays disabled unless `ENABLE_VIDEO_GENERATION=1` and a server-side `HEYGEN_API_KEY` are configured. Generation uses separate pay-as-you-go API credits; the app asks for confirmation before making the billable request.
 
 ## Mobile recovery and export
 
