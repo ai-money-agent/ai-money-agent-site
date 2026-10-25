@@ -398,10 +398,35 @@ async function api(req, res, url) {
     const project = projectOrFail(body.projectId);
     if (!body.idea || typeof body.idea !== 'object') throw failure('Choose an idea to analyze.',422);
     const language = v2Language(body.language,body.idea.name);
-    const generated = await generateV2({operation:'idea analysis and market validation plan',context:{profile:project.profile,idea:body.idea},language,fallback:()=>({ ...analyzeIdea(project.profile,body.idea,language), idea:body.idea })},config);
-    const analysis = generated.value;
+    let marketEvidence = null;
+    if (body.includeMarketEvidence === true) {
+      const idea = body.idea;
+      const physical = ['physical','dropshipping','print_on_demand','ecommerce'].includes(idea.type);
+      const query = [
+        idea.name,idea.problem,idea.targetCustomer,
+        'global worldwide international markets',
+        physical ? 'competitor product listings supplier offers current pricing' : 'competitor offers customer demand search interest pricing'
+      ].filter(Boolean).join(' ').slice(0,360);
+      try {
+        marketEvidence = await searchMarketSources({query,apiKey:marketSearchConfig.apiKey,enabled:marketSearchConfig.enabled});
+      } catch (error) {
+        throw failure(error.message || 'Global competitor research failed.',error.status || 502);
+      }
+      if (marketEvidence.available) workspace.saveOutput(v2Account,project.id,'market-search-evidence',`Global competitor sources: ${idea.name}`,marketEvidence);
+    }
+    const dataStatus = marketEvidence?.available
+      ? (language === 'ar' ? 'مصادر منافسين عالمية أولية؛ تحقق من الصفحات والأسعار والطلب بنفسك.' : 'Global competitor source leads; verify pages, prices and demand yourself.')
+      : (language === 'ar' ? 'لم يُجرَ بحث ويب حي؛ هذا تقييم تنفيذ داخلي.' : 'No live web search was performed; this is an internal execution-fit analysis.');
+    const sourceLeads = marketEvidence?.available ? marketEvidence.sources : [];
+    const generated = await generateV2({
+      operation:'global product and competitor analysis with validation plan',
+      context:{profile:project.profile,idea:body.idea,marketSourceLeads:sourceLeads,marketDataStatus:dataStatus},
+      language,
+      fallback:()=>({ ...analyzeIdea(project.profile,body.idea,language), idea:body.idea })
+    },config);
+    const analysis = {...generated.value,marketEvidence,dataStatus};
     const saved = workspace.saveResearch(v2Account,project.id,analysis.ideaName,analysis);
-    return json(res,200,{ok:true,analysis,researchId:saved.id,aiEngine:generated.engine});
+    return json(res,200,{ok:true,analysis,researchId:saved.id,marketEvidence,dataStatus,aiEngine:generated.engine});
   }
   if (req.method === 'POST' && url.pathname === '/api/v2/products/build') {
     const body = await readBody(req);
