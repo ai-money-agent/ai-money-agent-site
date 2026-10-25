@@ -418,10 +418,11 @@ $('searchMarketSources').addEventListener('click',async()=>{
   const button=$('searchMarketSources');
   if(!state.activeProjectId){notice('Create or select a project before searching.','error');return;}
   const productName=$('launchProductName').value.trim(),country=$('launchCountry').value.trim();
-  if(productName.length<2||country.length<2){notice('Enter an offer name and target country before searching.','error');return;}
+  const marketScope=state.dashboard?.activeProject?.profile?.marketScope||'unsure';
+  if(productName.length<2||(!['global'].includes(marketScope)&&country.length<2)){notice('Enter an offer name'+(marketScope==='global'?'':' and target country')+' before searching.','error');return;}
   button.disabled=true;button.textContent='Searching…';
   try{
-    const data=await api('/api/v2/research/market',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,productName,country,audience:$('launchAudience').value.trim(),businessType:$('launchBusinessType').value})});
+    const data=await api('/api/v2/research/market',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,productName,country,marketScope,audience:$('launchAudience').value.trim(),businessType:$('launchBusinessType').value})});
     state.marketSearch=data.search;renderMarketEvidence(data.search,data.search.available);
     if(data.search.available)notice('Live source results saved to this project. Verify source pages and current offers.','success');
     else notice(data.search.message||'Live search is not configured; no web request was made.');
