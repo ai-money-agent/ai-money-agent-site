@@ -317,13 +317,38 @@ async function findIdeas() {
   if(!state.activeProjectId){openProjectModal();return;}
   try{
     notice('Ranking ideas for execution fit…');
-    const data=await api('/api/v2/research/ideas',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,language:profileLanguage()})});
-    state.ideas=data.ideas||[]; state.selectedIdea=null; state.analysis=null; renderIdeas();
+    const data=await api('/api/v2/research/ideas',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,language:profileLanguage(),includeMarketEvidence:true})});
+    state.ideas=data.ideas||[]; state.selectedIdea=null; state.analysis=null; renderIdeas();renderIdeaEvidence(data.marketEvidence,data.dataStatus);
     notice(data.dataStatus||'Ideas ready.','success');
   }catch(e){notice(e.message,'error');}
 }
 $('findIdeasButton').addEventListener('click',findIdeas);
 
+function renderIdeaEvidence(evidence,dataStatus){
+  const root=$('ideaEvidence');
+  root.replaceChildren();
+  root.classList.remove('hidden');
+  const heading=document.createElement('h3');
+  heading.textContent='Market research evidence';
+  const status=document.createElement('p');
+  status.textContent=dataStatus||'Market source status is unavailable.';
+  root.append(heading,status);
+  if(!evidence?.available){
+    const message=document.createElement('p');message.className='notice';
+    message.textContent=evidence?.message||'Live search is not configured. No web search was performed.';
+    root.append(message);return;
+  }
+  const disclaimer=document.createElement('small');
+  disclaimer.textContent='Search excerpts are source leads, not verified demand, prices or sales.';
+  root.append(disclaimer);
+  for(const item of evidence.sources||[]){
+    const article=document.createElement('article');article.className='market-evidence-item';
+    const link=document.createElement('a');link.textContent=item.title;link.href=item.url;link.target='_blank';link.rel='noopener noreferrer';
+    const excerpt=document.createElement('p');excerpt.textContent=item.excerpt;
+    const meta=document.createElement('small');meta.textContent=[item.publishedAt,item.score===null?'':`Search relevance ${Math.round(item.score*100)}%`].filter(Boolean).join(' · ');
+    article.append(link,excerpt,meta);root.append(article);
+  }
+}
 function renderIdeas() {
   const root=$('ideasGrid');root.replaceChildren();
   if(!state.ideas.length){const p=document.createElement('p');p.className='notice';p.textContent='Tap “Find ideas” to rank business ideas from your project profile.';root.append(p);return;}
