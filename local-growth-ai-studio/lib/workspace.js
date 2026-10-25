@@ -232,6 +232,14 @@ export class WorkspaceStore {
       .map(row => ({ id:row.id, projectId:row.project_id, type:row.type, title:row.title, payload:json(row.payload), createdAt:row.created_at }));
   }
 
+  updateOutput(account, id, payload) {
+    const result=this.db.prepare('UPDATE studio_outputs SET payload=? WHERE account=? AND id=?')
+      .run(JSON.stringify(payload),account,id);
+    if(!result.changes)return null;
+    const row=this.db.prepare('SELECT * FROM studio_outputs WHERE account=? AND id=?').get(account,id);
+    return row ? { id:row.id, projectId:row.project_id, type:row.type, title:row.title, payload:json(row.payload), createdAt:row.created_at } : null;
+  }
+
   addMessage(account, projectId, role, content) {
     const id = randomUUID();
     const createdAt = now();
