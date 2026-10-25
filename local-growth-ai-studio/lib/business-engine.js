@@ -255,6 +255,36 @@ function adText(product, angle, ar) {
     : { primary:`${name}: ${outcome}. ${product.offer || `Available now for ${price}`}`, headline:`${name} — direct offer` };
 }
 
+export function buildSalesListing(product = {}, language = 'en') {
+  const ar=isArabic(language,product.name||product.audience);
+  const name=String(product.name|| (ar?'منتج جديد':'New product')).trim().slice(0,160);
+  const audience=String(product.audience|| (ar?'جمهور محدد':'A focused audience')).trim().slice(0,240);
+  const problem=String(product.problem|| (ar?'مشكلة متكررة لدى العميل':'A recurring customer problem')).trim().slice(0,500);
+  const outcome=String(product.outcome||product.promise|| (ar?'نتيجة واضحة':'A clear outcome')).trim().slice(0,500);
+  const description=String(product.description|| (ar?`${name} يساعد ${audience} على ${outcome}`:`${name} helps ${audience} achieve ${outcome}`)).trim().slice(0,1200);
+  const price=Number.isFinite(Number(product.price))&&Number(product.price)>0?`${Number(product.price)} ${product.currency||'USD'}`:(ar?'يُحدد بعد التحقق من التكاليف والسوق':'Set after checking costs and the market');
+  const digital=!['physical','dropshipping','print_on_demand','ecommerce'].includes(product.type);
+  return {
+    title:name,
+    subtitle:ar?`حل عملي لـ${audience}`:`A practical offer for ${audience}`,
+    description,
+    customerProblem:problem,
+    customerOutcome:outcome,
+    included:product.offer|| (digital
+      ? (ar?'ملفات أو خطوات المنتج كما جرى تجهيزها واختبارها':'The product files or steps after they have been prepared and tested')
+      : (ar?'مواصفات المنتج والتسليم بعد تأكيدها من المورد':'Product specifications and delivery details after supplier confirmation')),
+    benefits:[product.usp|| (ar?'خطوات واضحة ونتيجة محددة':'Clear steps and one defined outcome')],
+    audience,
+    price,
+    callToAction:ar?'اطلب التفاصيل':'View offer details',
+    searchKeywords:[name,audience].filter(Boolean),
+    reviewNotes:ar
+      ? ['تحقق من السعر والتسليم وسياسة الاسترداد قبل النشر.','لا تضف ادعاءات طلب أو نتائج لم تتحقق منها.']
+      : ['Confirm price, delivery and refund terms before publishing.','Do not add demand or outcome claims you have not verified.'],
+    publishStatus:'draft_only'
+  };
+}
+
 export function createAdPack(product = {}, language = 'en') {
   const ar = isArabic(language, product.name || product.audience);
   const defs = [
