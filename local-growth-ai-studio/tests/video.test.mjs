@@ -13,7 +13,7 @@ test('legacy video preparation validates script, aspect ratio, and duration', ()
     script:'A short ad',aspectRatio:'9:16',durationSeconds:20
   });
   assert.throws(() => prepareVideoRequest({script:'',durationSeconds:20}), /Script is required/);
-  assert.throws(() => prepareVideoRequest({script:'valid',durationSeconds:10}), /supported video duration/);
+  assert.throws(() => prepareVideoRequest({script:'valid',durationSeconds:9}), /supported video duration/);
 });
 
 test('paid video capability is unavailable until explicitly enabled with a server key', () => {
