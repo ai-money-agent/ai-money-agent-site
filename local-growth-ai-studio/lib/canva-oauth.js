@@ -62,6 +62,8 @@ export class CanvaOAuthStore {
       .run(account, iv.toString('base64url'), cipher.getAuthTag().toString('base64url'), ciphertext.toString('base64url'), now());
   }
 
+  ready() { return Boolean(this.key); }
+
   hasToken(account) {
     return Boolean(this.db.prepare('SELECT account FROM canva_tokens WHERE account=?').get(account));
   }
