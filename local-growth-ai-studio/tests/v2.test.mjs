@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { WorkspaceStore } from '../lib/workspace.js';
-import { findProductIdeas, analyzeIdea, buildProductBlueprint, buildBrandProfile, createAdPack, createReelPack, partnerReply, recipes } from '../lib/business-engine.js';
+import { findProductIdeas, analyzeIdea, buildProductBlueprint, buildBrandProfile, createAdPack, createReelPack, buildSalesListing, partnerReply, recipes } from '../lib/business-engine.js';
 
 function withStore(fn) {
   const dir = mkdtempSync(join(tmpdir(),'lg-v2-'));
@@ -118,4 +118,28 @@ test('product blueprint leaves price unset until the user supplies costs and a p
   });
   assert.equal(product.price,null);
   assert.match(product.offer,/Set after entering costs/);
+});
+
+
+test('Arabic sales listing is a reviewable draft and avoids unsupported claims',()=>{
+  const listing=buildSalesListing({
+    name:'دليل منشورات كانفا للصالونات',
+    audience:'أصحاب الصالونات في لبنان',
+    problem:'لا يملكون وقتًا كافيًا للنشر',
+    outcome:'إنشاء منشورات أسبوعية متناسقة',
+    type:'digital'
+  },'ar');
+  assert.equal(listing.title,'دليل منشورات كانفا للصالونات');
+  assert.equal(listing.publishStatus,'draft_only');
+  assert.match(listing.price,/يُحدد بعد التحقق/);
+  assert.ok(listing.reviewNotes.some(note=>note.includes('تحقق من السعر')));
+  assert.doesNotMatch(JSON.stringify(listing),/مطلوب في السوق|الأكثر مبيعًا/);
+});
+
+test('physical listing keeps supplier and delivery claims pending confirmation',()=>{
+  const listing=buildSalesListing({
+    name:'منتج تجريبي',audience:'عملاء لبنان',type:'physical',price:null
+  },'ar');
+  assert.match(listing.included,/بعد تأكيدها من المورد/);
+  assert.equal(listing.publishStatus,'draft_only');
 });
