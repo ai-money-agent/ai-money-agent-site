@@ -489,6 +489,36 @@ function renderAnalysis(a) {
   root.append(next);
 }
 
+const FACTORY_DRAFT_FIELDS=['factoryType','factoryLanguage','factoryTitle','factoryTopic','factoryAudience','factoryOutcome','factoryPages','factoryLevel','factoryQuestionCount','factoryQuestions'];
+function factoryDraftKey(){
+  return state.activeProjectId?'local-growth-v2:factory-draft:'+state.activeProjectId:'';
+}
+function saveFactoryDraft(){
+  const key=factoryDraftKey();
+  if(!key)return;
+  try{
+    const draft=Object.fromEntries(FACTORY_DRAFT_FIELDS.map(id=>[id,$(id)?.value??'']));
+    localStorage.setItem(key,JSON.stringify(draft));
+  }catch{}
+}
+function restoreFactoryDraft(){
+  const key=factoryDraftKey();
+  if(!key)return;
+  try{
+    const draft=JSON.parse(localStorage.getItem(key)||'null');
+    if(!draft||typeof draft!=='object')return;
+    for(const id of FACTORY_DRAFT_FIELDS){
+      const field=$(id);
+      if(field&&Object.hasOwn(draft,id))field.value=String(draft[id]);
+    }
+    syncFactoryControls();
+  }catch{}
+}
+for(const id of FACTORY_DRAFT_FIELDS){
+  $(id)?.addEventListener('input',saveFactoryDraft);
+  $(id)?.addEventListener('change',saveFactoryDraft);
+}
+
 function syncFactoryLabels(){
   const arabic=$('factoryLanguage').value==='ar';
   const labels={
