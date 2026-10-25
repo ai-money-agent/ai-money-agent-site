@@ -8,7 +8,7 @@ import { WorkspaceStore } from './lib/workspace.js';
 import { findProductIdeas, analyzeIdea, buildProductBlueprint, buildBrandProfile, createAdPack, createReelPack, partnerReply, recipes } from './lib/business-engine.js';
 import { generate } from './lib/generator.js';
 import { generateV2 } from './lib/v2-ai.js';
-import { prepareVideoRequest, videoCapability } from './lib/video.js';
+import { prepareVideoRequest, videoCapability, createHeyGenVideo, getHeyGenVideo } from './lib/video.js';
 import { createDigitalProduct } from './lib/digital-product-factory.js';
 import { buildBusinessLaunchPlan } from './lib/business-planner.js';
 import { searchMarketSources } from './lib/market-search.js';
@@ -44,6 +44,10 @@ const marketSearchConfig = {
   enabled: process.env.ENABLE_MARKET_SEARCH === '1',
   provider: 'tavily',
   apiKey: process.env.TAVILY_API_KEY || ''
+};
+const videoConfig = {
+  enabled: process.env.ENABLE_VIDEO_GENERATION === '1',
+  apiKey: process.env.HEYGEN_API_KEY || ''
 };
 const ORIGIN = process.env.APP_ORIGIN || '';
 const PORT = Number(process.env.PORT || 8787);
@@ -221,7 +225,7 @@ async function api(req, res, url) {
       engine:config.liveEnabled ? config.provider : config.allowDemo ? 'demo' : 'disabled',
       aiConnected:config.liveEnabled,
       providerPaused:config.liveRequested && !config.liveEnabled,
-      video:videoCapability(),
+      video:videoCapability(videoConfig),
       generationCost:config.generationCost,
       demoGenerationCost:config.demoGenerationCost,
       demoAvailable:config.allowDemo,
@@ -541,6 +545,49 @@ async function api(req, res, url) {
     const pack = generated.value;
     const saved = workspace.saveOutput(v2Account,project.id,'reel',`${product.name} — Reel`,pack);
     return json(res,200,{ok:true,pack,savedId:saved.id,aiEngine:generated.engine});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/reels/video') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const product = productOrFail(body.productId);
+    if (product.projectId !== project.id) throw failure('Product does not belong to this project.',409);
+    if (!videoCapability(videoConfig).providerConnected) throw failure('Video generation is not connected. The owner must enable the HeyGen API and its usage budget first.',503);
+    const language = v2Language(body.language,product.name);
+    const script = createReelPack(product,language);
+    const prompt = [
+      'Create a 10-second vertical 9:16 social advertisement video for a small business product.',
+      `Product: ${String(product.name||'').slice(0,160)}.`,
+      `Audience: ${String(product.audience||'').slice(0,240)}.`,
+      `Customer problem: ${String(product.problem||'').slice(0,300)}.`,
+      `Outcome: ${String(product.outcome||product.promise||'').slice(0,300)}.`,
+      `Visual direction: ${String(script.scenes?.[0]?.shot||'Show the product clearly in a simple, clean scene.').slice(0,300)}.`,
+      `Spoken line in ${language==='ar'?'Arabic':'English'}: ${String(script.voiceover||product.offer||product.name).slice(0,260)}.`,
+      'Make the product use clear and believable. No logos, no written words, no fake testimonials, no guaranteed results, and no invented product features.'
+    ].join(' ');
+    let job;
+    try {
+      job = await createHeyGenVideo({prompt,durationSeconds:10,aspectRatio:'9:16',apiKey:videoConfig.apiKey,idempotencyKey:randomUUID()});
+    } catch (error) {
+      throw failure(error.message || 'HeyGen video generation failed.',error.status || 502);
+    }
+    const output = workspace.saveOutput(v2Account,project.id,'ai-video',`${product.name} — 10-second video`,{
+      productId:product.id,provider:'HeyGen Video 1',prompt,videoId:job.videoId,status:job.status,
+      durationSeconds:job.durationSeconds,aspectRatio:job.aspectRatio,resolution:job.resolution
+    });
+    return json(res,202,{ok:true,outputId:output.id,...output.payload});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/reels/video') {
+    const project = projectOrFail(url.searchParams.get('projectId'));
+    if (!videoCapability(videoConfig).providerConnected) throw failure('Video generation is not connected.',503);
+    const videoId = url.searchParams.get('videoId')||'';
+    const output = workspace.listOutputs(v2Account,project.id,1000)
+      .find(item=>item.type==='ai-video'&&item.payload?.videoId===videoId);
+    if(!output)throw failure('Video job not found for this project.',404);
+    let status;
+    try { status=await getHeyGenVideo({videoId,apiKey:videoConfig.apiKey}); }
+    catch(error){throw failure(error.message||'Could not check video status.',error.status||502);}
+    const updated=workspace.updateOutput(v2Account,output.id,{...output.payload,...status,lastCheckedAt:new Date().toISOString()});
+    return json(res,200,{ok:true,outputId:updated.id,...updated.payload});
   }
   if (req.method === 'POST' && url.pathname === '/api/v2/partner') {
     const body = await readBody(req);
