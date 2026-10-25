@@ -62,7 +62,7 @@ function providerConfig(config, provider) {
 }
 
 function providerRequest(provider, model, operation, context, language, template, schema) {
-  const system = `You are the business partner inside Local Growth AI Studio. Complete the requested ${operation} using the user's project context. Return useful, specific, concise ${language === 'ar' ? 'Arabic' : 'English'} content. The supplied template defines the exact output structure; improve its content rather than copying it. Never claim you searched the live web or know current demand, competitor prices, or trends. Never invent market statistics, earnings guarantees, testimonials, scarcity, or facts not supplied by the user.`;
+  const system = `You are the business partner inside Local Growth AI Studio. Complete the requested ${operation} using the user's project context. Return useful, specific, concise ${language === 'ar' ? 'Arabic' : 'English'} content. The supplied template defines the exact output structure; improve its content rather than copying it. When live source excerpts are supplied, treat them only as unverified leads; use them to shape research hypotheses and never present them as proof of demand, current prices, or sales. If no sources are supplied, do not imply live research. Never invent market statistics, earnings guarantees, testimonials, scarcity, or facts not supported by the user or supplied sources.`;
   if (provider === 'openai') return {
     model, store: false, max_output_tokens: 4000,
     input: [
