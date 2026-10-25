@@ -294,11 +294,14 @@ async function api(req, res, url) {
     const body = await readBody(req);
     const project = projectOrFail(body.projectId);
     const productName = text(body.productName || '',120,'Product or market name',2);
-    const country = text(body.country || project.profile.country || '',80,'Target country',2);
+    const marketScope = ['local','global','both','unsure'].includes(body.marketScope) ? body.marketScope : project.profile.marketScope || 'unsure';
+    const globalScope = marketScope === 'global';
+    const country = globalScope ? '' : text(body.country || project.profile.country || '',80,'Target country',2);
     const audience = typeof body.audience === 'string' ? body.audience.trim().slice(0,180) : '';
     const type = ['digital','physical','service','dropshipping','print_on_demand'].includes(body.businessType) ? body.businessType : 'digital';
     const focus = ['physical','dropshipping','print_on_demand'].includes(type) ? 'market listings and suppliers' : 'market demand, customer problems, and competitors';
-    const query = [productName,audience,country,focus].filter(Boolean).join(' ');
+    const reach = marketScope === 'global' ? 'worldwide international global market' : marketScope === 'both' ? 'local and worldwide international market' : country;
+    const query = [productName,audience,reach,focus,'current competitors offers customer demand'].filter(Boolean).join(' ');
     let result;
     try { result = await searchMarketSources({query,apiKey:marketSearchConfig.apiKey,enabled:marketSearchConfig.enabled}); }
     catch (error) { throw failure(error.message || 'Market search failed.',error.status || 502); }
