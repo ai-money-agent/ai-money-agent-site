@@ -489,16 +489,52 @@ function renderAnalysis(a) {
   root.append(next);
 }
 
+function syncFactoryLabels(){
+  const arabic=$('factoryLanguage').value==='ar';
+  const labels={
+    factoryType:arabic?'صيغة المنتج':'Product format',
+    factoryLanguage:arabic?'اللغة':'Language',
+    factoryTitle:arabic?'عنوان الملف':'File title',
+    factoryTopic:arabic?'الموضوع':'Topic',
+    factoryAudience:arabic?'الجمهور المستهدف':'Age / audience',
+    factoryOutcome:arabic?'النتيجة المطلوبة':'Desired outcome',
+    factoryPagesWrap:arabic?'عدد الصفحات':'Pages',
+    factoryLevelWrap:arabic?'مستوى أوراق العمل':'Worksheet level',
+    factoryQuestionCountWrap:arabic?'عدد الأسئلة (حتى هذا العدد من الأسطر التي أدخلتها)':'Question count (up to this many supplied lines)',
+    factoryQuestionsWrap:arabic?'أسئلة الاختبار، سؤال واحد في كل سطر':'Quiz questions, one per line'
+  };
+  for(const [id,value] of Object.entries(labels)){
+    const control=$(id);
+    const label=control?.tagName==='LABEL'?control:control?.closest('label');
+    const node=label&&Array.from(label.childNodes).find(item=>item.nodeType===Node.TEXT_NODE&&item.textContent.trim());
+    if(node)node.textContent=value;
+  }
+  const formats=arabic
+    ? ['كتاب إلكتروني / دفتر عمل متعدد الصفحات','كتاب تلوين وأنشطة','أوراق تعليمية مع مفتاح الإجابات','مخطط ميزانية XLSX مع معاينة للهاتف','ميزانية ومنظّم لمدة 12 شهرًا XLSX','لعبة أسئلة دون اتصال (HTML)']
+    : ['Multi-page ebook / workbook','Coloring and activity book','Educational worksheets + answer key','Budget planner XLSX + mobile preview','Budget and 12-month organizer XLSX','Offline questions game (HTML)'];
+  Array.from($('factoryType').options).forEach((option,index)=>{if(formats[index])option.textContent=formats[index];});
+  $('factoryTitle').placeholder=arabic?'مثال: دفتر عمل عملي للمبتدئين':'A practical starter workbook';
+  $('factoryTopic').placeholder=arabic?'ما الذي يعلّمه المنتج أو ينظّمه؟':'What the product teaches or organizes';
+  $('factoryAudience').placeholder=arabic?'أصحاب الصالونات المبتدئون، العائلات، أصحاب الأعمال…':'Ages 7–9, families, small businesses…';
+  $('factoryOutcome').placeholder=arabic?'ماذا سيتمكن المشتري من إنجازه؟':'What should the buyer be able to do?';
+  $('factoryQuestions').placeholder=arabic?'اكتب سؤالًا | الإجابة الصحيحة | إجابة خاطئة 1 | إجابة خاطئة 2':'Question | correct answer | wrong answer 1 | wrong answer 2';
+}
 function syncFactoryControls(){
+  syncFactoryLabels();
   const quiz=$('factoryType').value==='quiz';
   $('factoryQuestionsWrap').classList.toggle('hidden',!quiz);
   $('factoryQuestionCountWrap').classList.toggle('hidden',!quiz);
   $('factoryLevelWrap').classList.toggle('hidden',!['worksheet'].includes($('factoryType').value));
   $('factoryPagesWrap').classList.toggle('hidden',quiz||['budget','organizer'].includes($('factoryType').value));
-  if(quiz)$('factoryHint').textContent='The quiz uses only complete question rows you provide, up to the selected count. No questions are invented and no AI provider is called.';
-  else $('factoryHint').textContent='This local template factory uses the fields you enter; it does not call an AI service. PDF products include a touch-friendly HTML workbook for drawing and saved answers. Arabic PDFs embed a Unicode font and shape RTL text; their interactive companion can also be printed. XLSX budgets include a phone-friendly interactive preview.';
+  if(quiz)$('factoryHint').textContent=$('factoryLanguage').value==='ar'
+    ? 'تستخدم اللعبة أسطر الأسئلة المكتملة التي تدخلها فقط. لا تُنشأ أسئلة تلقائيًا ولا يُستدعى مزوّد ذكاء اصطناعي.'
+    : 'The quiz uses only complete question rows you provide, up to the selected count. No questions are invented and no AI provider is called.';
+  else $('factoryHint').textContent=$('factoryLanguage').value==='ar'
+    ? 'ينشئ هذا القالب المحلي الملفات من المعلومات التي تدخلها؛ لا يستدعي خدمة ذكاء اصطناعي. تتضمن منتجات PDF دفتر HTML تفاعليًا للرسم وحفظ الإجابات والطباعة. ملفات XLSX تتضمن معاينة تفاعلية مناسبة للهاتف.'
+    : 'This local template factory uses the fields you enter; it does not call an AI service. PDF products include a touch-friendly HTML workbook for drawing and saved answers. Arabic PDFs embed a Unicode font and shape RTL text; their interactive companion can also be printed. XLSX budgets include a phone-friendly interactive preview.';
 }
 $('factoryType').addEventListener('change',syncFactoryControls);
+$('factoryLanguage').addEventListener('change',syncFactoryControls);
 syncFactoryControls();
 $('factoryForm').addEventListener('submit',async e=>{
   e.preventDefault();
