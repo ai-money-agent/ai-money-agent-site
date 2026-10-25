@@ -60,7 +60,7 @@ async function heyGenJson(url, init, fetchImpl) {
 export async function createHeyGenVideo({ prompt, durationSeconds = 10, aspectRatio = '9:16', apiKey, idempotencyKey, fetchImpl = fetch }) {
   if (typeof apiKey !== 'string' || !apiKey) throw Object.assign(new Error('HeyGen API is not configured.'), { status: 503 });
   const spec = validateHeyGenVideoRequest({ prompt, durationSeconds, aspectRatio });
-  if (typeof idempotencyKey !== 'string' || !/^[A-Za-z0-9_\\-:.]{1,255}$/.test(idempotencyKey)) throw Object.assign(new Error('A valid idempotency key is required.'), { status: 400 });
+  if (typeof idempotencyKey !== 'string' || !/^[A-Za-z0-9_.:-]{1,255}$/.test(idempotencyKey)) throw Object.assign(new Error('A valid idempotency key is required.'), { status: 400 });
   const data = await heyGenJson('https://api.heygen.com/v3/models/videos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'Idempotency-Key': idempotencyKey },
