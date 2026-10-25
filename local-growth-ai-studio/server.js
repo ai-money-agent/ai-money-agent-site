@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createHash, timingSafeEqual, randomUUID, randomBytes } from 'node:crypto';
 import { Ledger } from './lib/ledger.js';
 import { WorkspaceStore } from './lib/workspace.js';
-import { findProductIdeas, analyzeIdea, buildProductBlueprint, buildBrandProfile, createAdPack, createReelPack, partnerReply, recipes } from './lib/business-engine.js';
+import { findProductIdeas, analyzeIdea, buildProductBlueprint, buildBrandProfile, buildSalesListing, createAdPack, createReelPack, partnerReply, recipes } from './lib/business-engine.js';
 import { generate } from './lib/generator.js';
 import { generateV2 } from './lib/v2-ai.js';
 import { prepareVideoRequest, videoCapability, createHeyGenVideo, getHeyGenVideo } from './lib/video.js';
@@ -523,6 +523,25 @@ async function api(req, res, url) {
     const project = projectOrFail(body.projectId);
     if (!body.brand || typeof body.brand !== 'object') throw failure('Brand profile is required.',422);
     return json(res,200,{ok:true,brand:workspace.saveBrand(v2Account,project.id,body.brand)});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/listing/generate') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const product = productOrFail(body.productId);
+    if (product.projectId !== project.id) throw failure('Product does not belong to this project.',409);
+    const language = v2Language(body.language,product.name);
+    const marketEvidence=workspace.listOutputs(v2Account,project.id,1000)
+      .find(item=>item.type==='market-search-evidence')?.payload||null;
+    const generated=await generateV2({
+      operation:'platform-neutral product sales listing draft for manual review',
+      context:{product,marketSourceLeads:marketEvidence?.sources||[]},
+      language,
+      fallback:()=>buildSalesListing(product,language)
+    },config);
+    const listing=generated.value;
+    listing.publishStatus='draft_only';
+    const saved=workspace.saveOutput(v2Account,project.id,'sales-listing',`${product.name} — sales listing draft`,listing);
+    return json(res,201,{ok:true,listing:saved.payload,outputId:saved.id,aiEngine:generated.engine});
   }
   if (req.method === 'POST' && url.pathname === '/api/v2/ads/generate') {
     const body = await readBody(req);
