@@ -13,7 +13,9 @@ const notice = (text, type='info') => {
   el.style.color = type === 'error' ? '#ff9ca7' : type === 'success' ? '#88f0b8' : '';
 };
 async function api(path, options={}) {
-  const init = { ...options, headers:{...(options.body ? {'Content-Type':'application/json'} : {}),...(options.headers||{})}, signal:AbortSignal.timeout(15000) };
+  const { timeoutMs, ...requestOptions } = options;
+  const timeout = Number.isFinite(timeoutMs) ? timeoutMs : (String(path).startsWith('/api/v2/') && requestOptions.method === 'POST' ? 55000 : 15000);
+  const init = { ...requestOptions, headers:{...(requestOptions.body ? {'Content-Type':'application/json'} : {}),...(requestOptions.headers||{})}, signal:AbortSignal.timeout(timeout) };
   const res = await fetch(path,init);
   let data={};
   try { data=await res.json(); } catch {}
