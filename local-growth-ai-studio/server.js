@@ -359,8 +359,35 @@ async function api(req, res, url) {
     const body = await readBody(req);
     const project = projectOrFail(body.projectId);
     const language = v2Language(body.language,project.profile.skills);
-    const generated = await generateV2({operation:'product ideas',context:{profile:project.profile},language,fallback:()=>findProductIdeas(project.profile,language)},config);
-    return json(res,200,{ok:true,ideas:generated.value,dataStatus:language === 'ar' ? 'تقييم قابلية تنفيذ داخلي، بدون بيانات ويب حيّة.' : 'Execution-fit analysis; no live web-market data.',aiEngine:generated.engine});
+    let marketEvidence = null;
+    if (body.includeMarketEvidence === true) {
+      const profile = project.profile || {};
+      const scope = ['local','global','both','unsure'].includes(profile.marketScope) ? profile.marketScope : 'unsure';
+      const reach = scope === 'global' ? 'worldwide global international markets' :
+        scope === 'local' ? (profile.country || 'local target market') :
+        scope === 'both' ? [profile.country,'worldwide international markets'].filter(Boolean).join(' and ') :
+        'worldwide international markets';
+      const type = profile.businessType || 'unsure';
+      const kinds = ['physical','dropshipping','print_on_demand'].includes(type)
+        ? 'physical consumer products'
+        : type === 'digital' ? 'digital products'
+        : 'digital products and physical consumer products';
+      const query = [profile.skills,profile.timeAvailable,kinds,reach,'customer problems competing offers marketplace listings recent trends'].filter(Boolean).join(' ').slice(0,360);
+      try {
+        marketEvidence = await searchMarketSources({query,apiKey:marketSearchConfig.apiKey,enabled:marketSearchConfig.enabled});
+      } catch (error) {
+        throw failure(error.message || 'Global market research failed.',error.status || 502);
+      }
+      if (marketEvidence.available) {
+        workspace.saveOutput(v2Account,project.id,'market-search-evidence','Global product discovery sources',marketEvidence);
+      }
+    }
+    const context = {profile:project.profile,marketSourceLeads:marketEvidence?.available ? marketEvidence.sources : []};
+    const generated = await generateV2({operation:marketEvidence?.available ? 'product opportunity hypotheses informed by global source leads' : 'product ideas',context,language,fallback:()=>findProductIdeas(project.profile,language)},config);
+    const dataStatus = marketEvidence?.available
+      ? (language === 'ar' ? 'مصادر بحث عالمية أولية؛ هذه دلائل للمتابعة وليست إثباتًا للطلب.' : 'Global source leads found; these are research leads, not proof of demand.')
+      : (language === 'ar' ? 'تقييم قابلية تنفيذ داخلي؛ لم يُجرَ بحث سوق حي.' : 'Execution-fit analysis; no live web-market search was performed.');
+    return json(res,200,{ok:true,ideas:generated.value,marketEvidence:marketEvidence?.available ? marketEvidence : null,dataStatus,aiEngine:generated.engine});
   }
   if (req.method === 'POST' && url.pathname === '/api/v2/research/analyze') {
     const body = await readBody(req);
