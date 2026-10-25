@@ -1,3 +1,11 @@
+# Local Growth AI Studio V2
+
+## Canva connection (OAuth)
+
+The Studio includes a server-side Canva OAuth Authorization Code + PKCE flow. Register the exact HTTPS callback URL configured by `CANVA_REDIRECT_URI` (or derived from `APP_ORIGIN`): `/api/canva/callback`. Keep `CANVA_CLIENT_SECRET` and `CANVA_TOKEN_ENCRYPTION_KEY` in the hosting provider's secret environment settings; never commit them or place them in browser code. The current feature requests only `design:content:write` and `asset:write`. Token records are encrypted with AES-256-GCM in `CANVA_DB`.
+
+Required environment values: `CANVA_CLIENT_ID`, `CANVA_CLIENT_SECRET`, `CANVA_TOKEN_ENCRYPTION_KEY`, and `CANVA_REDIRECT_URI` (or a valid HTTPS `APP_ORIGIN`). `CANVA_TOKEN_ENCRYPTION_KEY` must be 32 random bytes encoded as base64 or 64 hexadecimal characters. Persist `CANVA_DB` on the same durable volume as the workspace database.
+
 # Local Growth AI Studio V2 — business partner workspace
 
 V2 extends the existing creative beta instead of replacing its backend. Open `/v2` to use the new mobile-first business workspace.
