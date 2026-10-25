@@ -9,9 +9,10 @@ import { DatabaseSync } from 'node:sqlite';
 const dir = await mkdtemp(join(tmpdir(),'studio-test-'));
 const base = 'http://127.0.0.1:8799';
 const accessCode = 'test-only-access-code-123456789';
+const secondAccessCode = 'second-test-access-code-987654321';
 let child;
 
-async function start() {
+async function start(accountMap = {'beta-owner':accessCode,'test-customer':secondAccessCode}) {
   child = spawn(process.execPath,['server.js'], {
     cwd:new URL('..',import.meta.url),
     env:{
@@ -19,11 +20,15 @@ async function start() {
       PORT:'8799',
       HOST:'127.0.0.1',
       CREDIT_DB:join(dir,'test.sqlite'),
+      WORKSPACE_DB:join(dir,'workspace.sqlite'),
+      PRODUCT_FILES_DIR:join(dir,'generated-products'),
       OPENAI_API_KEY:'',
+      TAVILY_API_KEY:'',
+      ENABLE_MARKET_SEARCH:'0',
       ENABLE_LIVE_AI:'1',
       OPENAI_PROVIDER_ENABLED:'0',
       APP_ORIGIN:'',
-      STUDIO_ACCESS_CODE:accessCode,
+      STUDIO_ACCOUNTS_JSON:JSON.stringify(accountMap),
       ALLOW_MOCK_GENERATION:'1',
       INITIAL_CREDITS:'7',
       GENERATION_CREDIT_COST:'2'
@@ -42,26 +47,43 @@ async function stop(){
 }
 let cookie = '';
 const get = path => fetch(base+path,{headers:{cookie}});
+const getAs = (path,sessionCookie) => fetch(base+path,{headers:{cookie:sessionCookie}});
 const post = (path,body,id='test-request-000001',extra={}) => fetch(base+path,{
   method:'POST',
   headers:{'Content-Type':'application/json','Idempotency-Key':id,cookie,...extra},
+  body:JSON.stringify(body)
+});
+const postAs = (path,body,sessionCookie,id='cross-account-request-0001') => fetch(base+path,{
+  method:'POST',
+  headers:{'Content-Type':'application/json','Idempotency-Key':id,cookie:sessionCookie},
   body:JSON.stringify(body)
 });
 const brief = {mode:'reel',productName:'Mini Blender',description:'USB-C rechargeable blender.',language:'bilingual',audience:'busy students'};
 
 try {
   await start();
+  const appShell=await (await get('/v2')).text();
+  assert.match(appShell,/type="module" src="\/v2\.js"/);
+  assert.equal((await get('/research-links.js')).status,200,'browser market research helper is served as an app asset');
+  assert.match(await (await get('/research-links.js')).text(),/createMarketResearchLinks/);
   assert.equal((await get('/api/credits')).status,401);
   assert.equal((await get('/api/generations/test-request-000001')).status,401);
   const readyBefore = await (await get('/api/health/ready')).json();
   assert.equal(readyBefore.status,'ready');
   const healthBefore = await (await get('/api/health')).json();
-  assert.equal(healthBefore.version,'0.6.0');
+  assert.equal(healthBefore.version,'0.7.0');
   assert.equal(healthBefore.generationCost,2);
   assert.equal(healthBefore.demoGenerationCost,0);
   assert.equal(healthBefore.demoAvailable,true);
   assert.equal(healthBefore.liveAvailable,false);
   assert.equal(healthBefore.storageReady,true);
+  assert.equal(healthBefore.workspaceReady,true);
+  assert.equal(healthBefore.v2AiProvider,'openai');
+  assert.equal(healthBefore.v2AiModel,'gpt-6.1-sol');
+  assert.equal(healthBefore.marketSearchProvider,'tavily');
+  assert.equal(healthBefore.marketSearchAvailable,false);
+  assert.equal(healthBefore.v2AiReady,false);
+  assert.equal(healthBefore.v2AiMode,'local');
   assert.equal(healthBefore.providerPaused,true);
   assert.equal(healthBefore.aiConnected,false);
   assert.equal(healthBefore.video.providerConnected,false);
@@ -69,7 +91,19 @@ try {
   const session = await post('/api/session',{accessCode});
   assert.equal(session.status,200);
   assert.match(session.headers.get('set-cookie'),/HttpOnly/);
+  assert.match(session.headers.get('set-cookie'),/SameSite=Strict/);
   cookie = session.headers.get('set-cookie').split(';')[0];
+  const ownerToken = cookie.slice('studio_session='.length);
+  assert.equal(ownerToken.length,43);
+  const secondLogin = await fetch(base+'/api/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessCode:secondAccessCode})});
+  assert.equal(secondLogin.status,200);
+  const secondCookie = secondLogin.headers.get('set-cookie').split(';')[0];
+  assert.notEqual(secondCookie,cookie);
+  const sessionDb = new DatabaseSync(join(dir,'workspace.sqlite'));
+  const sessionRows=sessionDb.prepare('SELECT account,token_hash FROM studio_sessions ORDER BY account').all();
+  assert.deepEqual(sessionRows.map(row=>row.account),['beta-owner','test-customer']);
+  assert.ok(sessionRows.every(row=>row.token_hash!==ownerToken&&row.token_hash!==secondCookie.slice('studio_session='.length)));
+  sessionDb.close();
 
   // Completed Live results remain readable even when the provider is paused,
   // and stale Live reservations are refunded without any provider call.
@@ -110,6 +144,12 @@ try {
   assert.ok(outputs.every(o=>o.ok));
   assert.deepEqual(outputs[0].result,outputs[1].result);
   assert.equal((await (await get('/api/credits?userId=attacker')).json()).balance,7);
+  const isolatedCredits=(await getAs('/api/credits',secondCookie));
+  assert.equal(isolatedCredits.status,200);
+  assert.equal((await isolatedCredits.json()).balance,7);
+  const sameRequestOtherAccount=await postAs('/api/generate',{...brief,generationMode:'demo'},secondCookie,'test-request-000001');
+  assert.equal(sameRequestOtherAccount.status,200);
+  assert.equal((await sameRequestOtherAccount.json()).replayed,undefined);
   assert.equal((await post('/api/generate',{...brief,productName:'Other product',generationMode:'demo'})).status,409);
 
   const badVideo = await post('/api/video/prepare',{script:'Test',aspectRatio:'4:3',durationSeconds:20},'video-request-00001');
@@ -121,6 +161,230 @@ try {
   assert.equal(videoBody.spec.aspectRatio,'9:16');
   assert.equal((await (await get('/api/credits')).json()).balance,7);
 
+  const projectResponse=await post('/api/v2/projects',{
+    name:'مشروع اختبار',country:'لبنان',budget:'20 دولار',skills:'تصميم كانفا',timeAvailable:'ساعتان يوميًا',
+    businessType:'service',marketScope:'local',payoutMethods:'Whish و OMT'
+  });
+  assert.equal(projectResponse.status,201);
+  const project=(await projectResponse.json()).project;
+  const disabledSearch=await post('/api/v2/research/market',{projectId:project.id,productName:'دفتر أنشطة للأطفال',country:'لبنان',audience:'الأطفال',businessType:'digital'});
+  assert.equal(disabledSearch.status,200);
+  const disabledSearchBody=(await disabledSearch.json()).search;
+  assert.equal(disabledSearchBody.status,'disabled');
+  assert.equal(disabledSearchBody.sources.length,0);
+  assert.match(disabledSearchBody.message,/No web search was performed/);
+  assert.equal((await get(`/api/v2/research/market?projectId=${project.id}`)).status,200);
+  assert.equal((await getAs(`/api/v2/research/market?projectId=${project.id}`,secondCookie)).status,404);
+  const launchInput={projectId:project.id,businessType:'dropshipping',productName:'Bottle carrier',audience:'hikers',country:'Lebanon',problem:'carrying water comfortably',outcome:'keep a bottle close',marketNotes:'Manually reviewed three listings',marketSource:'Owner check',marketSourceUrl:'https://example.com/research',supplierName:'Supplier selected by owner',supplierSourceUrl:'https://example.com/quote',currency:'USD',sellingPrice:40,unitCost:12,shippingCost:4,packagingCost:1,otherCost:2,platformFeePercent:5,marketingCostPerSale:3};
+  const launchResponse=await post('/api/v2/launch/plan',launchInput);
+  assert.equal(launchResponse.status,201);
+  const launchPlan=(await launchResponse.json()).plan;
+  assert.equal(launchPlan.economics.estimatedProfit,16);
+  assert.equal(launchPlan.marketEvidence.status,'user_provided_unverified');
+  assert.equal(launchPlan.supplier.status,'user_provided_unverified');
+  assert.match(launchPlan.simulationLabel,/not live research/i);
+  assert.equal((await getAs(`/api/v2/launch/plan?projectId=${project.id}`,secondCookie)).status,404);
+  assert.deepEqual((await (await getAs('/api/v2/projects',secondCookie)).json()).projects,[]);
+  assert.equal((await getAs(`/api/v2/dashboard?projectId=${project.id}`,secondCookie)).status,404);
+  assert.equal((await getAs(`/api/v2/factory/assets?projectId=${project.id}`,secondCookie)).status,404);
+  const secondProjectResponse=await postAs('/api/v2/projects',{name:'Second isolated project',country:'Jordan',budget:'50',skills:'Design',businessType:'dropshipping'},secondCookie);
+  assert.equal(secondProjectResponse.status,201);
+  const secondProject=(await secondProjectResponse.json()).project;
+  const crossAccountSearch=await postAs('/api/v2/research/market',{projectId:project.id,productName:'Private query',country:'Jordan',businessType:'physical'},secondCookie);
+  assert.equal(crossAccountSearch.status,404,'live research endpoint enforces account isolation');
+  assert.notEqual(secondProject.id,project.id);
+  assert.equal(secondProject.profile.businessType,'dropshipping');
+  assert.equal((await get(`/api/v2/dashboard?projectId=${secondProject.id}`)).status,404);
+  assert.equal((await getAs(`/api/v2/factory/download?projectId=${project.id}&fileId=00000000-0000-4000-8000-000000000000`,secondCookie)).status,404);
+  const secondPlanResponse=await postAs('/api/v2/launch/plan',{...launchInput,projectId:secondProject.id,productName:'Private second offer',supplierName:'Second user quote',marketNotes:'Private notes'},secondCookie);
+  assert.equal(secondPlanResponse.status,201);
+  assert.equal((await get(`/api/v2/launch/plan?projectId=${secondProject.id}`)).status,404);
+  const ideasResponse=await post('/api/v2/research/ideas',{projectId:project.id,language:'ar'});
+  assert.equal(ideasResponse.status,200);
+  const ideasBody=await ideasResponse.json();
+  assert.equal(ideasBody.aiEngine,'local');
+  const ideas=ideasBody.ideas;
+  assert.equal(ideasResponse.headers.get('content-type')?.startsWith('application/json'),true);
+  const chosen=ideas.find(idea=>idea.type==='service');
+  const analysisResponse=await post('/api/v2/research/analyze',{projectId:project.id,idea:chosen,language:'ar'});
+  assert.equal(analysisResponse.status,200);
+  const analysisBody=await analysisResponse.json();
+  assert.equal(analysisBody.aiEngine,'local');
+  const analysis=analysisBody.analysis;
+  assert.equal(analysis.idea.type,'service');
+  const savedResearch=await (await get(`/api/v2/dashboard?projectId=${project.id}`)).json();
+  assert.equal(savedResearch.research.payload.idea.name,chosen.name);
+
+  // Exercise the selected business model from project setup through plan,
+  // editable offer, and saved ad for every supported customer business type.
+  for (const businessType of ['digital','physical','service','dropshipping','print_on_demand']) {
+    const modelProjectResponse=await post('/api/v2/projects',{
+      name:`Journey ${businessType}`,country:'Lebanon',budget:'$50',skills:'design and writing',
+      timeAvailable:'2 hours/day',businessType,marketScope:'local',payoutMethods:'user-verified option'
+    });
+    assert.equal(modelProjectResponse.status,201,`${businessType} project should be created`);
+    const modelProject=(await modelProjectResponse.json()).project;
+    const modelIdeasResponse=await post('/api/v2/research/ideas',{projectId:modelProject.id,language:'en'});
+    assert.equal(modelIdeasResponse.status,200);
+    const modelIdeas=(await modelIdeasResponse.json()).ideas;
+    const modelIdea=modelIdeas.find(idea=>idea.type===businessType);
+    assert.ok(modelIdea,`${businessType} should have a matching idea`);
+    const planPayload={
+      projectId:modelProject.id,businessType,productName:`${businessType} offer`,audience:'local customers',country:'Lebanon',
+      problem:'save time on a recurring task',outcome:'finish the task with a clear process',currency:'USD',sellingPrice:30,
+      unitCost:['physical','dropshipping','print_on_demand'].includes(businessType)?10:0,
+      shippingCost:['physical','dropshipping','print_on_demand'].includes(businessType)?3:0,
+      platformFeePercent:5,supplierName:['physical','dropshipping','print_on_demand'].includes(businessType)?'Owner-verified supplier':undefined,
+      supplierSourceUrl:['physical','dropshipping','print_on_demand'].includes(businessType)?'https://example.com/quote':undefined,
+      marketNotes:'Test fixture only; no live market research',marketSource:'Owner note',language:'en'
+    };
+    const modelPlanResponse=await post('/api/v2/launch/plan',planPayload);
+    assert.equal(modelPlanResponse.status,201,`${businessType} plan should save`);
+    const modelPlan=(await modelPlanResponse.json()).plan;
+    assert.equal(modelPlan.inputs.businessType,businessType);
+    assert.equal(modelPlan.marketEvidence.status,'user_provided_unverified');
+    assert.equal(modelPlan.economics.estimatedProfit,businessType==='digital'||businessType==='service'?28.5:15.5);
+    assert.equal(modelPlan.supplier.status,['physical','dropshipping','print_on_demand'].includes(businessType)?'user_provided_unverified':'not_required');
+
+    const modelProductResponse=await post('/api/v2/products/build',{
+      projectId:modelProject.id,idea:modelIdea,answers:{name:`${businessType} offer`,price:30,currency:'USD'},language:'en'
+    });
+    assert.equal(modelProductResponse.status,201,`${businessType} offer should build`);
+    const modelProduct=(await modelProductResponse.json()).product;
+    assert.equal(modelProduct.type,businessType);
+    assert.ok(modelProduct.delivery);
+    const modelAdResponse=await post('/api/v2/ads/generate',{projectId:modelProject.id,productId:modelProduct.id,language:'en'});
+    assert.equal(modelAdResponse.status,200,`${businessType} ad should generate`);
+    const modelAds=(await modelAdResponse.json()).pack;
+    assert.equal(modelAds.variants.length,4);
+    assert.ok(modelAds.variants.every(ad=>ad.primaryText.includes(modelProduct.name)));
+    assert.ok((await (await get(`/api/v2/dashboard?projectId=${modelProject.id}`)).json()).outputs.some(output=>output.type==='ad-pack'));
+  }
+  const modelProjectsAsSecond=(await (await getAs('/api/v2/projects',secondCookie)).json()).projects;
+  assert.deepEqual(modelProjectsAsSecond.map(item=>item.id),[secondProject.id],
+    'business-model projects remain isolated from the second account');
+
+  const builtResponse=await post('/api/v2/products/build',{projectId:project.id,answers:{name:'خدمة كانفا',price:25},language:'ar'});
+  assert.equal(builtResponse.status,201);
+  const builtBody=await builtResponse.json();
+  assert.equal(builtBody.aiEngine,'local');
+  const built=builtBody.product;
+  assert.equal(built.type,'service');
+  const updatedResponse=await post('/api/v2/products/build',{projectId:project.id,productId:built.id,idea:chosen,answers:{name:'خدمة كانفا المطورة',price:30},language:'ar'});
+  assert.equal(updatedResponse.status,201);
+  const updated=(await updatedResponse.json()).product;
+  assert.equal(updated.id,built.id);
+  assert.equal(updated.name,'خدمة كانفا المطورة');
+  assert.equal((await (await get(`/api/v2/products?projectId=${project.id}`)).json()).products.length,1);
+
+  const ebookResponse=await post('/api/v2/factory/generate',{
+    projectId:project.id,productId:updated.id,type:'ebook',title:'Sample guide',topic:'Canva basics',audience:'new sellers',outcome:'Create a simple product'
+  });
+  assert.equal(ebookResponse.status,201);
+  const ebook=(await ebookResponse.json()).asset;
+  assert.equal(ebook.contentType,'application/pdf');
+  assert.equal(ebook.pages,6);
+  assert.match(ebook.label,/no AI connection used/i);
+  assert.ok(ebook.previewFileId);
+  const worksheetResponse=await post('/api/v2/factory/generate',{
+    projectId:project.id,productId:updated.id,type:'worksheet',title:'Math practice',topic:'addition and subtraction',audience:'grade 3',level:3,pages:2
+  });
+  assert.equal(worksheetResponse.status,201);
+  const worksheet=(await worksheetResponse.json()).asset;
+  assert.equal(worksheet.pages,4);
+  assert.ok(worksheet.previewFileId);
+  const worksheetPreview=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${worksheet.previewFileId}&inline=1`);
+  const worksheetHtml=await worksheetPreview.text();
+  assert.match(worksheetHtml,/data-answer/);
+  assert.match(worksheetHtml,/Answer key/);
+  assert.doesNotMatch(worksheetHtml.slice(0,worksheetHtml.indexOf('<section id="answers"')),/3\. 9 \+ 5 = 14/);
+  assert.equal(ebookResponse.headers.get('content-type')?.startsWith('application/json'),true);
+  const budgetResponse=await post('/api/v2/factory/generate',{
+    projectId:project.id,productId:updated.id,type:'budget',title:'Budget planner',topic:'monthly budgeting'
+  });
+  assert.equal(budgetResponse.status,201);
+  const budget=(await budgetResponse.json()).asset;
+  assert.equal(budget.contentType,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  const mobileBudgetPreview=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${budget.previewFileId}&inline=1`);
+  assert.equal(mobileBudgetPreview.status,200);
+  assert.match(mobileBudgetPreview.headers.get('content-security-policy'),/script-src 'unsafe-inline'/);
+  assert.equal(mobileBudgetPreview.headers.get('x-frame-options'),'SAMEORIGIN');
+  const mobileBudgetHtml=await mobileBudgetPreview.text();
+  assert.match(mobileBudgetHtml,/Monthly budget preview/);
+  assert.match(mobileBudgetHtml,/localStorage/);
+  assert.match(mobileBudgetHtml,/income-total/);
+  const organizerResponse=await post('/api/v2/factory/generate',{
+    projectId:project.id,productId:updated.id,type:'organizer',language:'ar',title:'منظم السنة',topic:'التخطيط السنوي'
+  });
+  assert.equal(organizerResponse.status,201);
+  const organizer=(await organizerResponse.json()).asset;
+  assert.equal(organizer.contentType,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  const organizerDownload=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${organizer.fileId}`);
+  assert.equal(organizerDownload.status,200);
+  assert.equal(Buffer.from(await organizerDownload.arrayBuffer()).readUInt32LE(0),0x04034b50);
+  const arabicResponse=await post('/api/v2/factory/generate',{
+    projectId:project.id,productId:updated.id,type:'coloring',language:'ar',title:'كتاب التلوين',topic:'الحيوانات',audience:'الأطفال من ٦ إلى ٨ سنوات',pages:2
+  });
+  assert.equal(arabicResponse.status,201);
+  const arabic=(await arabicResponse.json()).asset;
+  assert.equal((await getAs(`/api/v2/factory/download?projectId=${project.id}&fileId=${arabic.fileId}`,secondCookie)).status,404);
+  assert.equal((await getAs(`/api/v2/factory/download?projectId=${project.id}&fileId=${arabic.previewFileId}&inline=1`,secondCookie)).status,404);
+  assert.equal(arabic.contentType,'application/pdf');
+  assert.match(arabic.filename,/arabic-coloring\.pdf$/);
+  const arabicPdf=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${arabic.fileId}`);
+  const arabicBytes=Buffer.from(await arabicPdf.arrayBuffer()).toString('latin1');
+  assert.match(arabicBytes,/\/Subtype \/Type0/);
+  assert.match(arabicBytes,/\/FontFile2/);
+  const arabicPrint=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${arabic.previewFileId}&inline=1`);
+  const arabicHtml=await arabicPrint.text();
+  assert.match(arabicHtml,/<html lang="ar" dir="rtl">/);
+  assert.match(arabicHtml,/window\.print\(\)/);
+  assert.match(arabicHtml,/class="activity-art"/);
+  assert.match(arabicHtml,/data-canvas/);
+  const quizResponse=await post('/api/v2/factory/generate',{
+    projectId:project.id,productId:updated.id,type:'quiz',title:'Canva Quiz',topic:'Canva basics',
+    questions:[
+      {question:'Which tool adds text?',answer:'Text',wrong:['Crop','Resize']},
+      {question:'What is a page?',answer:'A design canvas',wrong:['A file name','A payment']},
+      {question:'How do you export?',answer:'Download',wrong:['Delete','Close']}
+    ]
+  });
+  assert.equal(quizResponse.status,201);
+  const quiz=(await quizResponse.json()).asset;
+  assert.equal(quiz.contentType,'text/html; charset=utf-8');
+  assert.equal((await (await get(`/api/v2/factory/assets?projectId=${project.id}`)).json()).assets.length,6);
+  const ebookDownload=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${ebook.fileId}`);
+  assert.equal(ebookDownload.status,200);
+  assert.equal(ebookDownload.headers.get('content-type'),'application/pdf');
+  assert.equal(Buffer.from(await ebookDownload.arrayBuffer()).subarray(0,8).toString(),'%PDF-1.4');
+  const budgetDownload=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${budget.fileId}`);
+  assert.equal(budgetDownload.status,200);
+  assert.equal(Buffer.from(await budgetDownload.arrayBuffer()).readUInt32LE(0),0x04034b50);
+  const interactiveDownload=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${ebook.previewFileId}`);
+  assert.equal(interactiveDownload.status,200);
+  assert.match(await interactiveDownload.text(),/data-canvas/);
+  assert.equal((await post('/api/v2/factory/generate',{projectId:project.id,type:'quiz',title:'Bad quiz',topic:'x',questions:[]})).status,422);
+
+  const brandResponse=await post('/api/v2/brand/generate',{projectId:project.id,productId:updated.id,language:'ar'});
+  assert.equal(brandResponse.status,200);
+  assert.equal((await brandResponse.json()).aiEngine,'local');
+
+  const adResponse=await post('/api/v2/ads/generate',{projectId:project.id,productId:updated.id,language:'ar'});
+  assert.equal(adResponse.status,200);
+  assert.equal((await adResponse.clone().json()).aiEngine,'local');
+  const reelResponse=await post('/api/v2/reels/generate',{projectId:project.id,productId:updated.id,language:'ar'});
+  assert.equal(reelResponse.status,200);
+  assert.equal((await reelResponse.json()).aiEngine,'local');
+  const savedWorkspace=await (await get(`/api/v2/dashboard?projectId=${project.id}`)).json();
+  assert.equal(savedWorkspace.outputs.length,9);
+  assert.equal(savedWorkspace.outputs.find(output=>output.type==='ad-pack').type,'ad-pack');
+  assert.match(savedWorkspace.outputs.find(output=>output.type==='ad-pack').payload.variants[0].primaryText,/خدمة كانفا المطورة/);
+  const partnerResponse=await post('/api/v2/partner',{projectId:project.id,message:'أريد أن أربح من الإنترنت ولا أعرف ماذا أبيع.'});
+  assert.equal(partnerResponse.status,200);
+  const partnerBody=await partnerResponse.json();
+  assert.equal(partnerBody.aiEngine,'local');
+  assert.match(partnerBody.reply,/سنبدأ من الصفر/);
+
   assert.equal((await get('/.env')).status,404);
   assert.equal((await get('/server.js')).status,404);
   const home = await get('/');
@@ -130,6 +394,28 @@ try {
   await stop();
   await start();
   assert.equal((await (await get('/api/credits')).json()).balance,7);
+  const recoveredWorkspace=await (await get(`/api/v2/dashboard?projectId=${project.id}`)).json();
+  const restoredPlan=await (await get(`/api/v2/launch/plan?projectId=${project.id}`)).json();
+  assert.equal(restoredPlan.plan.economics.estimatedProfit,16);
+  assert.equal(restoredPlan.plan.inputs.supplierName,'Supplier selected by owner');
+  assert.equal(recoveredWorkspace.products[0].name,'خدمة كانفا المطورة');
+  assert.equal(recoveredWorkspace.outputs.length,9);
+  assert.ok(recoveredWorkspace.outputs.some(output=>output.type==='ad-pack'));
+  assert.ok(recoveredWorkspace.outputs.some(output=>output.type==='reel'));
+  const recoveredAssets=(await (await get(`/api/v2/factory/assets?projectId=${project.id}`)).json()).assets;
+  assert.equal(recoveredAssets.length,6);
+  const recoveredEbook=recoveredAssets.find(asset=>asset.fileId===ebook.fileId);
+  assert.ok(recoveredEbook);
+  assert.equal(recoveredEbook.previewFileId,ebook.previewFileId);
+  const recoveredDownload=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${ebook.fileId}`);
+  assert.equal(recoveredDownload.status,200);
+  assert.equal(Buffer.from(await recoveredDownload.arrayBuffer()).subarray(0,8).toString(),'%PDF-1.4');
+  const recoveredPreview=await get(`/api/v2/factory/download?projectId=${project.id}&fileId=${ebook.previewFileId}&inline=1`);
+  assert.match(await recoveredPreview.text(),/canvas/);
+
+  assert.ok(recoveredWorkspace.brand);
+  assert.equal(recoveredWorkspace.research.payload.idea.type,'service');
+  assert.equal((await (await get(`/api/v2/partner/messages?projectId=${project.id}`)).json()).messages.length,2);
   const replay = await (await post('/api/generate',{...brief,generationMode:'demo'})).json();
   assert.equal(replay.replayed,true);
   assert.equal(replay.credits.balance,7);
@@ -140,8 +426,22 @@ try {
   assert.equal((await get('/api/generations/missing-request-0001')).status,404);
   assert.equal((await get('/api/generations/invalid')).status,400);
   assert.equal((await (await get('/api/credits')).json()).balance,7);
-  console.log('PASS: auth, CSRF, Demo/Live isolation, stale-credit recovery, paused-provider result recovery, validation, persistence, protected files, video contract and UI.');
+  const logout=await fetch(base+'/api/session',{method:'DELETE',headers:{cookie}});
+  assert.equal(logout.status,200);
+  assert.equal((await get('/api/credits')).status,401);
+  assert.equal((await getAs('/api/v2/projects',secondCookie)).status,200);
+  await stop();
+  await start({'beta-owner':accessCode});
+  assert.equal((await getAs('/api/v2/projects',secondCookie)).status,401);
+  const ownerReauth=await fetch(base+'/api/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessCode})});
+  assert.equal(ownerReauth.status,200);
+  cookie=ownerReauth.headers.get('set-cookie').split(';')[0];
+  const recoveredProjects=(await (await get('/api/v2/projects')).json()).projects;
+  assert.equal(recoveredProjects.length,6);
+  assert.ok(recoveredProjects.some(item=>item.id===project.id),'owner project is restored after restart');
+  console.log('PASS: hashed durable sessions, account/project/file isolation, plan isolation/recovery, deprovision revocation, logout, CSRF, Demo/Live isolation, provider recovery, validation, protected files, factory downloads and UI.');
 } finally {
   await stop();
   await rm(dir,{recursive:true,force:true});
 }
+
