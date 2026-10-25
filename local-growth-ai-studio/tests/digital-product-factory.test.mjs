@@ -95,6 +95,14 @@ test('validates product type and required fields',()=>{
   assert.match(arabicSheet,/<f>B3-B11<\/f>/,'Arabic workbook retains the correct net savings formula');
 });
 
+test('six-page Arabic ebook uses six distinct sections instead of repeating early pages',()=>{
+  const product=createDigitalProduct({type:'ebook',language:'ar',title:'دليل تجريبي',topic:'منشورات الصالونات',audience:'أصحاب الصالونات',pages:6});
+  const html=product.preview.buffer.toString();
+  for(const heading of ['ابدأ هنا','خطوتك الأولى','طبّق الفكرة','راجع خطتك','حوّل الفكرة إلى منشور','راجع قبل النشر']){
+    assert.equal((html.match(new RegExp(heading,'g'))||[]).length,1,`expected one page headed “${heading}”`);
+  }
+});
+
 test('PDF products provide real interactive companions with drawing, saved answers and print layout',()=>{
   const coloring=createDigitalProduct({...base,type:'coloring',pages:3});
   assert.equal(coloring.pages,3);
