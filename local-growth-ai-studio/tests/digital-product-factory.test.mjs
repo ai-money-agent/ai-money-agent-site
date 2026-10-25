@@ -98,8 +98,10 @@ test('validates product type and required fields',()=>{
 test('six-page Arabic ebook uses six distinct sections instead of repeating early pages',()=>{
   const product=createDigitalProduct({type:'ebook',language:'ar',title:'دليل تجريبي',topic:'منشورات الصالونات',audience:'أصحاب الصالونات',pages:6});
   const html=product.preview.buffer.toString();
+  const pageHeadings=[...html.matchAll(/<article class="page"[^>]*>[\\s\\S]*?<h2>([\\s\\S]*?)<\\/h2>/g)].map(match=>match[1]);
+  assert.equal(pageHeadings.length,6);
   for(const heading of ['ابدأ هنا','خطوتك الأولى','طبّق الفكرة','راجع خطتك','حوّل الفكرة إلى منشور','راجع قبل النشر']){
-    assert.equal((html.match(new RegExp(heading,'g'))||[]).length,1,`expected one page headed “${heading}”`);
+    assert.equal(pageHeadings.filter(value=>value.includes(heading)).length,1,`expected one page headed “${heading}”`);
   }
 });
 
