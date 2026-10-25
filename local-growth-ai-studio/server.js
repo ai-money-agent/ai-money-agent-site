@@ -387,7 +387,7 @@ async function api(req, res, url) {
     const dataStatus = marketEvidence?.available
       ? (language === 'ar' ? 'مصادر بحث عالمية أولية؛ هذه دلائل للمتابعة وليست إثباتًا للطلب.' : 'Global source leads found; these are research leads, not proof of demand.')
       : (language === 'ar' ? 'تقييم قابلية تنفيذ داخلي؛ لم يُجرَ بحث سوق حي.' : 'Execution-fit analysis; no live web-market search was performed.');
-    return json(res,200,{ok:true,ideas:generated.value,marketEvidence:marketEvidence?.available ? marketEvidence : null,dataStatus,aiEngine:generated.engine});
+    return json(res,200,{ok:true,ideas:generated.value,marketEvidence,dataStatus,aiEngine:generated.engine});
   }
   if (req.method === 'POST' && url.pathname === '/api/v2/research/analyze') {
     const body = await readBody(req);
