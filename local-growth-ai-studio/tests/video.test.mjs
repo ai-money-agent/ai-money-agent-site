@@ -64,8 +64,9 @@ test('HeyGen polling returns only HTTPS video URLs', async () => {
   assert.equal(requestUrl,'https://api.heygen.com/v3/models/videos/video_12345678');
   assert.equal(result.status,'completed');
   assert.equal(result.videoUrl,'https://cdn.example/video.mp4');
-  await assert.rejects(() => getHeyGenVideo({
+  const unsafeUrl=await getHeyGenVideo({
     videoId:'video_12345678',apiKey:'secret',
-    fetchImpl:async()=>new Response(JSON.stringify({data:{status:'completed',video_url:'http://unsafe.example/video.mp4'}}),{status:200})
-  }), async()=>false).catch(()=>{});
+    fetchImpl:async()=>new Response(JSON.stringify({data:{status:'completed',video_url:'http://unsafe.example/video.mp4'}}),{status:200,headers:{'Content-Type':'application/json'}})
+  });
+  assert.equal(unsafeUrl.videoUrl,null);
 });
