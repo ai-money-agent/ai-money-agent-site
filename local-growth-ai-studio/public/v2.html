@@ -264,6 +264,12 @@
           <label>Language<select id="reelLanguage"><option value="en">English</option><option value="ar">العربية</option></select></label>
         </div>
         <div id="reelResult" class="card output-card"><div class="placeholder"><strong>No Reel yet.</strong><p>Select a product and generate.</p></div></div>
+        <div class="card video-generation-card">
+          <h3>Generate the actual video clip</h3>
+          <p id="videoCapabilityNote">Creates a 10-second vertical clip through HeyGen. This sends a paid API request; the current estimated cost is about $0.10 at the promotional rate or about $0.20 at standard 480p pricing. The provider sets the final charge.</p>
+          <button id="generateReelVideo" class="secondary" type="button" disabled>Generate 10-second video</button>
+          <div id="reelVideoResult" aria-live="polite"></div>
+        </div>
       </section>
 
       <section class="view" data-view-panel="brand">
