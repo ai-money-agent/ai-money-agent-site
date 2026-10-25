@@ -12,6 +12,7 @@ import { prepareVideoRequest, videoCapability, createHeyGenVideo, getHeyGenVideo
 import { createDigitalProduct } from './lib/digital-product-factory.js';
 import { buildBusinessLaunchPlan } from './lib/business-planner.js';
 import { searchMarketSources } from './lib/market-search.js';
+import { CanvaOAuthStore } from './lib/canva-oauth.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const intEnv = (name, fallback, min, max) => {
@@ -88,6 +89,10 @@ if (config.liveEnabled) {
 }
 const ledger = new Ledger(process.env.CREDIT_DB || join(ROOT, 'data', 'credits.sqlite'), config.initialCredits);
 const workspace = new WorkspaceStore(process.env.WORKSPACE_DB || join(ROOT, 'data', 'workspace.sqlite'));
+const canvaOAuth = new CanvaOAuthStore(process.env.CANVA_DB || join(ROOT, 'data', 'canva.sqlite'), process.env.CANVA_TOKEN_ENCRYPTION_KEY);
+const canvaClientId = process.env.CANVA_CLIENT_ID || '';
+const canvaClientSecret = process.env.CANVA_CLIENT_SECRET || '';
+const canvaRedirectUri = process.env.CANVA_REDIRECT_URI || (ORIGIN.startsWith('https://') ? new URL('/api/canva/callback', ORIGIN).toString() : '');
 const productFilesRoot = process.env.PRODUCT_FILES_DIR || join(ROOT,'data','generated-products');
 const ledgerAccounts = { demo: 'demo-shared', live: 'beta-owner' };
 const rates = new Map();
@@ -265,8 +270,82 @@ async function api(req, res, url) {
     res.setHeader('Set-Cookie',`studio_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${ORIGIN.startsWith('https://') ? '; Secure' : ''}`);
     return json(res,200,{ok:true});
   }
+  if (req.method === 'GET' && url.pathname === '/api/canva/callback') {
+    const state = url.searchParams.get('state') || '';
+    const pending = canvaOAuth.consumeState(state);
+    if (url.searchParams.has('error') || !pending || !url.searchParams.get('code')) {
+      res.writeHead(303, { Location: '/v2?canva=error' });
+      return res.end();
+    }
+    if (!canvaClientId || !canvaClientSecret || !canvaRedirectUri || !process.env.CANVA_TOKEN_ENCRYPTION_KEY) {
+      res.writeHead(303, { Location: '/v2?canva=setup' });
+      return res.end();
+    }
+    try {
+      const credentials = Buffer.from(`${canvaClientId}:${canvaClientSecret}`).toString('base64');
+      const body = new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: url.searchParams.get('code'),
+        code_verifier: pending.verifier,
+        redirect_uri: canvaRedirectUri
+      });
+      const response = await fetch('https://api.canva.com/rest/v1/oauth/token', {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${credentials}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body
+      });
+      const token = await response.json().catch(() => ({}));
+      if (!response.ok || !token.access_token || !token.refresh_token) {
+        logEvent('warn', 'canva_oauth_exchange_failed', { status: response.status });
+        res.writeHead(303, { Location: '/v2?canva=error' });
+        return res.end();
+      }
+      canvaOAuth.saveToken(pending.account, {
+        accessToken: token.access_token,
+        refreshToken: token.refresh_token,
+        expiresAt: Date.now() + Number(token.expires_in || 14400) * 1000,
+        scope: token.scope || 'design:content:write asset:write',
+        tokenType: token.token_type || 'Bearer'
+      });
+      res.writeHead(303, { Location: '/v2?canva=connected' });
+      return res.end();
+    } catch (error) {
+      logEvent('error', 'canva_oauth_callback_failed', { message: String(error?.message || 'unknown').slice(0, 300) });
+      res.writeHead(303, { Location: '/v2?canva=error' });
+      return res.end();
+    }
+  }
+
   const authenticatedAccount = authenticated(req);
   if (!authenticatedAccount) throw failure('Enter your Studio access code first.',401);
+
+  if (req.method === 'GET' && url.pathname === '/api/canva/status') {
+    return json(res, 200, { ok: true, connected: canvaOAuth.hasToken(authenticatedAccount) });
+  }
+  if (req.method === 'GET' && url.pathname === '/api/canva/connect') {
+    if (!canvaClientId || !canvaRedirectUri || !process.env.CANVA_TOKEN_ENCRYPTION_KEY) {
+      return json(res, 503, { ok: false, error: 'Canva connection is not configured on the server yet.' });
+    }
+    const state = randomBytes(32).toString('base64url');
+    const verifier = randomBytes(32).toString('base64url');
+    const challenge = createHash('sha256').update(verifier).digest('base64url').replace(/=/g, '');
+    canvaOAuth.createState(state, authenticatedAccount, verifier);
+    const authorize = new URL('https://www.canva.com/api/oauth/authorize');
+    authorize.search = new URLSearchParams({
+      response_type: 'code',
+      client_id: canvaClientId,
+      redirect_uri: canvaRedirectUri,
+      scope: 'design:content:write asset:write',
+      code_challenge_method: 'S256',
+      code_challenge: challenge,
+      state
+    }).toString();
+    res.writeHead(302, { Location: authorize.toString(), 'Cache-Control': 'no-store' });
+    return res.end();
+  }
 
   const v2Account = authenticatedAccount;
   const v2Language = (value, sample = '') => {
