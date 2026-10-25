@@ -284,7 +284,7 @@ async function loadWorkspace(showLoading=true) {
   profileChips(state.dashboard.activeProject);
   renderIdeas();
   if(state.analysis)renderAnalysis(state.analysis);else $('analysisPanel').classList.add('hidden');
-  renderDashboard(); renderPartnerContext(); syncProductSelectors(); renderSaved(); renderExistingProduct(); renderBrand(state.dashboard.brand); renderFactoryAssets();
+  renderDashboard(); renderPartnerContext(); syncProductSelectors(); renderSaved(); renderSavedVideos(state.dashboard.outputs||[]); renderExistingProduct(); renderBrand(state.dashboard.brand); renderFactoryAssets();
   if (state.dashboard.activeProject) notice(state.health.v2AiReady
     ? `Workspace ready. ${state.health.v2AiProvider} live AI is enabled for business strategy.`
     : `Workspace ready. Local templates are active; this is simulated output, not live AI. ${state.health.v2AiProvider} is not being called.`,'success');
@@ -666,6 +666,70 @@ function renderReel(r) {
   const list=document.createElement('div');list.className='output-list';[['Caption',r.caption],['CTA',r.cta],['On-screen text',(r.onScreenText||[]).join(' · ')]].forEach(([k,v])=>{const d=document.createElement('div');d.innerHTML='<strong></strong><span></span>';d.querySelector('strong').textContent=k;d.querySelector('span').textContent=v;list.append(d);});root.append(list);
 }
 
+function renderSavedVideos(outputs=[]){
+  const root=$('reelVideoResult');if(!root)return;
+  root.replaceChildren();
+  const capability=state.health?.video;
+  const button=$('generateReelVideo');
+  const note=$('videoCapabilityNote');
+  if(button)button.disabled=!capability?.providerConnected;
+  if(note)note.textContent=capability?.providerConnected
+    ? 'Creates one 10-second vertical clip through HeyGen. Each generation is a paid API request; estimated cost is about $0.10 at the current promotional 480p rate or about $0.20 at standard 480p pricing. The provider sets the final charge.'
+    : 'Your Reel script is free. Creating the actual video needs a HeyGen API key and video spending enabled by the owner; video generation is not connected in this preview.';
+  const jobs=outputs.filter(item=>item.type==='ai-video');
+  if(!jobs.length){
+    const p=document.createElement('p');p.className='factory-hint';p.textContent='No video clips have been generated for this project yet.';root.append(p);return;
+  }
+  for(const job of jobs){
+    const card=document.createElement('article');card.className='market-evidence-item';
+    const heading=document.createElement('h3');heading.textContent=job.title||'Video ad';
+    const status=document.createElement('p');status.textContent='Status: '+(job.payload?.status||'pending');
+    card.append(heading,status);
+    if(job.payload?.videoUrl){
+      const video=document.createElement('video');video.controls=true;video.playsInline=true;video.src=job.payload.videoUrl;video.setAttribute('aria-label',heading.textContent);
+      const link=document.createElement('a');link.href=job.payload.videoUrl;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open or download video';
+      card.append(video,link);
+    }else if(['failed','cancelled'].includes(job.payload?.status)){
+      const error=document.createElement('p');error.textContent=job.payload?.failureMessage||job.payload?.failureCode||'Video generation did not complete.';card.append(error);
+    }else if(capability?.providerConnected){
+      const check=document.createElement('button');check.type='button';check.className='secondary';check.textContent='Check video status';
+      check.addEventListener('click',async()=>{
+        check.disabled=true;check.textContent='Checking…';
+        try{await pollSavedVideo(job.payload.videoId);}catch(error){notice(error.message,'error');}
+        finally{check.disabled=false;check.textContent='Check video status';}
+      });card.append(check);
+    }
+    root.append(card);
+  }
+}
+async function pollSavedVideo(videoId,waitForCompletion=false){
+  const root=$('reelVideoResult');
+  for(let attempt=0;attempt<(waitForCompletion?20:1);attempt++){
+    if(waitForCompletion&&attempt>0)await new Promise(resolve=>setTimeout(resolve,6000));
+    const query=new URLSearchParams({projectId:state.activeProjectId,videoId});
+    const data=await api('/api/v2/reels/video?'+query.toString());
+    await loadWorkspace(false);
+    if(!waitForCompletion||['completed','failed','cancelled'].includes(data.status))return data;
+    if(root)root.setAttribute('data-video-status',data.status);
+  }
+  notice('The video is still processing. Use “Check video status” later.','info');
+  return null;
+}
+$('generateReelVideo').addEventListener('click',async()=>{
+  if(!state.activeProjectId){notice('Create or select a project first.','error');return;}
+  const productId=$('reelProductSelect').value;if(!productId){notice('Create a product first.','error');return;}
+  const agreed=window.confirm('This will send a paid HeyGen request for one 10-second 480p video. Estimated cost is about $0.10 at the current promotional rate or about $0.20 at standard pricing. Continue?');
+  if(!agreed)return;
+  const button=$('generateReelVideo');button.disabled=true;
+  try{
+    notice('Submitting the paid video request…');
+    const data=await api('/api/v2/reels/video',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,productId,language:$('reelLanguage').value})});
+    await loadWorkspace(false);
+    notice('Video request submitted. The project will save its status and video link.','success');
+    await pollSavedVideo(data.videoId,true);
+  }catch(error){notice(error.message,'error');}
+  finally{button.disabled=!state.health?.video?.providerConnected;}
+});
 $('generateBrand').addEventListener('click',async()=>{
   const productId=$('brandProductSelect').value;if(!productId){notice('Create a product first.','error');return;}
   try{
