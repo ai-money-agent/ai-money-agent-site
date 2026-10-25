@@ -170,6 +170,7 @@ function renderSaved() {
     row.addEventListener('click',()=>{
       if(o.type==='ad-pack'){renderAds(o.payload);showView('ads');}
       else if(o.type==='reel'){renderReel(o.payload);showView('reels');}
+      else if(o.type==='sales-listing'){renderSalesListing(o.payload);showView('product');}
       else showView('dashboard');
     });
     oRoot.append(row);
@@ -284,7 +285,7 @@ async function loadWorkspace(showLoading=true) {
   profileChips(state.dashboard.activeProject);
   renderIdeas();
   if(state.analysis)renderAnalysis(state.analysis);else $('analysisPanel').classList.add('hidden');
-  renderDashboard(); renderPartnerContext(); syncProductSelectors(); renderSaved(); renderSavedVideos(state.dashboard.outputs||[]); renderExistingProduct(); renderBrand(state.dashboard.brand); renderFactoryAssets();
+  renderDashboard(); renderPartnerContext(); syncProductSelectors(); renderSaved(); renderSavedVideos(state.dashboard.outputs||[]); renderExistingProduct(); const savedListing=(state.dashboard.outputs||[]).find(item=>item.type==='sales-listing'); if(savedListing)renderSalesListing(savedListing.payload); renderBrand(state.dashboard.brand); renderFactoryAssets();
   if (state.dashboard.activeProject) notice(state.health.v2AiReady
     ? `Workspace ready. ${state.health.v2AiProvider} live AI is enabled for business strategy.`
     : `Workspace ready. Local templates are active; this is simulated output, not live AI. ${state.health.v2AiProvider} is not being called.`,'success');
@@ -609,6 +610,41 @@ $('factoryForm').addEventListener('submit',async e=>{
     showFactoryPreview(data.asset);
     notice('File created and saved to this project: '+data.asset.filename,'success');
   }catch(err){notice(err.message,'error');}
+});
+function renderSalesListing(listing){
+  const root=$('productListingResult');if(!root)return;
+  root.replaceChildren();
+  if(!listing)return;
+  const ar=containsArabic([listing.title,listing.description].join(' '));
+  const labels=ar
+    ? {title:'العنوان',subtitle:'العنوان الفرعي',description:'الوصف',problem:'مشكلة العميل',outcome:'النتيجة',included:'ما يتضمنه العرض',benefits:'الفائدة',audience:'الجمهور',price:'السعر',cta:'دعوة الإجراء',keywords:'كلمات البحث',notes:'قبل النشر'}
+    : {title:'Title',subtitle:'Subtitle',description:'Description',problem:'Customer problem',outcome:'Outcome',included:'Included',benefits:'Benefits',audience:'Audience',price:'Price',cta:'Call to action',keywords:'Search keywords',notes:'Review before publishing'};
+  const h=document.createElement('h3');h.textContent=listing.title||labels.title;root.append(h);
+  const entries=[
+    [labels.subtitle,listing.subtitle],[labels.description,listing.description],[labels.problem,listing.customerProblem],
+    [labels.outcome,listing.customerOutcome],[labels.included,listing.included],[labels.benefits,(listing.benefits||[]).join('\n')],
+    [labels.audience,listing.audience],[labels.price,listing.price],[labels.cta,listing.callToAction],
+    [labels.keywords,(listing.searchKeywords||[]).join(', ')],[labels.notes,(listing.reviewNotes||[]).join('\n')]
+  ];
+  const copyText=entries.filter(([,value])=>value).map(([label,value])=>label+': '+value).join('\n\n');
+  const copy=document.createElement('button');copy.type='button';copy.className='secondary';copy.textContent=ar?'نسخ نص العرض':'Copy listing text';
+  copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(copyText);notice(ar?'تم نسخ مسودة العرض.':'Listing draft copied.','success');}catch{notice(ar?'تعذر النسخ؛ حدّد النص وانسخه يدويًا.':'Copy unavailable; select and copy the text manually.','error');}});
+  root.append(copy);
+  for(const [label,value] of entries){if(!value)continue;const section=document.createElement('section');section.className='listing-field';const strong=document.createElement('strong');strong.textContent=label;const p=document.createElement('p');p.textContent=value;section.append(strong,p);root.append(section);}
+}
+$('generateListing').addEventListener('click',async()=>{
+  if(!state.activeProjectId){notice('Create or select a project first.','error');return;}
+  const productId=state.currentProduct?.id;
+  if(!productId){notice('Build or select a product first.','error');return;}
+  const button=$('generateListing');button.disabled=true;
+  try{
+    notice('Preparing a sales listing draft for review…');
+    const language=containsArabic(state.currentProduct.name)?'ar':profileLanguage();
+    const data=await api('/api/v2/listing/generate',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,productId,language})});
+    renderSalesListing(data.listing);await loadWorkspace(false);
+    notice('Sales listing draft saved. It has not been published.','success');
+  }catch(error){notice(error.message,'error');}
+  finally{button.disabled=false;}
 });
 $('productForm').addEventListener('submit',async e=>{
   e.preventDefault();
