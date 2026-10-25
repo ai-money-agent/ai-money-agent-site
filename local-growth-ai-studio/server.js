@@ -277,7 +277,7 @@ async function api(req, res, url) {
       res.writeHead(303, { Location: '/v2?canva=error' });
       return res.end();
     }
-    if (!canvaClientId || !canvaClientSecret || !canvaRedirectUri || !process.env.CANVA_TOKEN_ENCRYPTION_KEY) {
+    if (!canvaClientId || !canvaClientSecret || !canvaRedirectUri || !canvaOAuth.ready()) {
       res.writeHead(303, { Location: '/v2?canva=setup' });
       return res.end();
     }
@@ -820,5 +820,5 @@ const server = http.createServer(async (req,res) => {
 server.requestTimeout = 60000;
 server.listen(PORT,process.env.HOST || '127.0.0.1',() => logEvent('log','server_ready',{ port:PORT, mode:config.liveEnabled ? 'live' : config.allowDemo ? 'demo' : 'disabled', provider:config.provider }));
 process.on('unhandledRejection',(reason) => logEvent('error','unhandled_rejection',{ message:String(reason?.message || reason || 'unknown').slice(0,700) }));
-process.on('SIGTERM',() => server.close(() => { ledger.close(); workspace.close(); process.exit(0); }));
+process.on('SIGTERM',() => server.close(() => { ledger.close(); workspace.close(); canvaOAuth.close(); process.exit(0); }));
 
