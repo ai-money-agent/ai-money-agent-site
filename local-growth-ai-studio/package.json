@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node --env-file-if-exists=.env server.js",
-    "test": "node --check server.js && node --check public/v2.js && node --check public/research-links.js && node --check lib/market-search.js && node --check lib/v2-ai.js && node --check lib/digital-product-factory.js && node --check lib/business-planner.js && node --test tests/core.test.mjs tests/ui-static.test.mjs tests/frontend.test.mjs tests/v2.test.mjs tests/digital-product-factory.test.mjs tests/business-planner.test.mjs tests/research-links.test.mjs tests/market-search.test.mjs && node tests/smoke.mjs"
+    "test": "node --check server.js && node --check public/v2.js && node --check public/research-links.js && node --check lib/market-search.js && node --check lib/v2-ai.js && node --check lib/digital-product-factory.js && node --check lib/business-planner.js && node --check lib/video.js && node --test tests/core.test.mjs tests/ui-static.test.mjs tests/frontend.test.mjs tests/v2.test.mjs tests/digital-product-factory.test.mjs tests/business-planner.test.mjs tests/research-links.test.mjs tests/market-search.test.mjs tests/video.test.mjs && node tests/smoke.mjs"
   },
   "engines": {
     "node": ">=24"
