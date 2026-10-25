@@ -379,7 +379,7 @@ function renderIdeas() {
 async function analyzeIdeaNow(idea) {
   try{
     state.selectedIdea=idea;renderIdeas();notice('Analyzing idea…');
-    const data=await api('/api/v2/research/analyze',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,idea,language:profileLanguage()})});
+    const data=await api('/api/v2/research/analyze',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,idea,language:profileLanguage(),includeMarketEvidence:true})});
     state.analysis=data.analysis;renderAnalysis(data.analysis);await loadWorkspace(false);notice('Idea analysis saved to the project.','success');
   }catch(e){notice(e.message,'error');}
 }
@@ -512,6 +512,25 @@ function renderAnalysis(a) {
   const mk=(title,arr)=>{const sec=document.createElement('section');const h4=document.createElement('h4');h4.textContent=title;const ul=document.createElement('ul');(arr||[]).forEach(v=>{const li=document.createElement('li');li.textContent=v;ul.append(li);});sec.append(h4,ul);return sec;};
   cols.append(mk('Customer problems',a.customerProblems),mk('Selling angles',a.sellingAngles),mk('Differentiation',a.differentiationOpportunities),mk('Validation plan',a.validationPlan));root.append(cols);
   const foot=document.createElement('small');foot.textContent=a.dataStatus||'';root.append(foot);
+  if(a.marketEvidence){
+    const evidence=document.createElement('section');evidence.className='plan-result-section';
+    const heading=document.createElement('h4');heading.textContent=profileLanguage()==='ar'?'مصادر المنافسين والسوق عالميًا':'Global market and competitor sources';
+    const status=document.createElement('p');status.textContent=a.dataStatus||a.marketEvidence.message||'';
+    evidence.append(heading,status);
+    if(a.marketEvidence.available){
+      const disclaimer=document.createElement('small');disclaimer.textContent=profileLanguage()==='ar'?'هذه دلائل بحث أولية؛ تحقق من الطلب والسعر والصفحة الأصلية.':'Search leads only; verify demand, pricing and the original page.';
+      evidence.append(disclaimer);
+      for(const source of a.marketEvidence.sources||[]){
+        const item=document.createElement('article');item.className='market-evidence-item';
+        const link=document.createElement('a');link.textContent=source.title;link.href=source.url;link.target='_blank';link.rel='noopener noreferrer';
+        const excerpt=document.createElement('p');excerpt.textContent=source.excerpt;
+        item.append(link,excerpt);evidence.append(item);
+      }
+    }else{
+      const message=document.createElement('p');message.textContent=a.marketEvidence.message||'Live research is not configured; no web request was made.';evidence.append(message);
+    }
+    root.append(evidence);
+  }
   const next=document.createElement('button');next.className='secondary';next.type='button';next.textContent='Plan costs & launch';
   next.addEventListener('click',()=>{const idea=state.selectedIdea;if(idea){fillLaunchForm(null,state.dashboard?.activeProject);const mapped=idea.type==='ecommerce'?'physical':idea.type;if(['digital','physical','service','dropshipping','print_on_demand'].includes(mapped))$('launchBusinessType').value=mapped;$('launchProductName').value=idea.name||'';$('launchAudience').value=idea.targetCustomer||'';$('launchOutcome').value=idea.promise||'';syncLaunchBusinessType();}showView('business');});
   root.append(next);
