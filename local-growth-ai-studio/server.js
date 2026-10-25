@@ -326,7 +326,7 @@ async function api(req, res, url) {
     return json(res, 200, { ok: true, connected: canvaOAuth.hasToken(authenticatedAccount) });
   }
   if (req.method === 'GET' && url.pathname === '/api/canva/connect') {
-    if (!canvaClientId || !canvaRedirectUri || !process.env.CANVA_TOKEN_ENCRYPTION_KEY) {
+    if (!canvaClientId || !canvaClientSecret || !canvaRedirectUri || !canvaOAuth.ready()) {
       return json(res, 503, { ok: false, error: 'Canva connection is not configured on the server yet.' });
     }
     const state = randomBytes(32).toString('base64url');
