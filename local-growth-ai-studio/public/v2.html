@@ -17,7 +17,6 @@
     <div class="top-meta">
       <span id="v2Engine" class="badge">Strategy Engine</span>
       <a class="legacy-link" href="/">Creative MVP</a>
-      <a class="legacy-link" href="/api/canva/connect">Connect Canva</a>
       <button id="signOutButton" class="ghost sign-out hidden" type="button">Sign out</button>
     </div>
   </header>
@@ -259,6 +258,8 @@
           <label>Language<select id="adsLanguage"><option value="en">English</option><option value="ar">العربية</option></select></label>
         </div>
         <div id="adsGrid" class="ad-grid"></div>
+        <p id="bannerbearNotice" class="bannerbear-notice" role="status">Bannerbear will render designs from this phone after the server API and template are configured. No Canva connection is needed.</p>
+        <div id="adDesignResults" class="ad-design-results" aria-live="polite"></div>
       </section>
 
       <section class="view" data-view-panel="reels">
@@ -313,7 +314,7 @@
         <label>Project name<input id="newProjectName" maxlength="120" placeholder="e.g. First online income project" /></label>
         <label>Country<input id="newCountry" maxlength="80" placeholder="Lebanon" required /></label>
         <label>Budget<input id="newBudget" maxlength="80" placeholder="e.g. $0–50" required /></label>
-        <label>Skills<input id="newSkills" maxlength="300" placeholder="e.g. Canva, sales, teaching, beginner" required /></label>
+        <label>Skills<input id="newSkills" maxlength="300" placeholder="e.g. design, sales, teaching, beginner" required /></label>
         <label>Time available<input id="newTime" maxlength="80" placeholder="e.g. 2 hours/day" required /></label>
         <label>Business model<select id="newBusinessType"><option value="unsure">Not sure</option><option value="digital">Digital product</option><option value="physical">Physical product</option><option value="service">Service</option><option value="dropshipping">Dropshipping</option><option value="print_on_demand">Print on demand</option></select></label>
         <label>Market<select id="newMarketScope"><option value="unsure">Not sure</option><option value="local">Local</option><option value="global">Global</option><option value="both">Local + Global</option></select></label>
