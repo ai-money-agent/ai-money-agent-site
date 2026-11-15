@@ -685,6 +685,25 @@ $('productForm').addEventListener('submit',async e=>{
   }catch(err){notice(err.message,'error');}
 });
 
+async function loadBannerbearStatus(){
+  const note=$('bannerbearNotice');
+  if(!note)return;
+  try{
+    const data=await api('/api/v2/designs/status');
+    note.textContent=data.available
+      ? 'Bannerbear is connected. Choose Create design on an ad to render and save its creative.'
+      : 'Bannerbear is not configured yet. Add the API key and template UID on the server; then create designs from this phone.';
+  }catch(e){note.textContent='Bannerbear status is unavailable. Sign in again and reload this page.';}
+}
+function renderAdDesign(design){
+  const root=$('adDesignResults');
+  const card=document.createElement('article');card.className='card ad-design-card';
+  const title=document.createElement('h3');title.textContent=design.headline||'Generated ad design';
+  const img=document.createElement('img');img.src=design.imageUrl;img.alt=design.headline||'Generated marketing design';img.loading='lazy';
+  const actions=document.createElement('div');actions.className='ad-design-actions';
+  const download=document.createElement('a');download.href=design.imageUrl;download.target='_blank';download.rel='noopener';download.textContent='Open or download PNG';download.className='secondary';
+  actions.append(download);card.append(title,img,actions);root.prepend(card);
+}
 $('generateAds').addEventListener('click',async()=>{
   const productId=$('adsProductSelect').value;if(!productId){notice('Create a product first.','error');return;}
   try{
@@ -703,7 +722,22 @@ function renderAds(pack) {
     const desc=document.createElement('small');desc.textContent=`${v.description} · CTA: ${v.cta}`;
     const why=document.createElement('small');why.textContent=`Why test it: ${v.why}`;
     const visual=document.createElement('small');visual.textContent=`Visual: ${v.visualConcept}`;
-    card.append(angle,h,p,desc,why,visual);root.append(card);
+    const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='Create design';
+    button.addEventListener('click',async()=>{
+      const productId=$('adsProductSelect').value;
+      if(!state.activeProjectId||!productId){notice('Choose a project and product first.','error');return;}
+      button.disabled=true;button.textContent='Rendering…';
+      try{
+        notice('Rendering your design with Bannerbear…');
+        const data=await api('/api/v2/designs/generate',{method:'POST',body:JSON.stringify({
+          projectId:state.activeProjectId,productId,language:$('adsLanguage').value,
+          headline:v.headline,primaryText:v.primaryText,cta:v.cta,visualConcept:v.visualConcept
+        })});
+        renderAdDesign(data.design);notice('Design created and saved to this project.','success');
+      }catch(error){notice(error.message,'error');}
+      finally{button.disabled=false;button.textContent='Create design';}
+    });
+    card.append(angle,h,p,desc,why,visual,button);root.append(card);
   });
 }
 
@@ -841,7 +875,7 @@ async function boot() {
     }
     $('signOutButton').classList.remove('hidden');
     $('loginPanel').classList.add('hidden');$('studioApp').classList.remove('hidden');
-    await loadRecipes();await loadWorkspace();
+    await loadRecipes();await loadWorkspace();await loadBannerbearStatus();await loadBannerbearStatus();
   }catch(e){
     $('loginPanel').classList.remove('hidden');$('loginPanel').querySelector('p').textContent='The Studio backend is unavailable. '+e.message;
   }
