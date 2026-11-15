@@ -875,7 +875,7 @@ async function boot() {
     }
     $('signOutButton').classList.remove('hidden');
     $('loginPanel').classList.add('hidden');$('studioApp').classList.remove('hidden');
-    await loadRecipes();await loadWorkspace();await loadBannerbearStatus();await loadBannerbearStatus();
+    await loadRecipes();await loadWorkspace();await loadBannerbearStatus();
   }catch(e){
     $('loginPanel').classList.remove('hidden');$('loginPanel').querySelector('p').textContent='The Studio backend is unavailable. '+e.message;
   }
@@ -884,7 +884,7 @@ $('loginForm').addEventListener('submit',async e=>{
   e.preventDefault();$('loginError').textContent='';
   try{
     await api('/api/session',{method:'POST',body:JSON.stringify({accessCode:$('loginCode').value})});
-    $('loginCode').value='';$('signOutButton').classList.remove('hidden');$('loginPanel').classList.add('hidden');$('studioApp').classList.remove('hidden');await loadRecipes();await loadWorkspace();
+    $('loginCode').value='';$('signOutButton').classList.remove('hidden');$('loginPanel').classList.add('hidden');$('studioApp').classList.remove('hidden');await loadRecipes();await loadWorkspace();await loadBannerbearStatus();
   }catch(err){$('loginError').textContent=err.message;}
 });
 $('signOutButton').addEventListener('click',async()=>{
