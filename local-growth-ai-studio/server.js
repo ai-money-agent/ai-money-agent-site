@@ -491,7 +491,7 @@ async function api(req, res, url) {
       context:{project,profile:project.profile,research:latestResearch,existingProduct,recentPartnerMessages:recentMessages,requestedLanguage:language},
       language,
       timeoutMs:90000,
-      maxOutputTokens:2400,
+      maxOutputTokens:7000,
       fallback:()=>template
     },config);
     if (generated.engine === 'local') throw failure('Live AI is not enabled for product writing. No product file was created.',503);
