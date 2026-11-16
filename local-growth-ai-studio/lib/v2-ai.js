@@ -61,10 +61,10 @@ function providerConfig(config, provider) {
   throw new Error('Unsupported V2 AI provider.');
 }
 
-function providerRequest(provider, model, operation, context, language, template, schema) {
+function providerRequest(provider, model, operation, context, language, template, schema, maxOutputTokens = 4000) {
   const system = `You are the business partner inside Local Growth AI Studio. Complete the requested ${operation} using the user's project context. Return useful, specific, concise ${language === 'ar' ? 'Arabic' : 'English'} content. The supplied template defines the exact output structure; improve its content rather than copying it. Never claim you searched the live web or know current demand, competitor prices, or trends unless a source lead is supplied. When live source excerpts are supplied, treat them only as unverified leads; use them to shape research hypotheses and never present them as proof of demand, current prices, or sales. If no sources are supplied, do not imply live research. Never invent market statistics, earnings guarantees, testimonials, scarcity, or facts not supported by the user or supplied sources.`;
   if (provider === 'openai') return {
-    model, store: false, max_output_tokens: 4000,
+    model, store: false, max_output_tokens: maxOutputTokens,
     input: [
       { role: 'system', content: system },
       { role: 'user', content: JSON.stringify({ operation, context, requiredOutputShape: template }) }
@@ -72,7 +72,7 @@ function providerRequest(provider, model, operation, context, language, template
     text: { format: { type: 'json_schema', name: 'local_growth_v2_result', strict: true, schema } }
   };
   return {
-    model, max_tokens: 4000, system,
+    model, max_tokens: maxOutputTokens, system,
     messages: [{ role: 'user', content: JSON.stringify({ operation, context, requiredOutputShape: template }) }],
     output_config: { format: { type: 'json_schema', schema } }
   };
@@ -89,7 +89,7 @@ function extractProviderText(provider, data) {
     .map(part => part.text).join('\n').trim();
 }
 
-export async function generateV2({ operation, context, fallback, language = 'en' }, config) {
+export async function generateV2({ operation, context, fallback, language = 'en', timeoutMs = 45000, maxOutputTokens = 4000 }, config) {
   const provider = config?.provider || 'openai';
   const selected = providerConfig(config, provider);
   if (config?.liveEnabled !== true || !selected.ready) return { value: fallback(), engine: 'local' };
@@ -99,9 +99,9 @@ export async function generateV2({ operation, context, fallback, language = 'en'
   const model = provider === 'openai' ? config.openaiModel : config.anthropicModel;
   const response = await fetch(selected.url, {
     method: 'POST',
-    signal: AbortSignal.timeout(45000),
+    signal: AbortSignal.timeout(timeoutMs),
     headers: selected.headers,
-    body: JSON.stringify(providerRequest(provider, model, operation, context, language, template, schema))
+    body: JSON.stringify(providerRequest(provider, model, operation, context, language, template, schema, maxOutputTokens))
   });
   let data;
   try { data = await response.json(); }
