@@ -56,7 +56,7 @@ function render(){const d=stateFromForm(),svg=svgFor(d);$('designCanvas').innerH
 function selectPreset(){
  const p=presets[value('designType')];if(!p)return;
  $('designWidth').value=p.w;$('designHeight').value=p.h;$('designUnit').value=p.unit;
- if(value('designType')==='label'||value('designType')==='insert')$('designPrintNote').classList.remove('hidden');else $('designPrintNote').classList.add('hidden');
+ if(['label','insert','businesscard','pricetag'].includes(value('designType')))$('designPrintNote').classList.remove('hidden');else $('designPrintNote').classList.add('hidden');
  render();
 }
 function slug(s){return (s||'design').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,45)||'design'}
