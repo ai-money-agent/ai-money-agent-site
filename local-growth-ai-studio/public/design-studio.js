@@ -7,7 +7,12 @@ const presets = {
   cover:{label:'Book / ebook cover',w:1600,h:2560,unit:'px',tag:'COVER'},
   label:{label:'Product label · print file',w:80,h:120,unit:'mm',tag:'PRODUCT LABEL'},
   insert:{label:'Package insert · A5',w:148,h:210,unit:'mm',tag:'THANK YOU'},
-  slide:{label:'Presentation slide · 16:9',w:1920,h:1080,unit:'px',tag:'PRESENTATION'}
+  slide:{label:'Presentation slide · 16:9',w:1920,h:1080,unit:'px',tag:'PRESENTATION'},
+  banner:{label:'Web / store banner',w:1920,h:640,unit:'px',tag:'BANNER'},
+  businesscard:{label:'Business card · print file',w:90,h:50,unit:'mm',tag:'BUSINESS CARD'},
+  catalog:{label:'Catalog / brochure page · A4',w:2480,h:3508,unit:'px',tag:'CATALOG'},
+  pricetag:{label:'Product price tag · print file',w:60,h:90,unit:'mm',tag:'PRICE TAG'},
+  logo:{label:'Logo / wordmark',w:1200,h:600,unit:'px',tag:'BRAND'}
 };
 let photoData='';
 let savedDesigns=[];
@@ -22,6 +27,10 @@ function stateFromForm(){
 function wrap(text,max){const words=String(text).split(/\s+/);const out=[];let line='';for(const word of words){const next=line?line+' '+word:word;if(next.length>max&&line){out.push(line);line=word}else line=next}if(line)out.push(line);return out.slice(0,4)}
 function svgFor(d){
  const w=d.w,h=d.h,short=Math.min(w,h),pad=short*.075;
+ if(d.type==='logo'){
+  const name=esc(d.brand||d.title||'YOUR BRAND'),tag=esc(d.subtitle||'');
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="'+d.w+d.unit+'" height="'+d.h+d.unit+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+name+' logo"><rect width="'+w+'" height="'+h+'" rx="'+(short*.12)+'" fill="'+esc(d.color)+'"/><circle cx="'+(w*.24)+'" cy="'+(h*.5)+'" r="'+(h*.25)+'" fill="'+esc(d.accent)+'"/><path d="M '+(w*.13)+' '+(h*.52)+' L '+(w*.22)+' '+(h*.62)+' L '+(w*.36)+' '+(h*.37)+'" fill="none" stroke="'+esc(d.color)+'" stroke-width="'+(h*.035)+'" stroke-linecap="round" stroke-linejoin="round"/><text x="'+(w*.43)+'" y="'+(h*.48)+'" dominant-baseline="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+(h*.12)+'" font-weight="700">'+name+'</text><text x="'+(w*.43)+'" y="'+(h*.69)+'" fill="'+esc(d.accent)+'" font-family="Arial,sans-serif" font-size="'+(h*.055)+'" letter-spacing="2">'+tag+'</text></svg>';
+ }
  const font=short*.052,titleSize=short*.082;
  const titleLines=wrap(d.title||'Your product title',Math.max(14,Math.floor(w/(font*.65))));
  const subLines=wrap(d.subtitle||'A clear promise for the right customer.',Math.max(22,Math.floor(w/(font*.82))));
