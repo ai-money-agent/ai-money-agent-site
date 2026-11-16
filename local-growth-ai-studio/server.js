@@ -465,6 +465,86 @@ async function api(req, res, url) {
     const product = workspace.saveProduct(v2Account,project.id,blueprint);
     return json(res,201,{ok:true,product,aiEngine:generated.engine});
   }
+  if (req.method === 'POST' && url.pathname === '/api/v2/products/generate-file') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const latestResearch = workspace.latestResearch(v2Account,project.id)?.payload || null;
+    const existingProducts = workspace.listProducts(v2Account,project.id);
+    const existingProduct = existingProducts[0] || null;
+    const recentMessages = workspace.messages(v2Account,project.id,12).slice(-8);
+    const language = v2Language(body.language,'Digital Product Launch Guide');
+    const template = {
+      title: existingProduct?.name || project.name || 'Digital Product Launch Guide',
+      topic: existingProduct?.description || 'A beginner-friendly guide to planning, creating, pricing, and launching a first digital product',
+      audience: existingProduct?.audience || 'Beginners who want to sell digital products online',
+      problem: existingProduct?.problem || 'The reader is unsure how to turn an idea into a useful first digital product and launch it responsibly.',
+      outcome: existingProduct?.outcome || 'The reader leaves with a practical first-product plan and clear launch steps.',
+      sections: Array.from({length:8},(_,index)=>({
+        heading:`Chapter ${index+1}`,
+        paragraphs:['Explain the chapter clearly with practical, accurate guidance.','Include one concrete example without inventing results or market facts.','Connect this chapter to the reader’s next step.'],
+        actions:['One practical action the reader can complete.','One check to confirm the action is complete.'],
+        exercise:'A short worksheet prompt with space for the reader to apply the guidance.'
+      }))
+    };
+    const generated = await generateV2({
+      operation:'write a complete, useful, beginner-friendly digital product guide as a finished manuscript, not a plan or outline. Use the requested product context and recent partner messages. Produce eight substantive chapters with clear explanations, concrete steps, examples, and a practical exercise in each chapter. Do not mention internal tools, saving limitations, or that the content is only proposed. Do not make unsupported guarantees or market claims.',
+      context:{project,profile:project.profile,research:latestResearch,existingProduct,recentPartnerMessages:recentMessages,requestedLanguage:language},
+      language,
+      fallback:()=>template
+    },config);
+    if (generated.engine === 'local') throw failure('Live AI is not enabled for product writing. No product file was created.',503);
+    const manuscript=generated.value;
+    if (!manuscript.title || !manuscript.topic || !Array.isArray(manuscript.sections) || manuscript.sections.length < 6 || manuscript.sections.length > 12) {
+      throw failure('The AI manuscript was incomplete. No product file was created.',502);
+    }
+    const sections=manuscript.sections.map((section,index)=>({
+      heading:String(section.heading||`Chapter ${index+1}`).trim().slice(0,140),
+      paragraphs:(Array.isArray(section.paragraphs)?section.paragraphs:[]).slice(0,6).map(item=>String(item).trim()).filter(Boolean),
+      actions:(Array.isArray(section.actions)?section.actions:[]).slice(0,5).map(item=>String(item).trim()).filter(Boolean),
+      exercise:String(section.exercise||'').trim().slice(0,1200)
+    }));
+    if(sections.some(section=>section.paragraphs.length<2 || section.actions.length<1 || !section.exercise)) {
+      throw failure('The AI manuscript was missing chapter content. No product file was created.',502);
+    }
+    const product=workspace.saveProduct(v2Account,project.id,{
+      name:String(manuscript.title).trim().slice(0,160),type:'digital',audience:String(manuscript.audience||'').trim().slice(0,300),
+      problem:String(manuscript.problem||'').trim().slice(0,700),outcome:String(manuscript.outcome||'').trim().slice(0,700),
+      description:String(manuscript.topic).trim().slice(0,1000),currency:'USD',price:null,
+      manuscript:{language,sections,generatedBy:generated.engine,createdAt:new Date().toISOString()}
+    });
+    let artifact;
+    try {
+      artifact=createDigitalProduct({
+        type:'ebook',title:manuscript.title,topic:manuscript.topic,audience:manuscript.audience,
+        outcome:manuscript.outcome,language,pages:sections.length,contentPages:sections
+      });
+    } catch(error) {
+      throw failure(error.message||'Could not format the AI manuscript.',422);
+    }
+    const extension=artifact.filename.split('.').pop();
+    const filePath=join(productFilesRoot,artifact.id+'.'+extension);
+    await mkdir(productFilesRoot,{recursive:true,mode:0o700});
+    await writeFile(filePath,artifact.buffer,{flag:'wx',mode:0o600});
+    let previewFileId=artifact.id,previewExtension=extension;
+    if(artifact.preview?.buffer&&artifact.preview.buffer!==artifact.buffer){
+      previewFileId=randomUUID();previewExtension=artifact.preview.filename.split('.').pop();
+      await writeFile(join(productFilesRoot,previewFileId+'.'+previewExtension),artifact.preview.buffer,{flag:'wx',mode:0o600});
+    }
+    let saved;
+    try {
+      saved=workspace.saveOutput(v2Account,project.id,'digital-product',artifact.filename,{
+        productId:product.id,fileId:artifact.id,filename:artifact.filename,extension,contentType:artifact.contentType,
+        pages:artifact.pages||null,type:'ebook',label:'AI-written manuscript saved as a PDF and interactive mobile companion.',
+        previewFileId,previewFilename:artifact.preview?.filename||artifact.filename,
+        previewContentType:artifact.preview?.contentType||artifact.contentType,previewExtension
+      });
+    } catch(error) {
+      await unlink(filePath).catch(()=>{});
+      if(previewFileId!==artifact.id)await unlink(join(productFilesRoot,previewFileId+'.'+previewExtension)).catch(()=>{});
+      throw error;
+    }
+    return json(res,201,{ok:true,product,aiEngine:generated.engine,asset:{id:saved.id,fileId:artifact.id,filename:artifact.filename,contentType:artifact.contentType,pages:artifact.pages||null,label:'AI-written manuscript saved as a PDF and interactive mobile companion.',previewFileId,previewFilename:artifact.preview?.filename||artifact.filename,previewContentType:artifact.preview?.contentType||artifact.contentType,createdAt:saved.createdAt}});
+  }
   if (req.method === 'GET' && url.pathname === '/api/v2/factory/assets') {
     const projectId = url.searchParams.get('projectId');
     const project = projectOrFail(projectId);
