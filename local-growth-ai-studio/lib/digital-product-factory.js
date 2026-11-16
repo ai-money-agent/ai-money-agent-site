@@ -142,6 +142,15 @@ function pdfDocument(title, pages, {rtl=false}={}) {
 
 const page = (heading, body) => [heading, ...body.flatMap((line) => wrap(line))];
 function ebookPages(input) {
+  if (Array.isArray(input.contentPages) && input.contentPages.length) {
+    return input.contentPages.slice(0,24).map((section,index)=>{
+      const heading=String(section?.heading||`Section ${index+1}`).trim().slice(0,140);
+      const paragraphs=(Array.isArray(section?.paragraphs)?section.paragraphs:[]).slice(0,8).map(item=>String(item).trim()).filter(Boolean);
+      const actions=(Array.isArray(section?.actions)?section.actions:[]).slice(0,8).map((item,itemIndex)=>`${itemIndex+1}. ${String(item).trim()}`).filter(Boolean);
+      const exercise=String(section?.exercise||'').trim();
+      return page(heading,[...paragraphs,...actions,...(exercise?[input.language==='ar'?'تمرين عملي: '+exercise:'Practical exercise: '+exercise]:[])]);
+    });
+  }
   if (input.language === 'ar') {
     const count = clamp(input.pages??6,1,24);
     const sections = [
