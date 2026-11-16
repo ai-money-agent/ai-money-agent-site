@@ -173,6 +173,7 @@ function renderSaved() {
       if(o.type==='ad-pack'){renderAds(o.payload);showView('ads');}
       else if(o.type==='reel'){renderReel(o.payload);showView('reels');}
       else if(o.type==='sales-listing'){renderSalesListing(o.payload);showView('product');}
+      else if(o.type==='design'){showView('design');}
       else showView('dashboard');
     });
     oRoot.append(row);
