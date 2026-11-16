@@ -547,6 +547,50 @@ async function api(req, res, url) {
     }
     return json(res,201,{ok:true,product,aiEngine:generated.engine,asset:{id:saved.id,fileId:artifact.id,filename:artifact.filename,contentType:artifact.contentType,pages:artifact.pages||null,label:'AI-written manuscript saved as a PDF and interactive mobile companion.',previewFileId,previewFilename:artifact.preview?.filename||artifact.filename,previewContentType:artifact.preview?.contentType||artifact.contentType,createdAt:saved.createdAt}});
   }
+  if (req.method === 'GET' && url.pathname === '/api/v2/designs/list') {
+    const project = projectOrFail(url.searchParams.get('projectId'));
+    const designs = workspace.listOutputs(v2Account,project.id,1000)
+      .filter(item => item.type === 'design')
+      .map(item => ({id:item.id,title:item.title,kind:item.payload?.kind||'Design',createdAt:item.createdAt}));
+    return json(res,200,{ok:true,designs});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/designs/save') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const title = text(body.title,120,'Design title');
+    const kind = text(body.kind,80,'Design type');
+    const svg = text(body.svg,6*1024*1024,'SVG artwork',50);
+    if (!/^<svg\\s+xmlns="http:\/\/www\\.w3\\.org\/2000\/svg"/i.test(svg)
+      || /<script|<foreignObject|javascript:|on[a-z]+\\s*=|<iframe|<object/i.test(svg)
+      || /href="https?:/i.test(svg)) throw failure('The SVG contains unsupported or unsafe artwork.',422);
+    const fileId = randomUUID();
+    const filename = title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,48)||'design';
+    const filePath = join(productFilesRoot,fileId+'.svg');
+    await mkdir(productFilesRoot,{recursive:true,mode:0o700});
+    await writeFile(filePath,svg,{flag:'wx',mode:0o600});
+    let saved;
+    try {
+      saved = workspace.saveOutput(v2Account,project.id,'design',title,{
+        fileId,filename:filename+'.svg',kind,contentType:'image/svg+xml; charset=utf-8',size:Buffer.byteLength(svg)
+      });
+    } catch(error) {
+      await unlink(filePath).catch(()=>{});
+      throw error;
+    }
+    return json(res,201,{ok:true,design:{id:saved.id,title:saved.title,kind,createdAt:saved.createdAt}});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/designs/download') {
+    const project = projectOrFail(url.searchParams.get('projectId'));
+    const id = url.searchParams.get('id')||'';
+    const saved = workspace.listOutputs(v2Account,project.id,1000).find(item=>item.type==='design'&&item.id===id);
+    if (!saved || !/^[0-9a-f-]{36}$/i.test(saved.payload?.fileId||'')) throw failure('Saved design not found in this project.',404);
+    let file;
+    try { file = await readFile(join(productFilesRoot,saved.payload.fileId+'.svg')); }
+    catch { throw failure('The saved design file is missing. Save it again from Design Studio.',404); }
+    const filename=String(saved.payload.filename||'design.svg').replace(/[^a-zA-Z0-9._-]/g,'_');
+    res.writeHead(200,{'Content-Type':'image/svg+xml; charset=utf-8','Content-Disposition':`attachment; filename="${filename}"`,'Content-Length':file.length,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; sandbox"});
+    return res.end(file);
+  }
   if (req.method === 'GET' && url.pathname === '/api/v2/factory/assets') {
     const projectId = url.searchParams.get('projectId');
     const project = projectOrFail(projectId);
