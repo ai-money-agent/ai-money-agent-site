@@ -685,14 +685,22 @@ $('productForm').addEventListener('submit',async e=>{
   }catch(err){notice(err.message,'error');}
 });
 
+function readFileDataUrl(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(String(reader.result||''));
+    reader.onerror=()=>reject(new Error('Could not read the selected product photo.'));
+    reader.readAsDataURL(file);
+  });
+}
 async function loadBannerbearStatus(){
   const note=$('bannerbearNotice');
   if(!note)return;
   try{
     const data=await api('/api/v2/designs/status');
     note.textContent=data.available
-      ? 'Bannerbear is connected. Choose Create design on an ad to render and save its creative.'
-      : 'Bannerbear is not configured yet. Add the API key and template UID on the server; then create designs from this phone.';
+      ? 'Bannerbear is connected. Choose a product photo, then tap Create design on an ad to render and save its creative.'
+      : 'Bannerbear is not configured yet. Add its API key and template UID on the server to create designs from this phone.';
   }catch(e){note.textContent='Bannerbear status is unavailable. Sign in again and reload this page.';}
 }
 function renderAdDesign(design){
@@ -726,12 +734,16 @@ function renderAds(pack) {
     button.addEventListener('click',async()=>{
       const productId=$('adsProductSelect').value;
       if(!state.activeProjectId||!productId){notice('Choose a project and product first.','error');return;}
+      const photo=$('adDesignPhoto').files?.[0];
+      if(!photo){notice('Choose a product photo first.','error');return;}
+      if(photo.size>5*1024*1024){notice('Product photo must be 5 MB or smaller.','error');return;}
       button.disabled=true;button.textContent='Rendering…';
       try{
-        notice('Rendering your design with Bannerbear…');
+        notice('Uploading the product photo and rendering your design…');
+        const imageDataUrl=await readFileDataUrl(photo);
         const data=await api('/api/v2/designs/generate',{method:'POST',body:JSON.stringify({
           projectId:state.activeProjectId,productId,language:$('adsLanguage').value,
-          headline:v.headline,primaryText:v.primaryText,cta:v.cta,visualConcept:v.visualConcept
+          headline:v.headline,primaryText:v.primaryText,cta:v.cta,imageDataUrl
         })});
         renderAdDesign(data.design);notice('Design created and saved to this project.','success');
       }catch(error){notice(error.message,'error');}
