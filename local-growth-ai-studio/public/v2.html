@@ -257,8 +257,12 @@
           <label>Product<select id="adsProductSelect"></select></label>
           <label>Language<select id="adsLanguage"><option value="en">English</option><option value="ar">العربية</option></select></label>
         </div>
+        <div class="ad-photo-upload">
+          <label for="adDesignPhoto">Product photo for the design<input id="adDesignPhoto" type="file" accept="image/jpeg,image/png,image/webp" /></label>
+          <small>Choose a JPG, PNG or WebP image up to 5 MB. It will replace the sample photo in the template.</small>
+        </div>
         <div id="adsGrid" class="ad-grid"></div>
-        <p id="bannerbearNotice" class="bannerbear-notice" role="status">Bannerbear will render designs from this phone after the server API and template are configured. No separate design app connection is needed.</p>
+        <p id="bannerbearNotice" class="bannerbear-notice" role="status">After Bannerbear is configured, upload the product photo and create each ad design from this phone.</p>
         <div id="adDesignResults" class="ad-design-results" aria-live="polite"></div>
       </section>
 
