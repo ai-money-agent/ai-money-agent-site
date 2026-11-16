@@ -12,7 +12,7 @@ import { prepareVideoRequest, videoCapability, createHeyGenVideo, getHeyGenVideo
 import { createDigitalProduct } from './lib/digital-product-factory.js';
 import { buildBusinessLaunchPlan } from './lib/business-planner.js';
 import { searchMarketSources } from './lib/market-search.js';
-import { generateBannerbearImage } from './lib/bannerbear.js';
+import { generateBannerbearImage, uploadBannerbearAsset } from './lib/bannerbear.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const intEnv = (name, fallback, min, max) => {
@@ -605,16 +605,31 @@ async function api(req, res, url) {
     const headline = text(body.headline || '',180,'Ad headline',2);
     const primaryText = text(body.primaryText || '',500,'Ad text',3);
     const cta = text(body.cta || '',80,'Call to action',2);
-    const visualConcept = text(body.visualConcept || 'Product-focused social media creative',500,'Visual concept',1);
+    const imageMatch = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/]+={0,2})$/.exec(body.imageDataUrl || '');
+    if (!imageMatch) throw failure('Choose a JPG, PNG or WebP product photo.',422);
+    const imageBytes = Buffer.from(imageMatch[2],'base64');
+    if (imageBytes.toString('base64') !== imageMatch[2] || imageBytes.length > 5 * 1024 * 1024) {
+      throw failure('Product photo is invalid or larger than 5 MB.',413);
+    }
+    const mimeType = imageMatch[1] === 'jpeg' ? 'image/jpeg' : `image/${imageMatch[1]}`;
+    const validImage = mimeType === 'image/png'
+      ? imageBytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))
+      : mimeType === 'image/jpeg'
+        ? imageBytes[0] === 255 && imageBytes[1] === 216 && imageBytes[2] === 255
+        : imageBytes.toString('ascii',0,4) === 'RIFF' && imageBytes.toString('ascii',8,12) === 'WEBP';
+    if (!validImage) throw failure('Product photo contents do not match its file type.',422);
     let rendered;
+    let photoAsset;
     try {
+      photoAsset = await uploadBannerbearAsset({apiKey:bannerbearConfig.apiKey,bytes:imageBytes,mimeType});
       rendered = await generateBannerbearImage({
         apiKey:bannerbearConfig.apiKey,
         templateUid:bannerbearConfig.templateUid,
         modifications:[
           {name:'title',text:headline},
           {name:'subtitle',text:primaryText},
-          {name:'cta_label',text:cta}
+          {name:'cta_label',text:cta},
+          {name:'image_container_rectangle','background-image':photoAsset.url}
         ]
       });
     } catch(error) {
@@ -627,7 +642,7 @@ async function api(req, res, url) {
       headline,
       primaryText,
       cta,
-      visualConcept,
+      productPhotoAssetUid:photoAsset.uid,
       imageUrl:rendered.imageUrl,
       providerImageId:rendered.uid,
       status:rendered.status
