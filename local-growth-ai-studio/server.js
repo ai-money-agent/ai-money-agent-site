@@ -560,8 +560,8 @@ async function api(req, res, url) {
     const title = text(body.title,120,'Design title');
     const kind = text(body.kind,80,'Design type');
     const svg = text(body.svg,6*1024*1024,'SVG artwork',50);
-    if (!/^<svg\\s+xmlns="http:\/\/www\\.w3\\.org\/2000\/svg"/i.test(svg)
-      || /<script|<foreignObject|javascript:|on[a-z]+\\s*=|<iframe|<object/i.test(svg)
+    if (!/^<svg\s+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/i.test(svg)
+      || /<script|<foreignObject|javascript:|on[a-z]+\s*=|<iframe|<object/i.test(svg)
       || /href="https?:/i.test(svg)) throw failure('The SVG contains unsupported or unsafe artwork.',422);
     const fileId = randomUUID();
     const filename = title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,48)||'design';
