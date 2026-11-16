@@ -617,14 +617,21 @@ $('factoryLanguage').addEventListener('change',syncFactoryControls);
 syncFactoryControls();
 $('generateAiProductFile').addEventListener('click',async()=>{
   if(!state.activeProjectId){openProjectModal();return;}
-  const button=$('generateAiProductFile');button.disabled=true;
+  const button=$('generateAiProductFile'),status=$('aiProductStatus');button.disabled=true;
+  if(status)status.textContent='Generating the manuscript and PDF. Please keep this page open; it may take up to 90 seconds.';
   try{
     notice('Writing a full product draft with live AI. This request may incur provider usage charges.');
-    const data=await api('/api/v2/products/generate-file',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,language:'en'})});
+    const data=await api('/api/v2/products/generate-file',{method:'POST',timeoutMs:105000,body:JSON.stringify({projectId:state.activeProjectId,language:'en'})});
     await loadWorkspace(false);
     showFactoryPreview(data.asset);
-    notice('AI product draft saved to this project: '+data.asset.filename,'success');
-  }catch(error){notice(error.message,'error');}
+    const message='Saved product draft: '+data.asset.filename;
+    if(status)status.textContent=message;
+    notice(message,'success');
+  }catch(error){
+    const message=error.name==='TimeoutError'?'The request took too long. No saved result was confirmed; check Saved product files before trying again.':error.message;
+    if(status)status.textContent='Product draft was not confirmed: '+message;
+    notice(message,'error');
+  }
   finally{button.disabled=false;}
 });
 $('factoryForm').addEventListener('submit',async e=>{
