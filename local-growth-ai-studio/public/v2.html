@@ -7,6 +7,7 @@
   <meta name="description" content="Local Growth AI Studio V2 — AI business partner from idea to launch." />
   <title>Local Growth AI Studio V2</title>
   <link rel="stylesheet" href="/v2.css" />
+  <link rel="stylesheet" href="/design-studio.css" />
 </head>
 <body>
   <header class="topbar">
@@ -46,6 +47,7 @@
         <button class="nav-item" data-view="product"><span>▣</span>Product Builder</button>
         <button class="nav-item" data-view="business"><span>↗</span>Launch Planner</button>
         <button class="nav-item" data-view="ads"><span>◎</span>Ad Studio</button>
+        <button class="nav-item" data-view="design"><span>✧</span>Design Studio</button>
         <button class="nav-item" data-view="reels"><span>▶</span>Reel Generator</button>
         <button class="nav-item" data-view="brand"><span>◇</span>Brand Profile</button>
         <button class="nav-item" data-view="saved"><span>☰</span>Saved Projects</button>
@@ -254,6 +256,36 @@
           <div id="factoryAssets" class="factory-assets" aria-live="polite"></div>
           <div class="factory-next"><span>Next in the journey: set up the offer and advertisement.</span><button class="secondary" type="button" data-go="ads">Continue to Ad Studio</button></div>
         </article>
+      <section class="view" data-view-panel="design">
+        <div class="section-head">
+          <div><span class="kicker">DESIGN STUDIO</span><h1>Design digital and physical products.</h1><p>Create editable artwork for social posts, product listings, labels, packaging inserts, flyers, covers and slides. No paid image service is called.</p></div>
+        </div>
+        <div class="design-workspace">
+          <article class="card design-controls">
+            <label>Design type<select id="designType">
+              <option value="social">Social post · square</option><option value="story">Story / Reel cover</option><option value="marketplace">Product listing image</option><option value="flyer">Flyer · A4 portrait</option><option value="cover">Book / ebook cover</option><option value="label">Product label · print file</option><option value="insert">Package insert · A5</option><option value="slide">Presentation slide · 16:9</option>
+            </select></label>
+            <label>Design title<input id="designTitle" maxlength="120" placeholder="What should the customer notice?" /></label>
+            <label>Short description<input id="designSubtitle" maxlength="220" placeholder="Explain the product or benefit" /></label>
+            <label>Brand name<input id="designBrand" maxlength="60" placeholder="Your brand" /></label>
+            <label>Call to action<input id="designCta" maxlength="40" placeholder="Shop now · Learn more" /></label>
+            <div class="design-color-row"><label>Background<input id="designColor" type="color" value="#102846" /></label><label>Accent<input id="designAccent" type="color" value="#59ddb0" /></label></div>
+            <label>Product photo<input id="designPhoto" type="file" accept="image/jpeg,image/png,image/webp" /></label>
+            <small id="designPhotoStatus" class="muted">Add your own JPG, PNG or WebP product image, up to 5 MB.</small>
+            <label>Canvas dimensions <span id="designDimensions"></span>
+              <span class="design-dimensions"><input id="designWidth" type="number" min="50" max="5000" aria-label="Canvas width"><input id="designHeight" type="number" min="50" max="7000" aria-label="Canvas height"><select id="designUnit" aria-label="Measurement unit"><option>px</option><option>mm</option></select></span>
+            </label>
+            <p id="designPrintNote" class="design-note hidden">For labels and package inserts, enter the supplier’s exact finished dimensions. Confirm bleed, safe area and dieline before printing. This preview is not a manufacturing proof.</p>
+            <div class="design-actions"><a id="designDownload" class="secondary" href="#" download="design.svg">Download SVG</a><button id="saveDesign" class="primary" type="button">Save to project</button></div>
+            <p id="designStatus" class="muted" aria-live="polite">Select a project and edit the design details.</p>
+          </article>
+          <div class="design-preview-column">
+            <article class="card design-preview-card"><h2>Live preview <small id="designDimensionsPreview"></small></h2><div id="designCanvas" class="design-canvas-wrap" aria-live="polite"></div><p class="muted">The SVG is editable in compatible design tools. Check the final artwork and supplier specifications before printing.</p></article>
+            <article class="card"><h2>Saved designs</h2><div id="savedDesignList"></div></article>
+          </div>
+        </div>
+      </section>
+
       <section class="view" data-view-panel="ads">
         <div class="section-head">
           <div><span class="kicker">AD STUDIO</span><h1>Generate four testable angles.</h1><p>Problem/Solution, Curiosity, Outcome and Direct Offer. Nothing is launched automatically.</p></div>
@@ -336,6 +368,7 @@
   </div>
 
   <div id="mobileMoreMenu" class="mobile-more-menu hidden" aria-label="More workspace sections">
+    <button type="button" data-view="design">✧ <span>Design Studio</span></button>
     <button type="button" data-view="reels">▶ <span>Reel Generator</span></button>
     <button type="button" data-view="brand">◇ <span>Brand Profile</span></button>
     <button type="button" data-view="saved">☰ <span>Saved Projects</span></button>
@@ -351,6 +384,7 @@
   </nav>
 
   <script type="module" src="/v2.js"></script>
+  <script type="module" src="/design-studio.js"></script>
 </body>
 </html>
 
