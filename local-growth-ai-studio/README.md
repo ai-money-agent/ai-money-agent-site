@@ -8,7 +8,7 @@ The mobile-first Ad Studio can render on-brand PNG creatives through Bannerbear.
 - `BANNERBEAR_API_KEY`
 - `BANNERBEAR_TEMPLATE_UID`
 
-The current starter e-commerce template exposes the text layers `title`, `subtitle`, and `cta_label`, which the integration fills from the selected ad. The API key stays on the server. After configuration, open Ad Studio on a phone, generate ad copy, and tap **Create design** on a variant. The rendered image is saved to the current project. Bannerbear may bill for API usage; no request is made while the feature is disabled.
+The starter e-commerce template uses text layers `title`, `subtitle`, and `cta_label`, plus the image layer `image_container_rectangle`. The phone UI uploads a product photo and replaces that image. Create a V5 API key with `images:read`, `images:write`, and `assets:write` access. The API key stays on the server. After configuration, open Ad Studio on a phone, generate ad copy, and tap **Create design** on a variant. The rendered image is saved to the current project. Bannerbear may bill for API usage; no request is made while the feature is disabled.
 
 
 
