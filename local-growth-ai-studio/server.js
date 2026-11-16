@@ -479,19 +479,19 @@ async function api(req, res, url) {
       audience: existingProduct?.audience || 'Beginners who want to sell digital products online',
       problem: existingProduct?.problem || 'The reader is unsure how to turn an idea into a useful first digital product and launch it responsibly.',
       outcome: existingProduct?.outcome || 'The reader leaves with a practical first-product plan and clear launch steps.',
-      sections: Array.from({length:8},(_,index)=>({
+      sections: Array.from({length:6},(_,index)=>({
         heading:`Chapter ${index+1}`,
-        paragraphs:['Explain the chapter clearly with practical, accurate guidance.','Include one concrete example without inventing results or market facts.','Connect this chapter to the reader’s next step.'],
-        actions:['One practical action the reader can complete.','One check to confirm the action is complete.'],
+        paragraphs:['Explain the key idea in plain language with accurate, practical guidance.','Give one simple example and a clear next step.'],
+        actions:['One practical action the reader can complete.'],
         exercise:'A short worksheet prompt with space for the reader to apply the guidance.'
       }))
     };
     const generated = await generateV2({
-      operation:'write a complete, useful, beginner-friendly digital product guide as a finished manuscript, not a plan or outline. Use the requested product context and recent partner messages. Produce eight substantive chapters with clear explanations, concrete steps, examples, and a practical exercise in each chapter. Do not mention internal tools, saving limitations, or that the content is only proposed. Do not make unsupported guarantees or market claims.',
-      context:{project,profile:project.profile,research:latestResearch,existingProduct,recentPartnerMessages:recentMessages,requestedLanguage:language},
+      operation:'write a complete, useful, beginner-friendly digital product guide as a finished manuscript, not a plan or outline. Use the requested product context and recent partner messages. Produce six concise, complete chapters. Each chapter should have two short explanatory paragraphs, one practical action, and one brief exercise. Avoid repetition and keep the whole manuscript focused. Do not mention internal tools, saving limitations, or that the content is only proposed. Do not make unsupported guarantees or market claims.',
+      context:{project,profile:project.profile,research:latestResearch,existingProduct,recentPartnerMessages:recentMessages.map(message=>({role:message.role,content:String(message.content||'').slice(0,700)})),requestedLanguage:language},
       language,
       timeoutMs:90000,
-      maxOutputTokens:7000,
+      maxOutputTokens:4000,
       fallback:()=>template
     },config);
     if (generated.engine === 'local') throw failure('Live AI is not enabled for product writing. No product file was created.',503);
