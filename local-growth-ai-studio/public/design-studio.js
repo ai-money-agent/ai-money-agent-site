@@ -36,8 +36,8 @@ function svgFor(d){
  const subLines=wrap(d.subtitle||'A clear promise for the right customer.',Math.max(22,Math.floor(w/(font*.82))));
  const label=presets[d.type]?.tag||'DESIGN';
  const isStory=h>w*1.3,isWide=w>h*1.3;
- const imageBox=isStory?{x:pad,y:h*.39,w:w-pad*2,h:h*.32}:isWide?{x:w*.52,y:h*.19,w:w*.41,h:h*.62}:{x:w*.17,y:h*.48,w:w*.66,h:h*.31};
- const titleY=isStory?h*.19:h*.25, brandY=pad*1.5;
+ const imageBox=isStory?{x:pad,y:h*.39,w:w-pad*2,h:h*.32}:isWide?{x:w*.52,y:h*.19,w:w*.41,h:h*.62}:{x:w*.17,y:h*.54,w:w*.66,h:h*.25};
+ const titleY=isStory?h*.19:h*.30, brandY=pad*1.5;
  const titleAnchor='start',titleX=pad;
  const bg=d.color,accent=d.accent;
  const shape=isStory
