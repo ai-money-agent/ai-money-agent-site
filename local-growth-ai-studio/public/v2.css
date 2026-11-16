@@ -106,3 +106,8 @@ input,textarea,select{width:100%;border:1px solid var(--line);background:#081422
 .ad-design-card{min-width:0}.ad-design-card img{display:block;width:100%;height:auto;max-height:70vh;object-fit:contain;border-radius:12px;background:#081422;margin-top:10px}
 .ad-design-actions{display:flex;gap:8px;margin-top:10px}.ad-design-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border-radius:12px;text-decoration:none;font-weight:750}
 .ad-card button{margin-top:12px;min-height:44px;width:100%}
+
+.ad-photo-upload{display:grid;gap:6px;margin:12px 0 16px;padding:14px;border:1px solid var(--line);border-radius:12px;background:#0d192a}
+.ad-photo-upload label{display:grid;gap:8px;color:var(--text);font-weight:700}
+.ad-photo-upload small{color:var(--muted);line-height:1.45}
+.ad-photo-upload input[type=file]{padding:9px;background:#081422}
