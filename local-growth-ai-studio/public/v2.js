@@ -615,6 +615,18 @@ function syncFactoryControls(){
 $('factoryType').addEventListener('change',syncFactoryControls);
 $('factoryLanguage').addEventListener('change',syncFactoryControls);
 syncFactoryControls();
+$('generateAiProductFile').addEventListener('click',async()=>{
+  if(!state.activeProjectId){openProjectModal();return;}
+  const button=$('generateAiProductFile');button.disabled=true;
+  try{
+    notice('Writing a full product draft with live AI. This request may incur provider usage charges.');
+    const data=await api('/api/v2/products/generate-file',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,language:'en'})});
+    await loadWorkspace(false);
+    showFactoryPreview(data.asset);
+    notice('AI product draft saved to this project: '+data.asset.filename,'success');
+  }catch(error){notice(error.message,'error');}
+  finally{button.disabled=false;}
+});
 $('factoryForm').addEventListener('submit',async e=>{
   e.preventDefault();
   if(!state.activeProjectId){openProjectModal();return;}
