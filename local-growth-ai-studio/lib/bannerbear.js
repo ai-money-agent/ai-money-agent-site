@@ -11,6 +11,33 @@ function imageFileUrl(image) {
   return url;
 }
 
+export async function uploadBannerbearAsset({ apiKey, bytes, mimeType }) {
+  if (!apiKey) throw Object.assign(new Error('Bannerbear API key is missing.'), { status: 503 });
+  if (!Buffer.isBuffer(bytes) || !bytes.length || bytes.length > 5 * 1024 * 1024) {
+    throw Object.assign(new Error('Product photo must be smaller than 5 MB.'), { status: 413 });
+  }
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) {
+    throw Object.assign(new Error('Use a JPG, PNG or WebP product photo.'), { status: 415 });
+  }
+  let response;
+  let asset;
+  try {
+    response = await fetch('https://api.bannerbear.com/v5/assets', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': mimeType },
+      body: bytes,
+      signal: AbortSignal.timeout(30000)
+    });
+    asset = await readJson(response);
+  } catch {
+    throw Object.assign(new Error('Could not upload the product photo to Bannerbear.'), { status: 502 });
+  }
+  if (!response.ok || !asset.uid || typeof asset.url !== 'string' || !asset.url.startsWith('https://cdn.bannerbear.com/')) {
+    throw Object.assign(new Error('Bannerbear could not store the product photo. Check the API key permissions.'), { status: 502 });
+  }
+  return { uid: asset.uid, url: asset.url };
+}
+
 export async function generateBannerbearImage({ apiKey, templateUid, modifications }) {
   if (!apiKey || !templateUid) {
     throw Object.assign(new Error('Bannerbear is not configured. Add the server API key and template UID first.'), { status: 503 });
@@ -26,7 +53,7 @@ export async function generateBannerbearImage({ apiKey, templateUid, modificatio
     response = await fetch('https://api.bannerbear.com/v5/images', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ template: templateUid, modifications, formats: ['png'] }),
+      body: JSON.stringify({ template: templateUid, modifications: { objects: modifications }, formats: ['png'] }),
       signal: AbortSignal.timeout(45000)
     });
     image = await readJson(response);
