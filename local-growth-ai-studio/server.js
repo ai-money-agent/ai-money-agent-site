@@ -490,6 +490,8 @@ async function api(req, res, url) {
       operation:'write a complete, useful, beginner-friendly digital product guide as a finished manuscript, not a plan or outline. Use the requested product context and recent partner messages. Produce eight substantive chapters with clear explanations, concrete steps, examples, and a practical exercise in each chapter. Do not mention internal tools, saving limitations, or that the content is only proposed. Do not make unsupported guarantees or market claims.',
       context:{project,profile:project.profile,research:latestResearch,existingProduct,recentPartnerMessages:recentMessages,requestedLanguage:language},
       language,
+      timeoutMs:90000,
+      maxOutputTokens:2400,
       fallback:()=>template
     },config);
     if (generated.engine === 'local') throw failure('Live AI is not enabled for product writing. No product file was created.',503);
