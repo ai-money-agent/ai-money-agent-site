@@ -612,12 +612,9 @@ async function api(req, res, url) {
         apiKey:bannerbearConfig.apiKey,
         templateUid:bannerbearConfig.templateUid,
         modifications:[
-          {name:'brand',text:String(project.name || 'Local Growth').slice(0,120)},
-          {name:'product',text:String(product.name || '').slice(0,160)},
-          {name:'headline',text:headline},
-          {name:'body',text:primaryText},
-          {name:'cta',text:cta},
-          {name:'visual',text:visualConcept}
+          {name:'title',text:headline},
+          {name:'subtitle',text:primaryText},
+          {name:'cta_label',text:cta}
         ]
       });
     } catch(error) {
