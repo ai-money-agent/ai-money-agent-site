@@ -16,6 +16,8 @@ const presets = {
 };
 let photoData='';
 let savedDesigns=[];
+let layoutOffsets={};
+let dragState=null;
 function value(id){return $(id)?.value?.trim()||''}
 function esc(s){return String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[ch]))}
 function stateFromForm(){
@@ -27,34 +29,57 @@ function stateFromForm(){
 function wrap(text,max){const words=String(text).split(/\s+/);const out=[];let line='';for(const word of words){const next=line?line+' '+word:word;if(next.length>max&&line){out.push(line);line=word}else line=next}if(line)out.push(line);return out.slice(0,4)}
 function svgFor(d){
  const w=d.w,h=d.h,short=Math.min(w,h),pad=short*.075;
+ const offset=(name)=>{const p=layoutOffsets[name]||{x:0,y:0};return ' data-design-object="'+name+'" transform="translate('+p.x+' '+p.y+')"';};
+ const group=(name,content)=>'<g'+offset(name)+'>'+content+'</g>';
+ const font=short*.052,titleSize=short*.082;
  if(d.type==='logo'){
   const name=esc(d.brand||d.title||'YOUR BRAND'),tag=esc(d.subtitle||'');
-  return '<svg xmlns="http://www.w3.org/2000/svg" width="'+d.w+d.unit+'" height="'+d.h+d.unit+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+name+' logo"><rect width="'+w+'" height="'+h+'" rx="'+(short*.12)+'" fill="'+esc(d.color)+'"/><circle cx="'+(w*.24)+'" cy="'+(h*.5)+'" r="'+(h*.25)+'" fill="'+esc(d.accent)+'"/><path d="M '+(w*.13)+' '+(h*.52)+' L '+(w*.22)+' '+(h*.62)+' L '+(w*.36)+' '+(h*.37)+'" fill="none" stroke="'+esc(d.color)+'" stroke-width="'+(h*.035)+'" stroke-linecap="round" stroke-linejoin="round"/><text x="'+(w*.43)+'" y="'+(h*.48)+'" dominant-baseline="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+(h*.12)+'" font-weight="700">'+name+'</text><text x="'+(w*.43)+'" y="'+(h*.69)+'" fill="'+esc(d.accent)+'" font-family="Arial,sans-serif" font-size="'+(h*.055)+'" letter-spacing="2">'+tag+'</text></svg>';
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="'+d.w+d.unit+'" height="'+d.h+d.unit+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+name+' logo"><rect width="'+w+'" height="'+h+'" rx="'+(short*.12)+'" fill="'+esc(d.color)+'"/>'+group('symbol','<circle cx="'+(w*.24)+'" cy="'+(h*.5)+'" r="'+(h*.25)+'" fill="'+esc(d.accent)+'"/><path d="M '+(w*.13)+' '+(h*.52)+' L '+(w*.22)+' '+(h*.62)+' L '+(w*.36)+' '+(h*.37)+'" fill="none" stroke="'+esc(d.color)+'" stroke-width="'+(h*.035)+'" stroke-linecap="round" stroke-linejoin="round"/>')+group('brand','<text x="'+(w*.43)+'" y="'+(h*.48)+'" dominant-baseline="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+(h*.12)+'" font-weight="700">'+name+'</text>')+group('subtitle','<text x="'+(w*.43)+'" y="'+(h*.69)+'" fill="'+esc(d.accent)+'" font-family="Arial,sans-serif" font-size="'+(h*.055)+'" letter-spacing="2">'+tag+'</text>')+'</svg>';
  }
- const font=short*.052,titleSize=short*.082;
  const titleLines=wrap(d.title||'Your product title',Math.max(14,Math.floor(w/(font*.65))));
  const subLines=wrap(d.subtitle||'A clear promise for the right customer.',Math.max(22,Math.floor(w/(font*.82))));
  const label=presets[d.type]?.tag||'DESIGN';
  const isStory=h>w*1.3,isWide=w>h*1.3;
  const imageBox=isStory?{x:pad,y:h*.39,w:w-pad*2,h:h*.32}:isWide?{x:w*.52,y:h*.19,w:w*.41,h:h*.62}:{x:w*.17,y:h*.54,w:w*.66,h:h*.25};
- const titleY=isStory?h*.19:h*.30, brandY=pad*1.5;
- const titleAnchor='start',titleX=pad;
- const bg=d.color,accent=d.accent;
- const shape=isStory
-  ? '<circle cx="0" cy="'+(h*.85)+'" r="'+(short*.42)+'" fill="'+esc(accent)+'" opacity=".16"/>'
-  : '<circle cx="'+(w*.92)+'" cy="'+(h*.08)+'" r="'+(short*.24)+'" fill="'+esc(accent)+'" opacity=".18"/>';
- const photo=d.photo?'<image href="'+d.photo+'" x="'+imageBox.x+'" y="'+imageBox.y+'" width="'+imageBox.w+'" height="'+imageBox.h+'" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip)"/>':'<rect x="'+imageBox.x+'" y="'+imageBox.y+'" width="'+imageBox.w+'" height="'+imageBox.h+'" rx="'+(short*.035)+'" fill="'+esc(accent)+'" opacity=".20"/><text x="'+(imageBox.x+imageBox.w/2)+'" y="'+(imageBox.y+imageBox.h/2)+'" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+(font*.75)+'">ADD PRODUCT PHOTO</text>';
- let title=titleLines.map((line,i)=>'<text x="'+titleX+'" y="'+(titleY+i*titleSize*1.08)+'" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+titleSize+'" font-weight="700">'+esc(line)+'</text>').join('');
- let subStart=titleY+titleLines.length*titleSize*1.15+font*.35;
- let subtitle=subLines.map((line,i)=>'<text x="'+titleX+'" y="'+(subStart+i*font*1.35)+'" fill="#ecf5ff" opacity=".92" font-family="Arial,sans-serif" font-size="'+font+'">'+esc(line)+'</text>').join('');
- const footerY=isStory?h*.86:h*.91,ctaText=esc(d.cta||'LEARN MORE');
- const brandText=esc(d.brand||'YOUR BRAND');
- return '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+d.w+d.unit+'" height="'+d.h+d.unit+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(d.title)+'"><defs><linearGradient id="fade" x2="1" y2="1"><stop stop-color="'+esc(bg)+'"/><stop offset="1" stop-color="#091321"/></linearGradient><clipPath id="photoClip"><rect x="'+imageBox.x+'" y="'+imageBox.y+'" width="'+imageBox.w+'" height="'+imageBox.h+'" rx="'+(short*.035)+'"/></clipPath></defs><rect width="'+w+'" height="'+h+'" fill="url(#fade)"/>'+shape+'<rect x="'+pad+'" y="'+(brandY-short*.01)+'" width="'+(short*.07)+'" height="'+(short*.012)+'" rx="'+(short*.006)+'" fill="'+esc(accent)+'"/><text x="'+(pad+short*.09)+'" y="'+brandY+'" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+(font*.72)+'" font-weight="700" letter-spacing="3">'+brandText+'</text><text x="'+pad+'" y="'+(brandY+font*1.8)+'" fill="'+esc(accent)+'" font-family="Arial,sans-serif" font-size="'+(font*.53)+'" font-weight="700" letter-spacing="4">'+esc(label)+'</text>'+title+subtitle+photo+'<rect x="'+pad+'" y="'+(footerY-short*.055)+'" width="'+(w-pad*2)+'" height="'+(short*.10)+'" rx="'+(short*.05)+'" fill="'+esc(accent)+'"/><text x="'+(w/2)+'" y="'+footerY+'" text-anchor="middle" dominant-baseline="middle" fill="#071321" font-family="Arial,sans-serif" font-size="'+(font*.92)+'" font-weight="700" letter-spacing="2">'+ctaText+'</text><text x="'+pad+'" y="'+(h-pad*.55)+'" fill="#ffffff" opacity=".55" font-family="Arial,sans-serif" font-size="'+(font*.35)+'">'+esc(d.type==='label'||d.type==='insert'?'PRINT ARTWORK · VERIFY FINAL SIZE WITH SUPPLIER':'EDITABLE VECTOR DESIGN · '+d.w+' × '+d.h+' '+d.unit)+'</text></svg>';
+ const titleY=isStory?h*.19:h*.30,brandY=pad*1.5,titleX=pad;
+ const shape=isStory?'<circle cx="0" cy="'+(h*.85)+'" r="'+(short*.42)+'" fill="'+esc(d.accent)+'" opacity=".16"/>':'<circle cx="'+(w*.92)+'" cy="'+(h*.08)+'" r="'+(short*.24)+'" fill="'+esc(d.accent)+'" opacity=".18"/>';
+ const title=titleLines.map((line,i)=>'<text x="'+titleX+'" y="'+(titleY+i*titleSize*1.08)+'" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+titleSize+'" font-weight="700">'+esc(line)+'</text>').join('');
+ const subStart=titleY+titleLines.length*titleSize*1.15+font*.35;
+ const subtitle=subLines.map((line,i)=>'<text x="'+titleX+'" y="'+(subStart+i*font*1.35)+'" fill="#ecf5ff" opacity=".92" font-family="Arial,sans-serif" font-size="'+font+'">'+esc(line)+'</text>').join('');
+ const photo=d.photo?'<image href="'+d.photo+'" x="'+imageBox.x+'" y="'+imageBox.y+'" width="'+imageBox.w+'" height="'+imageBox.h+'" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip)"/>':'<rect x="'+imageBox.x+'" y="'+imageBox.y+'" width="'+imageBox.w+'" height="'+imageBox.h+'" rx="'+(short*.035)+'" fill="'+esc(d.accent)+'" opacity=".20"/><text x="'+(imageBox.x+imageBox.w/2)+'" y="'+(imageBox.y+imageBox.h/2)+'" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+(font*.75)+'">ADD PRODUCT PHOTO</text>';
+ const footerY=isStory?h*.86:h*.91,ctaText=esc(d.cta||'LEARN MORE'),brandText=esc(d.brand||'YOUR BRAND');
+ return '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+d.w+d.unit+'" height="'+d.h+d.unit+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(d.title)+'"><defs><linearGradient id="fade" x2="1" y2="1"><stop stop-color="'+esc(d.color)+'"/><stop offset="1" stop-color="#091321"/></linearGradient><clipPath id="photoClip"><rect x="'+imageBox.x+'" y="'+imageBox.y+'" width="'+imageBox.w+'" height="'+imageBox.h+'" rx="'+(short*.035)+'"/></clipPath></defs><rect width="'+w+'" height="'+h+'" fill="url(#fade)"/>'+shape+group('brand','<rect x="'+pad+'" y="'+(brandY-short*.01)+'" width="'+(short*.07)+'" height="'+(short*.012)+'" rx="'+(short*.006)+'" fill="'+esc(d.accent)+'"/><text x="'+(pad+short*.09)+'" y="'+brandY+'" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+(font*.72)+'" font-weight="700" letter-spacing="3">'+brandText+'</text>')+group('label','<text x="'+pad+'" y="'+(brandY+font*1.8)+'" fill="'+esc(d.accent)+'" font-family="Arial,sans-serif" font-size="'+(font*.53)+'" font-weight="700" letter-spacing="4">'+esc(label)+'</text>')+group('title',title)+group('subtitle',subtitle)+group('image',photo)+'<rect x="'+pad+'" y="'+(footerY-short*.055)+'" width="'+(w-pad*2)+'" height="'+(short*.10)+'" rx="'+(short*.05)+'" fill="'+esc(d.accent)+'"/>'+group('cta','<text x="'+(w/2)+'" y="'+footerY+'" text-anchor="middle" dominant-baseline="middle" fill="#071321" font-family="Arial,sans-serif" font-size="'+(font*.92)+'" font-weight="700" letter-spacing="2">'+ctaText+'</text>')+'<text x="'+pad+'" y="'+(h-pad*.55)+'" fill="#ffffff" opacity=".55" font-family="Arial,sans-serif" font-size="'+(font*.35)+'">'+esc(d.type==='label'||d.type==='insert'?'PRINT ARTWORK · VERIFY FINAL SIZE WITH SUPPLIER':'EDITABLE VECTOR DESIGN · '+d.w+' × '+d.h+' '+d.unit)+'</text></svg>';
 }
 let previousObjectUrl='';
-function render(){const d=stateFromForm(),svg=svgFor(d);$('designCanvas').innerHTML=svg;$('designDimensions').textContent=d.w+' × '+d.h+' '+d.unit;$('designDimensionsPreview').textContent=d.w+' × '+d.h+' '+d.unit;if(previousObjectUrl)URL.revokeObjectURL(previousObjectUrl);$('designDownload').href=previousObjectUrl=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));}
+function attachCanvasEditing(svg){
+ const names={brand:'designBrand',label:null,title:'designTitle',subtitle:'designSubtitle',image:null,cta:'designCta',symbol:null};
+ const point=e=>{const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse())};
+ svg.addEventListener('pointerdown',e=>{
+  const target=e.target.closest('[data-design-object]');if(!target)return;
+  e.preventDefault();const p=point(e),name=target.getAttribute('data-design-object'),base=layoutOffsets[name]||{x:0,y:0};
+  dragState={name,target,start:p,base,pointerId:e.pointerId};target.classList.add('is-dragging');
+  try{svg.setPointerCapture(e.pointerId)}catch{}
+ });
+ svg.addEventListener('pointermove',e=>{
+  if(!dragState||dragState.pointerId!==e.pointerId)return;
+  const p=point(e),dx=p.x-dragState.start.x,dy=p.y-dragState.start.y;
+  dragState.target.setAttribute('transform','translate('+(dragState.base.x+dx)+' '+(dragState.base.y+dy)+')');
+ });
+ const finish=e=>{
+  if(!dragState||dragState.pointerId!==e.pointerId)return;
+  const p=point(e),dx=p.x-dragState.start.x,dy=p.y-dragState.start.y,name=dragState.name;
+  layoutOffsets[name]={x:dragState.base.x+dx,y:dragState.base.y+dy};dragState=null;render();
+ };
+ svg.addEventListener('pointerup',finish);svg.addEventListener('pointercancel',finish);
+ svg.addEventListener('dblclick',e=>{
+  const target=e.target.closest('[data-design-object]'),id=target&&names[target.getAttribute('data-design-object')];
+  if(id&&$(id)){const field=$(id);field.scrollIntoView({behavior:'smooth',block:'center'});field.focus()}
+ });
+}
+function render(){const d=stateFromForm(),svg=svgFor(d);$('designCanvas').innerHTML=svg;const canvasSvg=$('designCanvas').querySelector('svg');if(canvasSvg)attachCanvasEditing(canvasSvg);$('designDimensions').textContent=d.w+' × '+d.h+' '+d.unit;$('designDimensionsPreview').textContent=d.w+' × '+d.h+' '+d.unit;if(previousObjectUrl)URL.revokeObjectURL(previousObjectUrl);$('designDownload').href=previousObjectUrl=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));}
 function selectPreset(){
  const p=presets[value('designType')];if(!p)return;
+ layoutOffsets={};
  $('designWidth').value=p.w;$('designHeight').value=p.h;$('designUnit').value=p.unit;
  if(['label','insert','businesscard','pricetag'].includes(value('designType')))$('designPrintNote').classList.remove('hidden');else $('designPrintNote').classList.add('hidden');
  render();
@@ -94,4 +119,5 @@ $('saveDesign').addEventListener('click',async()=>{
  finally{button.disabled=false}
 });
 $('projectSelect').addEventListener('change',refreshSaved);
+$('resetDesignLayout')?.addEventListener('click',()=>{layoutOffsets={};render()});
 selectPreset();setTimeout(refreshSaved,1200);
