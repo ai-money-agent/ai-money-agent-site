@@ -200,6 +200,18 @@ $('designDownloadPng')?.addEventListener('click',async()=>{
  }catch(error){$('designStatus').textContent='PNG export failed: '+error.message}
  finally{if(objectUrl)URL.revokeObjectURL(objectUrl);button.disabled=false}
 });
+$('designPrintPdf')?.addEventListener('click',()=>{
+ const d=stateFromForm(),svg=svgFor(d),pageWidthMm=d.unit==='mm'?d.w:d.w*25.4/300,pageHeightMm=d.unit==='mm'?d.h:d.h*25.4/300;
+ const width=pageWidthMm.toFixed(2).replace(/\.?0+$/,''),height=pageHeightMm.toFixed(2).replace(/\.?0+$/,'');
+ const popup=window.open('','_blank');
+ if(!popup){$('designStatus').textContent='Allow pop-ups for this site to print or save as PDF.';return}
+ const pageTitle=esc(d.title||'Design');
+ popup.document.open();
+ popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+pageTitle+'</title><style>@page{size:'+width+'mm '+height+'mm;margin:0}html,body{width:'+width+'mm;height:'+height+'mm;margin:0;padding:0}body{overflow:hidden}svg{display:block;width:'+width+'mm;height:'+height+'mm}</style></head><body>'+svg+'</body></html>');
+ popup.document.close();
+ $('designStatus').textContent='Print window opened. Choose “Save as PDF” in the browser print menu.';
+ setTimeout(()=>{try{popup.focus();popup.print()}catch{$('designStatus').textContent='Use the print command in the opened window and choose Save as PDF.'}},500);
+});
 $('saveDesign').addEventListener('click',async()=>{
  const projectId=value('projectSelect');if(!projectId){$('designStatus').textContent='Create or select a project first.';return}
  const button=$('saveDesign');button.disabled=true;$('designStatus').textContent='Saving design to this project…';
