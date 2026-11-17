@@ -29,7 +29,24 @@ function stateFromForm(){
   const h=Math.max(50,Math.min(7000,Number(value('designHeight'))||p.h));
   return {type,w,h,unit:value('designUnit')||p.unit,title:value('designTitle'),subtitle:value('designSubtitle'),brand:value('designBrand'),cta:value('designCta'),color:value('designColor')||'#102846',accent:value('designAccent')||'#59ddb0',photo:photoData};
 }
-function wrap(text,max){const words=String(text).split(/\s+/);const out=[];let line='';for(const word of words){const next=line?line+' '+word:word;if(next.length>max&&line){out.push(line);line=word}else line=next}if(line)out.push(line);return out.slice(0,4)}
+function wrapMeasured(text,maxWidth,fontSize,maxLines=3,bold=false){
+ const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
+ ctx.font=(bold?'700 ':'')+fontSize+'px Arial';
+ const words=String(text).trim().split(/\s+/).filter(Boolean),lines=[];let line='',clipped=false;
+ for(const word of words){
+  const next=line?line+' '+word:word;
+  if(ctx.measureText(next).width<=maxWidth||!line){line=next;continue}
+  lines.push(line);line=word;
+  if(lines.length>=maxLines){clipped=true;break}
+ }
+ if(line&&!clipped)lines.push(line);
+ if(clipped||lines.length>maxLines){
+  const lastIndex=maxLines-1;let last=lines[lastIndex]||'';
+  while(last&&ctx.measureText(last+'…').width>maxWidth)last=last.slice(0,-1).trimEnd();
+  lines.length=maxLines;lines[lastIndex]=(last||'…')+'…';
+ }
+ return lines.length?lines:[''];
+}
 function customElementsSvg(d){
  return customElements.map(el=>{
   let node='';
@@ -53,18 +70,27 @@ function svgFor(d){
   const name=esc(d.brand||d.title||'YOUR BRAND'),tag=esc(d.subtitle||'');
   return '<svg xmlns="http://www.w3.org/2000/svg" width="'+d.w+d.unit+'" height="'+d.h+d.unit+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+name+' logo"><rect width="'+w+'" height="'+h+'" rx="'+(short*.12)+'" fill="'+esc(d.color)+'"/>'+group('symbol','<circle cx="'+(w*.24)+'" cy="'+(h*.5)+'" r="'+(h*.25)+'" fill="'+esc(d.accent)+'"/><path d="M '+(w*.13)+' '+(h*.52)+' L '+(w*.22)+' '+(h*.62)+' L '+(w*.36)+' '+(h*.37)+'" fill="none" stroke="'+esc(d.color)+'" stroke-width="'+(h*.035)+'" stroke-linecap="round" stroke-linejoin="round"/>')+group('brand','<text x="'+(w*.43)+'" y="'+(h*.48)+'" dominant-baseline="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+(h*.12)+'" font-weight="700">'+name+'</text>')+group('subtitle','<text x="'+(w*.43)+'" y="'+(h*.69)+'" fill="'+esc(d.accent)+'" font-family="Arial,sans-serif" font-size="'+(h*.055)+'" letter-spacing="2">'+tag+'</text>')+customElementsSvg(d)+'</svg>';
  }
- const titleLines=wrap(d.title||'Your product title',Math.max(14,Math.floor(w/(font*.65))));
- const subLines=wrap(d.subtitle||'A clear promise for the right customer.',Math.max(22,Math.floor(w/(font*.82))));
  const label=presets[d.type]?.tag||'DESIGN';
  const isStory=h>w*1.3,isWide=w>h*1.3;
- const imageBox=isStory?{x:pad,y:h*.39,w:w-pad*2,h:h*.32}:isWide?{x:w*.52,y:h*.19,w:w*.41,h:h*.62}:{x:w*.17,y:h*.54,w:w*.66,h:h*.25};
- const titleY=isStory?h*.19:h*.30,brandY=pad*1.5,titleX=pad;
+ const titleX=pad,titleY=isStory?h*.19:h*.28,brandY=pad*1.5,footerY=isStory?h*.86:h*.91;
+ const titleWidth=isWide?w*.40:w-pad*2;
+ const titleSizeFit=short*.072,subtitleSize=short*.043;
+ const titleLines=wrapMeasured(d.title||'Your product title',titleWidth,titleSizeFit,2,true);
+ const subLines=wrapMeasured(d.subtitle||'A clear promise for the right customer.',titleWidth,subtitleSize,3,false);
+ const subStart=titleY+titleLines.length*titleSizeFit*1.12+short*.025;
+ const contentBottom=subStart+(subLines.length-1)*subtitleSize*1.3+subtitleSize;
+ const squareImageY=Math.max(h*.54,contentBottom+short*.04);
+ const storyImageY=Math.max(h*.39,contentBottom+short*.035);
+ const imageBox=isStory
+   ?{x:pad,y:storyImageY,w:w-pad*2,h:Math.max(short*.10,Math.min(h*.32,h*.80-storyImageY))}
+   :isWide
+     ?{x:w*.55,y:h*.19,w:w*.38,h:h*.62}
+     :{x:w*.17,y:squareImageY,w:w*.66,h:Math.max(short*.10,Math.min(short*.25,h*.81-squareImageY))};
  const shape=isStory?'<circle cx="0" cy="'+(h*.85)+'" r="'+(short*.42)+'" fill="'+esc(d.accent)+'" opacity=".16"/>':'<circle cx="'+(w*.92)+'" cy="'+(h*.08)+'" r="'+(short*.24)+'" fill="'+esc(d.accent)+'" opacity=".18"/>';
- const title=titleLines.map((line,i)=>'<text x="'+titleX+'" y="'+(titleY+i*titleSize*1.08)+'" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+titleSize+'" font-weight="700">'+esc(line)+'</text>').join('');
- const subStart=titleY+titleLines.length*titleSize*1.15+font*.35;
- const subtitle=subLines.map((line,i)=>'<text x="'+titleX+'" y="'+(subStart+i*font*1.35)+'" fill="#ecf5ff" opacity=".92" font-family="Arial,sans-serif" font-size="'+font+'">'+esc(line)+'</text>').join('');
+ const title=titleLines.map((line,i)=>'<text x="'+titleX+'" y="'+(titleY+i*titleSizeFit*1.12)+'" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+titleSizeFit+'" font-weight="700">'+esc(line)+'</text>').join('');
+ const subtitle=subLines.map((line,i)=>'<text x="'+titleX+'" y="'+(subStart+i*subtitleSize*1.3)+'" fill="#ecf5ff" opacity=".92" font-family="Arial,sans-serif" font-size="'+subtitleSize+'">'+esc(line)+'</text>').join('');
  const photo=d.photo?'<image href="'+d.photo+'" x="'+imageBox.x+'" y="'+imageBox.y+'" width="'+imageBox.w+'" height="'+imageBox.h+'" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip)"/>':'<rect x="'+imageBox.x+'" y="'+imageBox.y+'" width="'+imageBox.w+'" height="'+imageBox.h+'" rx="'+(short*.035)+'" fill="'+esc(d.accent)+'" opacity=".20"/><text x="'+(imageBox.x+imageBox.w/2)+'" y="'+(imageBox.y+imageBox.h/2)+'" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+(font*.75)+'">ADD PRODUCT PHOTO</text>';
- const footerY=isStory?h*.86:h*.91,ctaText=esc(d.cta||'LEARN MORE'),brandText=esc(d.brand||'YOUR BRAND');
+ const ctaText=esc(d.cta||'LEARN MORE'),brandText=esc(d.brand||'YOUR BRAND');
  return '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+d.w+d.unit+'" height="'+d.h+d.unit+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(d.title)+'"><defs><linearGradient id="fade" x2="1" y2="1"><stop stop-color="'+esc(d.color)+'"/><stop offset="1" stop-color="#091321"/></linearGradient><clipPath id="photoClip"><rect x="'+imageBox.x+'" y="'+imageBox.y+'" width="'+imageBox.w+'" height="'+imageBox.h+'" rx="'+(short*.035)+'"/></clipPath></defs><rect width="'+w+'" height="'+h+'" fill="url(#fade)"/>'+shape+group('brand','<rect x="'+pad+'" y="'+(brandY-short*.01)+'" width="'+(short*.07)+'" height="'+(short*.012)+'" rx="'+(short*.006)+'" fill="'+esc(d.accent)+'"/><text x="'+(pad+short*.09)+'" y="'+brandY+'" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+(font*.72)+'" font-weight="700" letter-spacing="3">'+brandText+'</text>')+group('label','<text x="'+pad+'" y="'+(brandY+font*1.8)+'" fill="'+esc(d.accent)+'" font-family="Arial,sans-serif" font-size="'+(font*.53)+'" font-weight="700" letter-spacing="4">'+esc(label)+'</text>')+group('title',title)+group('subtitle',subtitle)+group('image',photo)+customElementsSvg(d)+'<rect x="'+pad+'" y="'+(footerY-short*.055)+'" width="'+(w-pad*2)+'" height="'+(short*.10)+'" rx="'+(short*.05)+'" fill="'+esc(d.accent)+'"/>'+group('cta','<text x="'+(w/2)+'" y="'+footerY+'" text-anchor="middle" dominant-baseline="middle" fill="#071321" font-family="Arial,sans-serif" font-size="'+(font*.92)+'" font-weight="700" letter-spacing="2">'+ctaText+'</text>')+'<text x="'+pad+'" y="'+(h-pad*.55)+'" fill="#ffffff" opacity=".55" font-family="Arial,sans-serif" font-size="'+(font*.35)+'">'+esc(d.type==='label'||d.type==='insert'?'PRINT ARTWORK · VERIFY FINAL SIZE WITH SUPPLIER':'EDITABLE VECTOR DESIGN · '+d.w+' × '+d.h+' '+d.unit)+'</text></svg>';
 }
 let previousObjectUrl='';
