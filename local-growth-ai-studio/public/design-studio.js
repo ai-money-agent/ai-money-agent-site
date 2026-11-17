@@ -128,15 +128,30 @@ function renderCustomElements(){
   const row=document.createElement('div');row.className='design-layer';
   const head=document.createElement('div');head.className='design-layer-head';
   const name=document.createElement('strong');name.textContent=el.type==='text'?'Text':el.type==='rectangle'?'Rectangle':'Circle';
+  const actions=document.createElement('div');actions.className='design-layer-actions';
+  const index=customElements.findIndex(item=>item.id===el.id);
+  const move=(delta)=>{const next=index+delta;if(next<0||next>=customElements.length)return;const [item]=customElements.splice(index,1);customElements.splice(next,0,item);renderCustomElements();render()};
+  const forward=document.createElement('button');forward.type='button';forward.className='ghost';forward.textContent='Forward';forward.disabled=index===customElements.length-1;forward.setAttribute('aria-label','Move layer forward');forward.addEventListener('click',()=>move(1));
+  const backward=document.createElement('button');backward.type='button';backward.className='ghost';backward.textContent='Back';backward.disabled=index===0;backward.setAttribute('aria-label','Move layer backward');backward.addEventListener('click',()=>move(-1));
+  const duplicate=document.createElement('button');duplicate.type='button';duplicate.className='ghost';duplicate.textContent='Duplicate';duplicate.addEventListener('click',()=>duplicateCustomElement(el.id));
   const remove=document.createElement('button');remove.type='button';remove.className='ghost';remove.textContent='Remove';
   remove.addEventListener('click',()=>{customElements=customElements.filter(item=>item.id!==el.id);delete layoutOffsets['custom-'+el.id];renderCustomElements();render()});
-  head.append(name,remove);row.append(head);
+  actions.append(forward,backward,duplicate,remove);head.append(name,actions);row.append(head);
   if(el.type==='text'){
    const textInput=document.createElement('textarea');textInput.id='customText-'+el.id;textInput.rows=2;textInput.maxLength=100;textInput.value=el.text;textInput.setAttribute('aria-label','Added text');
    textInput.addEventListener('input',()=>{el.text=textInput.value;render()});row.append(textInput);
   }
   const color=document.createElement('input');color.type='color';color.value=el.color;color.setAttribute('aria-label','Element color');color.addEventListener('input',()=>{el.color=color.value;render()});row.append(color);root.append(row);
  });
+}
+function duplicateCustomElement(id){
+ const original=customElements.find(item=>item.id===id);if(!original)return;
+ const clone={...original,id:String(nextCustomId++)};
+ if(Number.isFinite(clone.x))clone.x=Math.min(.9,clone.x+.035);
+ if(Number.isFinite(clone.y))clone.y=Math.min(.9,clone.y+.035);
+ customElements.push(clone);
+ const oldOffset=layoutOffsets['custom-'+id];if(oldOffset)layoutOffsets['custom-'+clone.id]={x:oldOffset.x,y:oldOffset.y};
+ renderCustomElements();render();
 }
 function addCustomElement(type){
  const id=String(nextCustomId++),short=Math.min(Number(value('designWidth'))||1080,Number(value('designHeight'))||1080);
