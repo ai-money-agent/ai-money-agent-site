@@ -51,7 +51,7 @@ function customElementsSvg(d){
  return customElements.map(el=>{
   let node='';
   if(el.type==='text'){
-   node='<text x="'+(el.x*d.w)+'" y="'+(el.y*d.h)+'" fill="'+esc(el.color)+'" font-family="Arial,sans-serif" font-size="'+el.fontSize+'" font-weight="700">'+esc(el.text||'Your text')+'</text>';
+   node='<text x="'+(el.x*d.w)+'" y="'+(el.y*d.h)+'" fill="'+esc(el.color)+'" font-family="'+esc(el.fontFamily||'Arial,sans-serif')+'" font-size="'+el.fontSize+'" font-weight="'+(el.fontWeight||'700')+'">'+esc(el.text||'Your text')+'</text>';
   }else if(el.type==='rectangle'){
    node='<rect x="'+(el.x*d.w)+'" y="'+(el.y*d.h)+'" width="'+(el.width*d.w)+'" height="'+(el.height*d.h)+'" rx="'+(Math.min(d.w,d.h)*.025)+'" fill="'+esc(el.color)+'"/>';
   }else{
@@ -121,6 +121,14 @@ function attachCanvasEditing(svg){
  });
 }
 function render(){const d=stateFromForm(),svg=svgFor(d);$('designCanvas').innerHTML=svg;const canvasSvg=$('designCanvas').querySelector('svg');if(canvasSvg)attachCanvasEditing(canvasSvg);$('designDimensions').textContent=d.w+' × '+d.h+' '+d.unit;$('designDimensionsPreview').textContent=d.w+' × '+d.h+' '+d.unit;if(previousObjectUrl)URL.revokeObjectURL(previousObjectUrl);$('designDownload').href=previousObjectUrl=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));}
+function addRangeControl(parent,title,min,max,step,current,onChange){
+ const field=document.createElement('label');field.className='design-layer-field';
+ const caption=document.createElement('span');caption.textContent=title;
+ const output=document.createElement('output');output.textContent=String(current);
+ const input=document.createElement('input');input.type='range';input.min=String(min);input.max=String(max);input.step=String(step);input.value=String(current);
+ input.addEventListener('input',()=>{const n=Number(input.value);output.textContent=String(n);onChange(n);render()});
+ field.append(caption,output,input);parent.append(field);
+}
 function renderCustomElements(){
  const root=$('customElementList');if(!root)return;root.replaceChildren();
  if(!customElements.length){const hint=document.createElement('p');hint.className='muted';hint.textContent='No added elements yet.';root.append(hint);return}
@@ -140,6 +148,24 @@ function renderCustomElements(){
   if(el.type==='text'){
    const textInput=document.createElement('textarea');textInput.id='customText-'+el.id;textInput.rows=2;textInput.maxLength=100;textInput.value=el.text;textInput.setAttribute('aria-label','Added text');
    textInput.addEventListener('input',()=>{el.text=textInput.value;render()});row.append(textInput);
+   const controls=document.createElement('div');controls.className='design-layer-controls';
+   const short=Math.min(Number(value('designWidth'))||1080,Number(value('designHeight'))||1080),unit=value('designUnit')||'px';
+   addRangeControl(controls,'Font size',unit==='mm'?1:16,Math.max(unit==='mm'?8:48,short*.24),unit==='mm'?.5:1,el.fontSize||Math.max(unit==='mm'?3:32,Math.round(short*.075)),v=>{el.fontSize=v});
+   const family=document.createElement('label');family.className='design-layer-field';family.append(document.createTextNode('Font'));
+   const fontSelect=document.createElement('select');fontSelect.setAttribute('aria-label','Text font');
+   [['Arial','Arial,sans-serif'],['Georgia','Georgia,serif'],['Verdana','Verdana,sans-serif'],['Trebuchet MS','Trebuchet MS,sans-serif']].forEach(([label,font])=>{const option=document.createElement('option');option.value=font;option.textContent=label;option.selected=(el.fontFamily||'Arial,sans-serif')===font;fontSelect.append(option)});
+   fontSelect.addEventListener('change',()=>{el.fontFamily=fontSelect.value;render()});family.append(fontSelect);controls.append(family);
+   const weight=document.createElement('label');weight.className='design-layer-field';weight.append(document.createTextNode('Style'));
+   const weightSelect=document.createElement('select');weightSelect.setAttribute('aria-label','Text weight');
+   [['Bold','700'],['Regular','400']].forEach(([label,val])=>{const option=document.createElement('option');option.value=val;option.textContent=label;option.selected=(el.fontWeight||'700')===val;weightSelect.append(option)});
+   weightSelect.addEventListener('change',()=>{el.fontWeight=weightSelect.value;render()});weight.append(weightSelect);controls.append(weight);row.append(controls);
+  }else if(el.type==='rectangle'){
+   const controls=document.createElement('div');controls.className='design-layer-controls';
+   addRangeControl(controls,'Width',.1,.9,.01,el.width,v=>{el.width=v});
+   addRangeControl(controls,'Height',.06,.7,.01,el.height,v=>{el.height=v});row.append(controls);
+  }else if(el.type==='circle'){
+   const controls=document.createElement('div');controls.className='design-layer-controls';
+   addRangeControl(controls,'Radius',.04,.45,.01,el.radius,v=>{el.radius=v});row.append(controls);
   }
   const color=document.createElement('input');color.type='color';color.value=el.color;color.setAttribute('aria-label','Element color');color.addEventListener('input',()=>{el.color=color.value;render()});row.append(color);root.append(row);
  });
@@ -156,7 +182,7 @@ function duplicateCustomElement(id){
 function addCustomElement(type){
  const id=String(nextCustomId++),short=Math.min(Number(value('designWidth'))||1080,Number(value('designHeight'))||1080);
  const element={id,type,color:type==='rectangle'?value('designAccent')||'#59ddb0':'#ffffff'};
- if(type==='text')Object.assign(element,{text:'Your text',x:.1,y:.5,fontSize:Math.max(value('designUnit')==='mm'?3:32,Math.round(short*.075))});
+ if(type==='text')Object.assign(element,{text:'Your text',x:.1,y:.5,fontSize:Math.max(value('designUnit')==='mm'?3:32,Math.round(short*.075)),fontFamily:'Arial,sans-serif',fontWeight:'700'});
  if(type==='rectangle')Object.assign(element,{x:.15,y:.4,width:.7,height:.14});
  if(type==='circle')Object.assign(element,{x:.5,y:.5,radius:.12});
  customElements.push(element);renderCustomElements();render();
