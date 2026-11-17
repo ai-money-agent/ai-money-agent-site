@@ -175,6 +175,31 @@ $('designType').addEventListener('change',selectPreset);
 ['designTitle','designSubtitle','designBrand','designCta','designColor','designAccent','designWidth','designHeight','designUnit'].forEach(id=>$(id).addEventListener('input',render));
 $('designPhoto').addEventListener('change',e=>readPhoto(e.target.files?.[0]).catch(()=>{$('designPhotoStatus').textContent='The image could not be opened.'}));
 $('designDownload').addEventListener('click',e=>{const d=stateFromForm();e.currentTarget.download=slug(d.title)+'.svg'});
+$('designDownloadPng')?.addEventListener('click',async()=>{
+ const button=$('designDownloadPng');button.disabled=true;$('designStatus').textContent='Preparing PNG image…';
+ let objectUrl='';
+ try{
+  const d=stateFromForm(),svg=svgFor(d),pxPerUnit=d.unit==='mm'?300/25.4:1;
+  const requestedWidth=Math.max(1,Math.round(d.w*pxPerUnit)),requestedHeight=Math.max(1,Math.round(d.h*pxPerUnit));
+  const pixelLimit=16000000,scale=Math.min(1,Math.sqrt(pixelLimit/(requestedWidth*requestedHeight)));
+  const width=Math.max(1,Math.round(requestedWidth*scale)),height=Math.max(1,Math.round(requestedHeight*scale));
+  const svgBlob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'});objectUrl=URL.createObjectURL(svgBlob);
+  const image=new Image();
+  await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=()=>reject(new Error('The design preview could not be rendered.'));image.src=objectUrl});
+  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+  const context=canvas.getContext('2d');if(!context)throw new Error('PNG export is not available in this browser.');
+  context.drawImage(image,0,0,width,height);
+  const png=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+  if(!png)throw new Error('The PNG image could not be created. Try SVG for this design size.');
+  const downloadUrl=URL.createObjectURL(png),link=document.createElement('a');
+  link.href=downloadUrl;link.download=slug(d.title)+'.png';document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(downloadUrl),1500);
+  $('designStatus').textContent=scale<1
+    ? 'PNG downloaded at '+width+' × '+height+' px to fit mobile memory limits. SVG keeps the full vector size.'
+    : 'PNG downloaded at '+width+' × '+height+' px.';
+ }catch(error){$('designStatus').textContent='PNG export failed: '+error.message}
+ finally{if(objectUrl)URL.revokeObjectURL(objectUrl);button.disabled=false}
+});
 $('saveDesign').addEventListener('click',async()=>{
  const projectId=value('projectSelect');if(!projectId){$('designStatus').textContent='Create or select a project first.';return}
  const button=$('saveDesign');button.disabled=true;$('designStatus').textContent='Saving design to this project…';
