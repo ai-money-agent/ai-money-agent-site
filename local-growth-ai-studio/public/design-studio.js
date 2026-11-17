@@ -18,6 +18,8 @@ let photoData='';
 let savedDesigns=[];
 let layoutOffsets={};
 let dragState=null;
+let customElements=[];
+let nextCustomId=1;
 function value(id){return $(id)?.value?.trim()||''}
 function esc(s){return String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[ch]))}
 function stateFromForm(){
@@ -27,6 +29,20 @@ function stateFromForm(){
   return {type,w,h,unit:value('designUnit')||p.unit,title:value('designTitle'),subtitle:value('designSubtitle'),brand:value('designBrand'),cta:value('designCta'),color:value('designColor')||'#102846',accent:value('designAccent')||'#59ddb0',photo:photoData};
 }
 function wrap(text,max){const words=String(text).split(/\s+/);const out=[];let line='';for(const word of words){const next=line?line+' '+word:word;if(next.length>max&&line){out.push(line);line=word}else line=next}if(line)out.push(line);return out.slice(0,4)}
+function customElementsSvg(d){
+ return customElements.map(el=>{
+  let node='';
+  if(el.type==='text'){
+   node='<text x="'+(el.x*d.w)+'" y="'+(el.y*d.h)+'" fill="'+esc(el.color)+'" font-family="Arial,sans-serif" font-size="'+el.fontSize+'" font-weight="700">'+esc(el.text||'Your text')+'</text>';
+  }else if(el.type==='rectangle'){
+   node='<rect x="'+(el.x*d.w)+'" y="'+(el.y*d.h)+'" width="'+(el.width*d.w)+'" height="'+(el.height*d.h)+'" rx="'+(Math.min(d.w,d.h)*.025)+'" fill="'+esc(el.color)+'"/>';
+  }else{
+   node='<circle cx="'+(el.x*d.w)+'" cy="'+(el.y*d.h)+'" r="'+(el.radius*Math.min(d.w,d.h))+'" fill="'+esc(el.color)+'"/>';
+  }
+  const key='custom-'+el.id,off=layoutOffsets[key]||{x:0,y:0};
+  return '<g data-design-object="'+key+'" transform="translate('+off.x+' '+off.y+')">'+node+'</g>';
+ }).join('');
+}
 function svgFor(d){
  const w=d.w,h=d.h,short=Math.min(w,h),pad=short*.075;
  const offset=(name)=>{const p=layoutOffsets[name]||{x:0,y:0};return ' data-design-object="'+name+'" transform="translate('+p.x+' '+p.y+')"';};
@@ -34,7 +50,7 @@ function svgFor(d){
  const font=short*.052,titleSize=short*.082;
  if(d.type==='logo'){
   const name=esc(d.brand||d.title||'YOUR BRAND'),tag=esc(d.subtitle||'');
-  return '<svg xmlns="http://www.w3.org/2000/svg" width="'+d.w+d.unit+'" height="'+d.h+d.unit+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+name+' logo"><rect width="'+w+'" height="'+h+'" rx="'+(short*.12)+'" fill="'+esc(d.color)+'"/>'+group('symbol','<circle cx="'+(w*.24)+'" cy="'+(h*.5)+'" r="'+(h*.25)+'" fill="'+esc(d.accent)+'"/><path d="M '+(w*.13)+' '+(h*.52)+' L '+(w*.22)+' '+(h*.62)+' L '+(w*.36)+' '+(h*.37)+'" fill="none" stroke="'+esc(d.color)+'" stroke-width="'+(h*.035)+'" stroke-linecap="round" stroke-linejoin="round"/>')+group('brand','<text x="'+(w*.43)+'" y="'+(h*.48)+'" dominant-baseline="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+(h*.12)+'" font-weight="700">'+name+'</text>')+group('subtitle','<text x="'+(w*.43)+'" y="'+(h*.69)+'" fill="'+esc(d.accent)+'" font-family="Arial,sans-serif" font-size="'+(h*.055)+'" letter-spacing="2">'+tag+'</text>')+'</svg>';
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="'+d.w+d.unit+'" height="'+d.h+d.unit+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+name+' logo"><rect width="'+w+'" height="'+h+'" rx="'+(short*.12)+'" fill="'+esc(d.color)+'"/>'+group('symbol','<circle cx="'+(w*.24)+'" cy="'+(h*.5)+'" r="'+(h*.25)+'" fill="'+esc(d.accent)+'"/><path d="M '+(w*.13)+' '+(h*.52)+' L '+(w*.22)+' '+(h*.62)+' L '+(w*.36)+' '+(h*.37)+'" fill="none" stroke="'+esc(d.color)+'" stroke-width="'+(h*.035)+'" stroke-linecap="round" stroke-linejoin="round"/>')+group('brand','<text x="'+(w*.43)+'" y="'+(h*.48)+'" dominant-baseline="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+(h*.12)+'" font-weight="700">'+name+'</text>')+group('subtitle','<text x="'+(w*.43)+'" y="'+(h*.69)+'" fill="'+esc(d.accent)+'" font-family="Arial,sans-serif" font-size="'+(h*.055)+'" letter-spacing="2">'+tag+'</text>')+customElementsSvg(d)+'</svg>';
  }
  const titleLines=wrap(d.title||'Your product title',Math.max(14,Math.floor(w/(font*.65))));
  const subLines=wrap(d.subtitle||'A clear promise for the right customer.',Math.max(22,Math.floor(w/(font*.82))));
@@ -48,7 +64,7 @@ function svgFor(d){
  const subtitle=subLines.map((line,i)=>'<text x="'+titleX+'" y="'+(subStart+i*font*1.35)+'" fill="#ecf5ff" opacity=".92" font-family="Arial,sans-serif" font-size="'+font+'">'+esc(line)+'</text>').join('');
  const photo=d.photo?'<image href="'+d.photo+'" x="'+imageBox.x+'" y="'+imageBox.y+'" width="'+imageBox.w+'" height="'+imageBox.h+'" preserveAspectRatio="xMidYMid slice" clip-path="url(#photoClip)"/>':'<rect x="'+imageBox.x+'" y="'+imageBox.y+'" width="'+imageBox.w+'" height="'+imageBox.h+'" rx="'+(short*.035)+'" fill="'+esc(d.accent)+'" opacity=".20"/><text x="'+(imageBox.x+imageBox.w/2)+'" y="'+(imageBox.y+imageBox.h/2)+'" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+(font*.75)+'">ADD PRODUCT PHOTO</text>';
  const footerY=isStory?h*.86:h*.91,ctaText=esc(d.cta||'LEARN MORE'),brandText=esc(d.brand||'YOUR BRAND');
- return '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+d.w+d.unit+'" height="'+d.h+d.unit+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(d.title)+'"><defs><linearGradient id="fade" x2="1" y2="1"><stop stop-color="'+esc(d.color)+'"/><stop offset="1" stop-color="#091321"/></linearGradient><clipPath id="photoClip"><rect x="'+imageBox.x+'" y="'+imageBox.y+'" width="'+imageBox.w+'" height="'+imageBox.h+'" rx="'+(short*.035)+'"/></clipPath></defs><rect width="'+w+'" height="'+h+'" fill="url(#fade)"/>'+shape+group('brand','<rect x="'+pad+'" y="'+(brandY-short*.01)+'" width="'+(short*.07)+'" height="'+(short*.012)+'" rx="'+(short*.006)+'" fill="'+esc(d.accent)+'"/><text x="'+(pad+short*.09)+'" y="'+brandY+'" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+(font*.72)+'" font-weight="700" letter-spacing="3">'+brandText+'</text>')+group('label','<text x="'+pad+'" y="'+(brandY+font*1.8)+'" fill="'+esc(d.accent)+'" font-family="Arial,sans-serif" font-size="'+(font*.53)+'" font-weight="700" letter-spacing="4">'+esc(label)+'</text>')+group('title',title)+group('subtitle',subtitle)+group('image',photo)+'<rect x="'+pad+'" y="'+(footerY-short*.055)+'" width="'+(w-pad*2)+'" height="'+(short*.10)+'" rx="'+(short*.05)+'" fill="'+esc(d.accent)+'"/>'+group('cta','<text x="'+(w/2)+'" y="'+footerY+'" text-anchor="middle" dominant-baseline="middle" fill="#071321" font-family="Arial,sans-serif" font-size="'+(font*.92)+'" font-weight="700" letter-spacing="2">'+ctaText+'</text>')+'<text x="'+pad+'" y="'+(h-pad*.55)+'" fill="#ffffff" opacity=".55" font-family="Arial,sans-serif" font-size="'+(font*.35)+'">'+esc(d.type==='label'||d.type==='insert'?'PRINT ARTWORK · VERIFY FINAL SIZE WITH SUPPLIER':'EDITABLE VECTOR DESIGN · '+d.w+' × '+d.h+' '+d.unit)+'</text></svg>';
+ return '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+d.w+d.unit+'" height="'+d.h+d.unit+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(d.title)+'"><defs><linearGradient id="fade" x2="1" y2="1"><stop stop-color="'+esc(d.color)+'"/><stop offset="1" stop-color="#091321"/></linearGradient><clipPath id="photoClip"><rect x="'+imageBox.x+'" y="'+imageBox.y+'" width="'+imageBox.w+'" height="'+imageBox.h+'" rx="'+(short*.035)+'"/></clipPath></defs><rect width="'+w+'" height="'+h+'" fill="url(#fade)"/>'+shape+group('brand','<rect x="'+pad+'" y="'+(brandY-short*.01)+'" width="'+(short*.07)+'" height="'+(short*.012)+'" rx="'+(short*.006)+'" fill="'+esc(d.accent)+'"/><text x="'+(pad+short*.09)+'" y="'+brandY+'" fill="#ffffff" font-family="Arial,sans-serif" font-size="'+(font*.72)+'" font-weight="700" letter-spacing="3">'+brandText+'</text>')+group('label','<text x="'+pad+'" y="'+(brandY+font*1.8)+'" fill="'+esc(d.accent)+'" font-family="Arial,sans-serif" font-size="'+(font*.53)+'" font-weight="700" letter-spacing="4">'+esc(label)+'</text>')+group('title',title)+group('subtitle',subtitle)+group('image',photo)+customElementsSvg(d)+'<rect x="'+pad+'" y="'+(footerY-short*.055)+'" width="'+(w-pad*2)+'" height="'+(short*.10)+'" rx="'+(short*.05)+'" fill="'+esc(d.accent)+'"/>'+group('cta','<text x="'+(w/2)+'" y="'+footerY+'" text-anchor="middle" dominant-baseline="middle" fill="#071321" font-family="Arial,sans-serif" font-size="'+(font*.92)+'" font-weight="700" letter-spacing="2">'+ctaText+'</text>')+'<text x="'+pad+'" y="'+(h-pad*.55)+'" fill="#ffffff" opacity=".55" font-family="Arial,sans-serif" font-size="'+(font*.35)+'">'+esc(d.type==='label'||d.type==='insert'?'PRINT ARTWORK · VERIFY FINAL SIZE WITH SUPPLIER':'EDITABLE VECTOR DESIGN · '+d.w+' × '+d.h+' '+d.unit)+'</text></svg>';
 }
 let previousObjectUrl='';
 function attachCanvasEditing(svg){
@@ -72,11 +88,37 @@ function attachCanvasEditing(svg){
  };
  svg.addEventListener('pointerup',finish);svg.addEventListener('pointercancel',finish);
  svg.addEventListener('dblclick',e=>{
-  const target=e.target.closest('[data-design-object]'),id=target&&names[target.getAttribute('data-design-object')];
+  const target=e.target.closest('[data-design-object]'),name=target&&target.getAttribute('data-design-object');
+  const id=name&&name.startsWith('custom-')?'customText-'+name.slice(7):(name&&names[name]);
   if(id&&$(id)){const field=$(id);field.scrollIntoView({behavior:'smooth',block:'center'});field.focus()}
  });
 }
 function render(){const d=stateFromForm(),svg=svgFor(d);$('designCanvas').innerHTML=svg;const canvasSvg=$('designCanvas').querySelector('svg');if(canvasSvg)attachCanvasEditing(canvasSvg);$('designDimensions').textContent=d.w+' × '+d.h+' '+d.unit;$('designDimensionsPreview').textContent=d.w+' × '+d.h+' '+d.unit;if(previousObjectUrl)URL.revokeObjectURL(previousObjectUrl);$('designDownload').href=previousObjectUrl=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));}
+function renderCustomElements(){
+ const root=$('customElementList');if(!root)return;root.replaceChildren();
+ if(!customElements.length){const hint=document.createElement('p');hint.className='muted';hint.textContent='No added elements yet.';root.append(hint);return}
+ customElements.forEach(el=>{
+  const row=document.createElement('div');row.className='design-layer';
+  const head=document.createElement('div');head.className='design-layer-head';
+  const name=document.createElement('strong');name.textContent=el.type==='text'?'Text':el.type==='rectangle'?'Rectangle':'Circle';
+  const remove=document.createElement('button');remove.type='button';remove.className='ghost';remove.textContent='Remove';
+  remove.addEventListener('click',()=>{customElements=customElements.filter(item=>item.id!==el.id);delete layoutOffsets['custom-'+el.id];renderCustomElements();render()});
+  head.append(name,remove);row.append(head);
+  if(el.type==='text'){
+   const textInput=document.createElement('textarea');textInput.id='customText-'+el.id;textInput.rows=2;textInput.maxLength=100;textInput.value=el.text;textInput.setAttribute('aria-label','Added text');
+   textInput.addEventListener('input',()=>{el.text=textInput.value;render()});row.append(textInput);
+  }
+  const color=document.createElement('input');color.type='color';color.value=el.color;color.setAttribute('aria-label','Element color');color.addEventListener('input',()=>{el.color=color.value;render()});row.append(color);root.append(row);
+ });
+}
+function addCustomElement(type){
+ const id=String(nextCustomId++),short=Math.min(Number(value('designWidth'))||1080,Number(value('designHeight'))||1080);
+ const element={id,type,color:type==='rectangle'?value('designAccent')||'#59ddb0':'#ffffff'};
+ if(type==='text')Object.assign(element,{text:'Your text',x:.1,y:.5,fontSize:Math.max(32,Math.round(short*.075))});
+ if(type==='rectangle')Object.assign(element,{x:.15,y:.4,width:.7,height:.14});
+ if(type==='circle')Object.assign(element,{x:.5,y:.5,radius:.12});
+ customElements.push(element);renderCustomElements();render();
+}
 function selectPreset(){
  const p=presets[value('designType')];if(!p)return;
  layoutOffsets={};
@@ -120,4 +162,7 @@ $('saveDesign').addEventListener('click',async()=>{
 });
 $('projectSelect').addEventListener('change',refreshSaved);
 $('resetDesignLayout')?.addEventListener('click',()=>{layoutOffsets={};render()});
+$('addTextElement')?.addEventListener('click',()=>addCustomElement('text'));
+$('addRectangleElement')?.addEventListener('click',()=>addCustomElement('rectangle'));
+$('addCircleElement')?.addEventListener('click',()=>addCustomElement('circle'));
 selectPreset();setTimeout(refreshSaved,1200);
