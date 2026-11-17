@@ -195,25 +195,60 @@ function adjustSelected(transform,delta){
  else o.rotate=Math.max(-180,Math.min(180,o.rotate+delta));
  layoutOffsets[selectedObjectName]=o;render();
 }
+function drawSelectionFrame(svg,name,node){
+ svg.querySelectorAll('[data-design-ui="selection"]').forEach(item=>item.remove());
+ if(!node||!node.isConnected)return;
+ const box=node.getBBox(),matrix=node.getCTM();if(!matrix)return;
+ const toSvg=(x,y)=>{const p=svg.createSVGPoint();p.x=x;p.y=y;return p.matrixTransform(matrix)};
+ const corners=[toSvg(box.x,box.y),toSvg(box.x+box.width,box.y),toSvg(box.x+box.width,box.y+box.height),toSvg(box.x,box.y+box.height)];
+ const ns='http://www.w3.org/2000/svg',frame=document.createElementNS(ns,'polygon');
+ frame.setAttribute('points',corners.map(p=>p.x+','+p.y).join(' '));frame.setAttribute('class','design-selection-frame');frame.setAttribute('data-design-ui','selection');frame.setAttribute('pointer-events','none');svg.append(frame);
+ const handle=document.createElementNS(ns,'circle'),corner=corners[2];
+ handle.setAttribute('cx',corner.x);handle.setAttribute('cy',corner.y);handle.setAttribute('r','10');handle.setAttribute('class','design-resize-handle');handle.setAttribute('data-resize-handle',name);handle.setAttribute('data-design-ui','selection');handle.setAttribute('aria-label','Resize selected element');svg.append(handle);
+}
 function attachCanvasEditing(svg){
  const names={brand:'designBrand',label:null,title:'designTitle',subtitle:'designSubtitle',image:null,cta:'designCta',symbol:null};
  const point=e=>{const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse())};
- if(selectedObjectName){const selected=Array.from(svg.querySelectorAll('[data-design-object]')).find(node=>node.getAttribute('data-design-object')===selectedObjectName);selected?.classList.add('is-selected')}
+ const findNode=name=>Array.from(svg.querySelectorAll('[data-design-object]')).find(node=>node.getAttribute('data-design-object')===name);
+ if(selectedObjectName){const selected=findNode(selectedObjectName);selected?.classList.add('is-selected');if(selected)drawSelectionFrame(svg,selectedObjectName,selected)}
  svg.addEventListener('pointerdown',e=>{
+  const handle=e.target.closest('[data-resize-handle]');
+  if(handle){
+   e.preventDefault();const name=handle.getAttribute('data-resize-handle'),target=findNode(name);if(!target)return;
+   const p=point(e),box=target.getBBox(),matrix=target.getCTM();if(!matrix)return;
+   const centerLocal=svg.createSVGPoint();centerLocal.x=box.x+box.width/2;centerLocal.y=box.y+box.height/2;
+   const center=centerLocal.matrixTransform(matrix),base={x:0,y:0,scale:1,rotate:0,...layoutOffsets[name]};
+   selectDesignObject(name,target);dragState={mode:'resize',name,target,start:p,center,startDistance:Math.max(1,Math.hypot(p.x-center.x,p.y-center.y)),base,pointerId:e.pointerId};
+   try{svg.setPointerCapture(e.pointerId)}catch{}return;
+  }
   const target=e.target.closest('[data-design-object]');if(!target)return;
   e.preventDefault();const p=point(e),name=target.getAttribute('data-design-object'),base={x:0,y:0,scale:1,rotate:0,...layoutOffsets[name]};
-  selectDesignObject(name,target);dragState={name,target,start:p,base,pointerId:e.pointerId};target.classList.add('is-dragging');
+  selectDesignObject(name,target);dragState={mode:'move',name,target,start:p,base,pointerId:e.pointerId};target.classList.add('is-dragging');
   try{svg.setPointerCapture(e.pointerId)}catch{}
  });
  svg.addEventListener('pointermove',e=>{
   if(!dragState||dragState.pointerId!==e.pointerId)return;
-  const p=point(e),dx=p.x-dragState.start.x,dy=p.y-dragState.start.y;
-  dragState.target.setAttribute('transform',transformValue(dragState.name,{...dragState.base,x:dragState.base.x+dx,y:dragState.base.y+dy}));
+  const p=point(e),state=dragState;
+  if(state.mode==='resize'){
+   const ratio=Math.hypot(p.x-state.center.x,p.y-state.center.y)/state.startDistance;
+   const scale=Math.max(.35,Math.min(3.2,state.base.scale*ratio));
+   state.target.setAttribute('transform',transformValue(state.name,{...state.base,scale}));drawSelectionFrame(svg,state.name,state.target);
+  }else{
+   const dx=p.x-state.start.x,dy=p.y-state.start.y;
+   state.target.setAttribute('transform',transformValue(state.name,{...state.base,x:state.base.x+dx,y:state.base.y+dy}));drawSelectionFrame(svg,state.name,state.target);
+  }
  });
  const finish=e=>{
   if(!dragState||dragState.pointerId!==e.pointerId)return;
-  const p=point(e),dx=p.x-dragState.start.x,dy=p.y-dragState.start.y,name=dragState.name;
-  layoutOffsets[name]={...dragState.base,x:dragState.base.x+dx,y:dragState.base.y+dy};dragState=null;render();
+  const state=dragState,p=point(e),name=state.name;
+  if(state.mode==='resize'){
+   const ratio=Math.hypot(p.x-state.center.x,p.y-state.center.y)/state.startDistance;
+   layoutOffsets[name]={...state.base,scale:Math.max(.35,Math.min(3.2,state.base.scale*ratio))};
+  }else{
+   const dx=p.x-state.start.x,dy=p.y-state.start.y;
+   layoutOffsets[name]={...state.base,x:state.base.x+dx,y:state.base.y+dy};
+  }
+  dragState=null;render();
  };
  svg.addEventListener('pointerup',finish);svg.addEventListener('pointercancel',finish);
  svg.addEventListener('dblclick',e=>{
