@@ -15,6 +15,7 @@ const presets = {
   logo:{label:'Logo / wordmark',w:1200,h:600,unit:'px',tag:'BRAND'}
 };
 let photoData='';
+let activeProjectContext=null;
 let savedDesigns=[];
 let layoutOffsets={};
 let dragState=null;
@@ -165,4 +166,27 @@ $('resetDesignLayout')?.addEventListener('click',()=>{layoutOffsets={};render()}
 $('addTextElement')?.addEventListener('click',()=>addCustomElement('text'));
 $('addRectangleElement')?.addEventListener('click',()=>addCustomElement('rectangle'));
 $('addCircleElement')?.addEventListener('click',()=>addCustomElement('circle'));
+function applyProjectContext(){
+ const detail=activeProjectContext||{},dashboard=detail.dashboard||{},project=detail.project||dashboard.activeProject||{};
+ const product=dashboard.products?.[0]||{},research=dashboard.research||{},payload=research.payload||{},idea=payload.idea||{};
+ const brand=dashboard.brand||{},profile=project.profile||{};
+ const first=(...values)=>values.find(v=>typeof v==='string'&&v.trim())?.trim()||'';
+ const title=first(product.name,research.ideaName,idea.name,project.name);
+ const subtitle=first(product.description,product.outcome,product.offer,idea.description,idea.outcome,research.summary,product.audience,product.problem);
+ const brandName=first(brand.name,profile.brandName,project.brandName);
+ if(title)$('designTitle').value=title.slice(0,120);
+ if(subtitle)$('designSubtitle').value=subtitle.slice(0,220);
+ if(brandName)$('designBrand').value=brandName.slice(0,60);
+ if(!$('designCta').value.trim())$('designCta').value=product.price!=null?'Shop now':'Learn more';
+ const colors=(Array.isArray(brand.colors)?brand.colors:[]).filter(color=>/^#[0-9a-f]{6}$/i.test(color));
+ if(colors[0])$('designColor').value=colors[0];
+ if(colors[1])$('designAccent').value=colors[1];
+ render();
+ const available=[title,subtitle,brandName].filter(Boolean).length;
+ $('designContextStatus').textContent=available
+   ? 'Filled from the active project’s saved product, research and brand details. No AI provider was called.'
+   : 'This project has no saved product or brand details yet. Add those in Product or Brand Profile, then try again.';
+}
+window.addEventListener('localgrowth:design-context',event=>{activeProjectContext=event.detail||null});
+$('designFromProject')?.addEventListener('click',applyProjectContext);
 renderCustomElements();selectPreset();setTimeout(refreshSaved,1200);
