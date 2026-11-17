@@ -27,7 +27,7 @@ function stateFromForm(){
   const type=value('designType'),p=presets[type]||presets.social;
   const w=Math.max(50,Math.min(5000,Number(value('designWidth'))||p.w));
   const h=Math.max(50,Math.min(7000,Number(value('designHeight'))||p.h));
-  return {type,w,h,unit:value('designUnit')||p.unit,title:value('designTitle'),subtitle:value('designSubtitle'),brand:value('designBrand'),cta:value('designCta'),color:value('designColor')||'#102846',accent:value('designAccent')||'#59ddb0',photo:photoData};
+  return {type,w,h,unit:value('designUnit')||p.unit,title:value('designTitle'),subtitle:value('designSubtitle'),brand:value('designBrand'),cta:value('designCta'),color:value('designColor')||'#102846',accent:value('designAccent')||'#59ddb0',coverStyle:value('designCoverStyle')||'growth',photo:photoData};
 }
 function wrapMeasured(text,maxWidth,fontSize,maxLines=3,bold=false){
  const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
@@ -76,18 +76,23 @@ function ebookCoverSvg(d){
  const titleLines=wrapMeasured(d.title||'Digital Product Guide',w-pad*2,titleSize,3,true);
  const subtitleLines=wrapMeasured(d.subtitle||'A practical guide to your next launch.',w-pad*2,subtitleSize,4,false);
  const brand=esc(d.brand||'LOCAL GROWTH');
+ const coverStyle=d.coverStyle||'growth',editorial=coverStyle==='editorial',minimal=coverStyle==='minimal';
+ const fontFamily=editorial?'Georgia,serif':'Arial,sans-serif';
+ const accentColor=editorial?'#e3b66b':minimal?'#95c9e9':d.accent;
+ const bgStart=editorial?'#272a3f':'#102947',bgEnd=minimal?'#050b13':'#071321';
+ const panelFill=minimal?'#0b1725':'#0d1f34',panelStroke=minimal?'#213044':editorial?'#665845':'#38516a';
  const titleY=h*.255;
  const subtitleY=titleY+titleLines.length*titleSize*1.13+short*.055;
  const artY=Math.max(h*.49,subtitleY+subtitleLines.length*subtitleSize*1.36+short*.06);
  const artH=Math.max(short*.2,Math.min(h*.33,h*.80-artY));
  const artX=w*.085,artW=w*.83;
- const title=titleLines.map((line,i)=>'<text x="'+pad+'" y="'+(titleY+i*titleSize*1.13)+'" fill="'+(i===titleLines.length-1?'url(#titleAccent)':'#f8fbff')+'" font-family="Arial,sans-serif" font-size="'+titleSize+'" font-weight="700" letter-spacing="-2">'+esc(line)+'</text>').join('');
- const subtitle=subtitleLines.map((line,i)=>'<text x="'+pad+'" y="'+(subtitleY+i*subtitleSize*1.36)+'" fill="#c5d4e4" font-family="Arial,sans-serif" font-size="'+subtitleSize+'">'+esc(line)+'</text>').join('');
+ const title=titleLines.map((line,i)=>'<text x="'+pad+'" y="'+(titleY+i*titleSize*1.13)+'" fill="'+(i===titleLines.length-1?'url(#titleAccent)':'#f8fbff')+'" font-family="'+fontFamily+'" font-size="'+titleSize+'" font-weight="700" letter-spacing="-2">'+esc(line)+'</text>').join('');
+ const subtitle=subtitleLines.map((line,i)=>'<text x="'+pad+'" y="'+(subtitleY+i*subtitleSize*1.36)+'" fill="#c5d4e4" font-family="'+fontFamily+'" font-size="'+subtitleSize+'">'+esc(line)+'</text>').join('');
  const bars=[.24,.39,.57,.76],barW=artW*.105,barGap=artW*.045,baseY=artY+artH*.77;
  const barShapes=bars.map((height,i)=>'<rect x="'+(artX+artW*.12+i*(barW+barGap))+'" y="'+(baseY-artH*height*.52)+'" width="'+barW+'" height="'+(artH*height*.52)+'" rx="'+(short*.014)+'" fill="'+(i===bars.length-1?'url(#artAccent)':'#3bc9a7')+'" opacity="'+(.42+i*.14)+'"/>').join('');
- const labels=['IDEA','BUILD','LAUNCH'].map((label,i)=>'<text x="'+(artX+artW*(.18+i*.25))+'" y="'+(artY+artH*.91)+'" text-anchor="middle" fill="#d9e7f4" font-family="Arial,sans-serif" font-size="'+(short*.018)+'" font-weight="700" letter-spacing="2">'+label+'</text>').join('');
+ const labels=['IDEA','BUILD','LAUNCH'].map((label,i)=>'<text x="'+(artX+artW*(.18+i*.25))+'" y="'+(artY+artH*.91)+'" text-anchor="middle" fill="#d9e7f4" font-family="'+fontFamily+'" font-size="'+(short*.018)+'" font-weight="700" letter-spacing="2">'+label+'</text>').join('');
  const footerY=h*.925;
- return '<svg xmlns="http://www.w3.org/2000/svg" width="'+w+d.unit+'" height="'+h+d.unit+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(d.title||'Book cover')+'"><defs><linearGradient id="coverBg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#102947"/><stop offset=".58" stop-color="'+esc(d.color)+'"/><stop offset="1" stop-color="#071321"/></linearGradient><linearGradient id="titleAccent" x1="0" y1="0" x2="1" y2="0"><stop stop-color="'+esc(d.accent)+'"/><stop offset="1" stop-color="#a4f0d8"/></linearGradient><linearGradient id="artAccent" x1="0" y1="1" x2="1" y2="0"><stop stop-color="'+esc(d.accent)+'"/><stop offset="1" stop-color="#b4f5df"/></linearGradient></defs><rect width="'+w+'" height="'+h+'" fill="url(#coverBg)"/><path d="M '+(w*.76)+' 0 L '+w+' 0 L '+w+' '+(h*.31)+' Z" fill="#ffffff" opacity=".025"/><path d="M 0 '+(h*.78)+' L 0 '+h+' L '+(w*.20)+' '+h+' Z" fill="'+esc(d.accent)+'" opacity=".055"/><circle cx="'+(w*.91)+'" cy="'+(h*.08)+'" r="'+(short*.18)+'" fill="none" stroke="'+esc(d.accent)+'" stroke-width="'+(short*.003)+'" opacity=".28"/><rect x="'+pad+'" y="'+(h*.076)+'" width="'+(short*.085)+'" height="'+(short*.013)+'" rx="'+(short*.006)+'" fill="'+esc(d.accent)+'"/><text x="'+(pad+short*.11)+'" y="'+(h*.086)+'" fill="#f8fbff" font-family="Arial,sans-serif" font-size="'+(short*.033)+'" font-weight="700" letter-spacing="3">'+brand+'</text><text x="'+pad+'" y="'+(h*.17)+'" fill="'+esc(d.accent)+'" font-family="Arial,sans-serif" font-size="'+(short*.022)+'" font-weight="700" letter-spacing="5">THE PRACTICAL PLAYBOOK</text>'+title+subtitle+'<rect x="'+(artX+short*.012)+'" y="'+(artY+short*.015)+'" width="'+artW+'" height="'+artH+'" rx="'+(short*.032)+'" fill="#000000" opacity=".18"/><rect x="'+artX+'" y="'+artY+'" width="'+artW+'" height="'+artH+'" rx="'+(short*.032)+'" fill="#0d1f34" stroke="#38516a" stroke-width="'+(short*.0025)+'"/><circle cx="'+(artX+artW*.82)+'" cy="'+(artY+artH*.30)+'" r="'+(artH*.38)+'" fill="'+esc(d.accent)+'" opacity=".08"/><text x="'+(artX+artW*.09)+'" y="'+(artY+artH*.16)+'" fill="#c4d6e7" font-family="Arial,sans-serif" font-size="'+(short*.017)+'" font-weight="700" letter-spacing="3">A SIMPLE PATH TO MARKET</text><path d="M '+(artX+artW*.09)+' '+baseY+' L '+(artX+artW*.78)+' '+baseY+'" stroke="#52677a" stroke-width="'+(short*.003)+'"/>'+barShapes+'<path d="M '+(artX+artW*.12)+' '+(baseY-artH*.12)+' C '+(artX+artW*.30)+' '+(baseY-artH*.30)+' '+(artX+artW*.46)+' '+(baseY-artH*.34)+' '+(artX+artW*.68)+' '+(baseY-artH*.65)+'" fill="none" stroke="url(#artAccent)" stroke-width="'+(short*.012)+'" stroke-linecap="round"/><path d="M '+(artX+artW*.655)+' '+(baseY-artH*.65)+' L '+(artX+artW*.70)+' '+(baseY-artH*.68)+' L '+(artX+artW*.69)+' '+(baseY-artH*.62)+'" fill="none" stroke="'+esc(d.accent)+'" stroke-width="'+(short*.012)+'" stroke-linecap="round" stroke-linejoin="round"/>'+labels+'<text x="'+pad+'" y="'+footerY+'" fill="#d1dce7" opacity=".72" font-family="Arial,sans-serif" font-size="'+(short*.019)+'" letter-spacing="3">'+brand+'  ·  DIGITAL PRODUCT SERIES</text></svg>';
+ return '<svg xmlns="http://www.w3.org/2000/svg" width="'+w+d.unit+'" height="'+h+d.unit+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(d.title||'Book cover')+'"><defs><linearGradient id="coverBg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="'+bgStart+'"/><stop offset=".58" stop-color="'+esc(d.color)+'"/><stop offset="1" stop-color="'+bgEnd+'"/></linearGradient><linearGradient id="titleAccent" x1="0" y1="0" x2="1" y2="0"><stop stop-color="'+accentColor+'"/><stop offset="1" stop-color="#a4f0d8"/></linearGradient><linearGradient id="artAccent" x1="0" y1="1" x2="1" y2="0"><stop stop-color="'+accentColor+'"/><stop offset="1" stop-color="#b4f5df"/></linearGradient></defs><rect width="'+w+'" height="'+h+'" fill="url(#coverBg)"/><path d="M '+(w*.76)+' 0 L '+w+' 0 L '+w+' '+(h*.31)+' Z" fill="#ffffff" opacity=".025"/><path d="M 0 '+(h*.78)+' L 0 '+h+' L '+(w*.20)+' '+h+' Z" fill="'+accentColor+'" opacity=".055"/><circle cx="'+(w*.91)+'" cy="'+(h*.08)+'" r="'+(short*.18)+'" fill="none" stroke="'+accentColor+'" stroke-width="'+(short*.003)+'" opacity=".28"/><rect x="'+pad+'" y="'+(h*.076)+'" width="'+(short*.085)+'" height="'+(short*.013)+'" rx="'+(short*.006)+'" fill="'+accentColor+'"/><text x="'+(pad+short*.11)+'" y="'+(h*.086)+'" fill="#f8fbff" font-family="'+fontFamily+'" font-size="'+(short*.033)+'" font-weight="700" letter-spacing="3">'+brand+'</text><text x="'+pad+'" y="'+(h*.17)+'" fill="'+accentColor+'" font-family="'+fontFamily+'" font-size="'+(short*.022)+'" font-weight="700" letter-spacing="5">THE PRACTICAL PLAYBOOK</text>'+title+subtitle+'<rect x="'+(artX+short*.012)+'" y="'+(artY+short*.015)+'" width="'+artW+'" height="'+artH+'" rx="'+(short*.032)+'" fill="#000000" opacity=".18"/><rect x="'+artX+'" y="'+artY+'" width="'+artW+'" height="'+artH+'" rx="'+(short*.032)+'" fill="'+panelFill+'" stroke="'+panelStroke+'" stroke-width="'+(short*.0025)+'"/><circle cx="'+(artX+artW*.82)+'" cy="'+(artY+artH*.30)+'" r="'+(artH*.38)+'" fill="'+accentColor+'" opacity=".08"/><text x="'+(artX+artW*.09)+'" y="'+(artY+artH*.16)+'" fill="#c4d6e7" font-family="'+fontFamily+'" font-size="'+(short*.017)+'" font-weight="700" letter-spacing="3">A SIMPLE PATH TO MARKET</text><path d="M '+(artX+artW*.09)+' '+baseY+' L '+(artX+artW*.78)+' '+baseY+'" stroke="#52677a" stroke-width="'+(short*.003)+'"/>'+barShapes+'<path d="M '+(artX+artW*.12)+' '+(baseY-artH*.12)+' C '+(artX+artW*.30)+' '+(baseY-artH*.30)+' '+(artX+artW*.46)+' '+(baseY-artH*.34)+' '+(artX+artW*.68)+' '+(baseY-artH*.65)+'" fill="none" stroke="url(#artAccent)" stroke-width="'+(short*.012)+'" stroke-linecap="round"/><path d="M '+(artX+artW*.655)+' '+(baseY-artH*.65)+' L '+(artX+artW*.70)+' '+(baseY-artH*.68)+' L '+(artX+artW*.69)+' '+(baseY-artH*.62)+'" fill="none" stroke="'+accentColor+'" stroke-width="'+(short*.012)+'" stroke-linecap="round" stroke-linejoin="round"/>'+labels+'<text x="'+pad+'" y="'+footerY+'" fill="#d1dce7" opacity=".72" font-family="'+fontFamily+'" font-size="'+(short*.019)+'" letter-spacing="3">'+brand+'  ·  DIGITAL PRODUCT SERIES</text></svg>';
 }
 function svgFor(d){
  const w=d.w,h=d.h,short=Math.min(w,h),pad=short*.075;
@@ -222,7 +227,7 @@ function selectPreset(){
  $('designWidth').value=p.w;$('designHeight').value=p.h;$('designUnit').value=p.unit;
  if(['label','insert','businesscard','pricetag'].includes(value('designType')))$('designPrintNote').classList.remove('hidden');else $('designPrintNote').classList.add('hidden');
  const ctaLabel=$('designCta')?.closest('label');if(ctaLabel)ctaLabel.classList.toggle('hidden',value('designType')==='cover');
- const photoLabel=$('designPhoto')?.closest('label'),photoStatus=$('designPhotoStatus');if(photoLabel)photoLabel.classList.toggle('hidden',value('designType')==='cover');if(photoStatus)photoStatus.classList.toggle('hidden',value('designType')==='cover');
+ const photoLabel=$('designPhoto')?.closest('label'),photoStatus=$('designPhotoStatus');if(photoLabel)photoLabel.classList.toggle('hidden',value('designType')==='cover');if(photoStatus)photoStatus.classList.toggle('hidden',value('designType')==='cover'); const coverStyleLabel=$('designCoverStyleLabel');if(coverStyleLabel)coverStyleLabel.classList.toggle('hidden',value('designType')!=='cover');
  render();
 }
 function slug(s){return (s||'design').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,45)||'design'}
@@ -239,7 +244,7 @@ async function loadSavedDesign(item){
  if(!state||state.version!==1||!state.form){$('designStatus').textContent='This older saved design can be downloaded as SVG, but its editing details were not stored.';return}
  const preset=$('designType'),known=[...preset.options].some(option=>option.value===state.form.type);
  preset.value=known?state.form.type:'social';selectPreset();
- for(const [key,id] of Object.entries({w:'designWidth',h:'designHeight',unit:'designUnit',title:'designTitle',subtitle:'designSubtitle',brand:'designBrand',cta:'designCta',color:'designColor',accent:'designAccent'})){
+ for(const [key,id] of Object.entries({w:'designWidth',h:'designHeight',unit:'designUnit',title:'designTitle',subtitle:'designSubtitle',brand:'designBrand',cta:'designCta',color:'designColor',accent:'designAccent',coverStyle:'designCoverStyle'})){
   if(state.form[key]!=null)$(id).value=String(state.form[key]);
  }
  customElements=Array.isArray(state.customElements)?state.customElements.slice(0,30):[];
@@ -272,7 +277,7 @@ async function refreshSaved(){
   }
  }catch{$('savedDesignList').textContent='Could not load saved designs.'}
 }
-$('designType').addEventListener('change',selectPreset);
+$('designType').addEventListener('change',selectPreset);$('designCoverStyle')?.addEventListener('change',render);
 ['designTitle','designSubtitle','designBrand','designCta','designColor','designAccent','designWidth','designHeight','designUnit'].forEach(id=>$(id).addEventListener('input',render));
 $('designPhoto').addEventListener('change',e=>readPhoto(e.target.files?.[0]).catch(()=>{$('designPhotoStatus').textContent='The image could not be opened.'}));
 $('designDownload').addEventListener('click',e=>{const d=stateFromForm();e.currentTarget.download=slug(d.title)+'.svg'});
@@ -318,7 +323,7 @@ $('saveDesign').addEventListener('click',async()=>{
  const button=$('saveDesign');button.disabled=true;$('designStatus').textContent='Saving design to this project…';
  try{
   const d=stateFromForm(),svg=svgFor(d);
-  const response=await fetch('/api/v2/designs/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({projectId,title:d.title||presets[d.type].label,kind:presets[d.type].label,svg,designState:{version:1,form:{type:d.type,w:d.w,h:d.h,unit:d.unit,title:d.title,subtitle:d.subtitle,brand:d.brand,cta:d.cta,color:d.color,accent:d.accent},customElements,layoutOffsets}})});
+  const response=await fetch('/api/v2/designs/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({projectId,title:d.title||presets[d.type].label,kind:presets[d.type].label,svg,designState:{version:1,form:{type:d.type,w:d.w,h:d.h,unit:d.unit,title:d.title,subtitle:d.subtitle,brand:d.brand,cta:d.cta,color:d.color,accent:d.accent,coverStyle:d.coverStyle},customElements,layoutOffsets}})});
   const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not save design.');
   $('designStatus').textContent='Design saved to this project. Download the SVG or open it in a compatible design editor.';
   await refreshSaved();
