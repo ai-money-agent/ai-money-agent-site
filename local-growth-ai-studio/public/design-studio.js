@@ -216,7 +216,7 @@ async function loadSavedDesign(item){
  nextCustomId=customElements.reduce((max,el)=>Math.max(max,Number(el.id)||0),0)+1;
  const response=await fetch('/api/v2/designs/download?projectId='+encodeURIComponent(projectId)+'&id='+encodeURIComponent(item.id));
  if(response.ok){
-  const svg=await response.text(),match=svg.match(/<image\\b[^>]*\\bhref="(data:image\\/(?:jpeg|png|webp);base64,[^"]+)"/i);
+  const svg=await response.text(),match=svg.match(/<image[^>]*href="(data:image\/(?:jpeg|png|webp);base64,[^"]+)"/i);
   photoData=match?match[1]:'';
  }else photoData='';
  const photoInput=$('designPhoto');if(photoInput)photoInput.value='';
