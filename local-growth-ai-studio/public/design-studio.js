@@ -203,13 +203,42 @@ async function readPhoto(file){
  const scale=Math.min(1,1400/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
  photoData=canvas.toDataURL('image/jpeg',.82);$('designPhotoStatus').textContent='Product photo ready. It will be embedded in the saved design.';render();
 }
+async function loadSavedDesign(item){
+ const projectId=value('projectSelect'),state=item.designState;
+ if(!state||state.version!==1||!state.form){$('designStatus').textContent='This older saved design can be downloaded as SVG, but its editing details were not stored.';return}
+ const preset=$('designType'),known=[...preset.options].some(option=>option.value===state.form.type);
+ preset.value=known?state.form.type:'social';selectPreset();
+ for(const [key,id] of Object.entries({w:'designWidth',h:'designHeight',unit:'designUnit',title:'designTitle',subtitle:'designSubtitle',brand:'designBrand',cta:'designCta',color:'designColor',accent:'designAccent'})){
+  if(state.form[key]!=null)$(id).value=String(state.form[key]);
+ }
+ customElements=Array.isArray(state.customElements)?state.customElements.slice(0,30):[];
+ layoutOffsets=state.layoutOffsets&&typeof state.layoutOffsets==='object'?state.layoutOffsets:{};
+ nextCustomId=customElements.reduce((max,el)=>Math.max(max,Number(el.id)||0),0)+1;
+ const response=await fetch('/api/v2/designs/download?projectId='+encodeURIComponent(projectId)+'&id='+encodeURIComponent(item.id));
+ if(response.ok){
+  const svg=await response.text(),match=svg.match(/<image\\b[^>]*\\bhref="(data:image\\/(?:jpeg|png|webp);base64,[^"]+)"/i);
+  photoData=match?match[1]:'';
+ }else photoData='';
+ const photoInput=$('designPhoto');if(photoInput)photoInput.value='';
+ $('designPhotoStatus').textContent=photoData?'Saved product photo restored.':'No product photo in this design.';
+ renderCustomElements();render();
+ $('designStatus').textContent='Saved design opened for editing. Saving will add an updated copy to this project.';
+}
 async function refreshSaved(){
  if(!value('projectSelect'))return;
  try{
   const data=await fetch('/api/v2/designs/list?projectId='+encodeURIComponent(value('projectSelect'))).then(r=>r.json());
   savedDesigns=data.designs||[];const root=$('savedDesignList');root.replaceChildren();
   if(!savedDesigns.length){root.innerHTML='<p class="muted">No designs saved to this project yet.</p>';return}
-  for(const item of savedDesigns){const row=document.createElement('div');row.className='design-saved-row';const info=document.createElement('div');info.innerHTML='<strong></strong><small></small>';info.querySelector('strong').textContent=item.title;info.querySelector('small').textContent=item.kind+' · '+new Date(item.createdAt).toLocaleDateString();const link=document.createElement('a');link.className='secondary';link.textContent='Download SVG';link.href='/api/v2/designs/download?projectId='+encodeURIComponent(value('projectSelect'))+'&id='+encodeURIComponent(item.id);link.setAttribute('download',slug(item.title)+'.svg');row.append(info,link);root.append(row)}
+  for(const item of savedDesigns){
+   const row=document.createElement('div');row.className='design-saved-row';
+   const info=document.createElement('div');info.innerHTML='<strong></strong><small></small>';
+   info.querySelector('strong').textContent=item.title;info.querySelector('small').textContent=item.kind+' · '+new Date(item.createdAt).toLocaleDateString();
+   const actions=document.createElement('div');actions.className='design-saved-actions';
+   if(item.designState){const edit=document.createElement('button');edit.type='button';edit.className='secondary';edit.textContent='Open to edit';edit.addEventListener('click',()=>loadSavedDesign(item).catch(()=>{$('designStatus').textContent='Could not open this saved design.'}));actions.append(edit)}
+   const link=document.createElement('a');link.className='secondary';link.textContent='Download SVG';link.href='/api/v2/designs/download?projectId='+encodeURIComponent(value('projectSelect'))+'&id='+encodeURIComponent(item.id);link.setAttribute('download',slug(item.title)+'.svg');actions.append(link);
+   row.append(info,actions);root.append(row)
+  }
  }catch{$('savedDesignList').textContent='Could not load saved designs.'}
 }
 $('designType').addEventListener('change',selectPreset);
@@ -258,7 +287,7 @@ $('saveDesign').addEventListener('click',async()=>{
  const button=$('saveDesign');button.disabled=true;$('designStatus').textContent='Saving design to this project…';
  try{
   const d=stateFromForm(),svg=svgFor(d);
-  const response=await fetch('/api/v2/designs/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({projectId,title:d.title||presets[d.type].label,kind:presets[d.type].label,svg})});
+  const response=await fetch('/api/v2/designs/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({projectId,title:d.title||presets[d.type].label,kind:presets[d.type].label,svg,designState:{version:1,form:{type:d.type,w:d.w,h:d.h,unit:d.unit,title:d.title,subtitle:d.subtitle,brand:d.brand,cta:d.cta,color:d.color,accent:d.accent},customElements,layoutOffsets}})});
   const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not save design.');
   $('designStatus').textContent='Design saved to this project. Download the SVG or open it in a compatible design editor.';
   await refreshSaved();
