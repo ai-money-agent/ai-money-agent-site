@@ -551,7 +551,7 @@ async function api(req, res, url) {
     const project = projectOrFail(url.searchParams.get('projectId'));
     const designs = workspace.listOutputs(v2Account,project.id,1000)
       .filter(item => item.type === 'design')
-      .map(item => ({id:item.id,title:item.title,kind:item.payload?.kind||'Design',createdAt:item.createdAt}));
+      .map(item => ({id:item.id,title:item.title,kind:item.payload?.kind||'Design',createdAt:item.createdAt,designState:item.payload?.designState||null}));
     return json(res,200,{ok:true,designs});
   }
   if (req.method === 'POST' && url.pathname === '/api/v2/designs/save') {
@@ -560,6 +560,14 @@ async function api(req, res, url) {
     const title = text(body.title,120,'Design title');
     const kind = text(body.kind,80,'Design type');
     const svg = text(body.svg,6*1024*1024,'SVG artwork',50);
+    const designState = body.designState == null ? null : body.designState;
+    if (designState != null && (typeof designState !== 'object' || Array.isArray(designState)
+      || Buffer.byteLength(JSON.stringify(designState)) > 64*1024
+      || designState.version !== 1 || !designState.form || typeof designState.form !== 'object'
+      || !Array.isArray(designState.customElements) || designState.customElements.length > 30
+      || !designState.layoutOffsets || typeof designState.layoutOffsets !== 'object' || Array.isArray(designState.layoutOffsets))) {
+      throw failure('Invalid editable design details.',422);
+    }
     if (!/^<svg\s+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/i.test(svg)
       || /<script|<foreignObject|javascript:|on[a-z]+\s*=|<iframe|<object/i.test(svg)
       || /href="https?:/i.test(svg)) throw failure('The SVG contains unsupported or unsafe artwork.',422);
@@ -571,7 +579,7 @@ async function api(req, res, url) {
     let saved;
     try {
       saved = workspace.saveOutput(v2Account,project.id,'design',title,{
-        fileId,filename:filename+'.svg',kind,contentType:'image/svg+xml; charset=utf-8',size:Buffer.byteLength(svg)
+        fileId,filename:filename+'.svg',kind,designState,contentType:'image/svg+xml; charset=utf-8',size:Buffer.byteLength(svg)
       });
     } catch(error) {
       await unlink(filePath).catch(()=>{});
