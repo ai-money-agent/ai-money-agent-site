@@ -277,11 +277,11 @@
               <span class="design-dimensions"><input id="designWidth" type="number" min="50" max="5000" aria-label="Canvas width"><input id="designHeight" type="number" min="50" max="7000" aria-label="Canvas height"><select id="designUnit" aria-label="Measurement unit"><option>px</option><option>mm</option></select></span>
             </label>
             <p id="designPrintNote" class="design-note hidden">For labels and package inserts, enter the supplier’s exact finished dimensions. Confirm bleed, safe area and dieline before printing. This preview is not a manufacturing proof.</p>
-            <div class="design-actions"><a id="designDownload" class="secondary" href="#" download="design.svg">Download SVG</a><button id="saveDesign" class="primary" type="button">Save to project</button></div>
+            <div class="design-actions"><a id="designDownload" class="secondary" href="#" download="design.svg">Download SVG</a><button id="resetDesignLayout" class="ghost" type="button">Reset layout</button><button id="saveDesign" class="primary" type="button">Save to project</button></div>
             <p id="designStatus" class="muted" aria-live="polite">Select a project and edit the design details.</p>
           </article>
           <div class="design-preview-column">
-            <article class="card design-preview-card"><h2>Live preview <small id="designDimensionsPreview"></small></h2><div id="designCanvas" class="design-canvas-wrap" aria-live="polite"></div><p class="muted">The SVG is editable in compatible design tools. Check the final artwork and supplier specifications before printing.</p></article>
+            <article class="card design-preview-card"><h2>Live preview <small id="designDimensionsPreview"></small></h2><div id="designCanvas" class="design-canvas-wrap" aria-live="polite"></div><p class="design-edit-hint">Drag text, photo and logo blocks on the preview to reposition them. Double-tap text to jump to its field. Use Reset layout to restore the template.</p><p class="muted">The SVG is editable in compatible design tools. Check the final artwork and supplier specifications before printing.</p></article>
             <article class="card"><h2>Saved designs</h2><div id="savedDesignList"></div></article>
           </div>
         </div>
