@@ -114,7 +114,7 @@ function renderCustomElements(){
 function addCustomElement(type){
  const id=String(nextCustomId++),short=Math.min(Number(value('designWidth'))||1080,Number(value('designHeight'))||1080);
  const element={id,type,color:type==='rectangle'?value('designAccent')||'#59ddb0':'#ffffff'};
- if(type==='text')Object.assign(element,{text:'Your text',x:.1,y:.5,fontSize:Math.max(32,Math.round(short*.075))});
+ if(type==='text')Object.assign(element,{text:'Your text',x:.1,y:.5,fontSize:Math.max(value('designUnit')==='mm'?3:32,Math.round(short*.075))});
  if(type==='rectangle')Object.assign(element,{x:.15,y:.4,width:.7,height:.14});
  if(type==='circle')Object.assign(element,{x:.5,y:.5,radius:.12});
  customElements.push(element);renderCustomElements();render();
@@ -165,4 +165,4 @@ $('resetDesignLayout')?.addEventListener('click',()=>{layoutOffsets={};render()}
 $('addTextElement')?.addEventListener('click',()=>addCustomElement('text'));
 $('addRectangleElement')?.addEventListener('click',()=>addCustomElement('rectangle'));
 $('addCircleElement')?.addEventListener('click',()=>addCustomElement('circle'));
-selectPreset();setTimeout(refreshSaved,1200);
+renderCustomElements();selectPreset();setTimeout(refreshSaved,1200);
