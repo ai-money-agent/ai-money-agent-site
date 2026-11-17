@@ -288,7 +288,7 @@ async function loadWorkspace(showLoading=true) {
   profileChips(state.dashboard.activeProject);
   renderIdeas();
   if(state.analysis)renderAnalysis(state.analysis);else $('analysisPanel').classList.add('hidden');
-  renderDashboard(); renderPartnerContext(); syncProductSelectors(); renderSaved(); renderSavedVideos(state.dashboard.outputs||[]); renderExistingProduct(); const savedListing=(state.dashboard.outputs||[]).find(item=>item.type==='sales-listing'); if(savedListing)renderSalesListing(savedListing.payload); renderBrand(state.dashboard.brand); renderFactoryAssets();
+  renderDashboard(); renderPartnerContext(); syncProductSelectors(); renderSaved(); renderSavedVideos(state.dashboard.outputs||[]); renderExistingProduct(); const savedListing=(state.dashboard.outputs||[]).find(item=>item.type==='sales-listing'); if(savedListing)renderSalesListing(savedListing.payload); renderBrand(state.dashboard.brand); renderFactoryAssets(); window.dispatchEvent(new CustomEvent('localgrowth:design-context',{detail:{project:state.dashboard.activeProject,dashboard:state.dashboard}}));
   if (state.dashboard.activeProject) notice(state.health.v2AiReady
     ? `Workspace ready. ${state.health.v2AiProvider} live AI is enabled for business strategy.`
     : `Workspace ready. Local templates are active; this is simulated output, not live AI. ${state.health.v2AiProvider} is not being called.`,'success');
