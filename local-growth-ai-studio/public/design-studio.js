@@ -82,11 +82,11 @@ function wrapMeasured(text,maxWidth,fontSize,maxLines=3,bold=false){
  return lines.length?lines:[''];
 }
 function customElementsSvg(d){
- return customElements.map(el=>{
+ return customElements.filter(el=>!el.hidden).map(el=>{
   const x=(el.x||0)*d.w,y=(el.y||0)*d.h;
   let node='';
   if(el.type==='text'){
-   const rtl=isRtlText(el.text),anchor=rtl?'end':'start';
+   const rtl=isRtlText(el.text),anchor=el.align==='center'?'middle':el.align==='right'?'end':el.align==='left'?'start':rtl?'end':'start';
    node='<text x="'+x+'" y="'+y+'" text-anchor="'+anchor+'" direction="'+(rtl?'rtl':'ltr')+'" fill="'+esc(el.color)+'" font-family="'+esc(el.fontFamily||'Arial,sans-serif')+'" font-size="'+el.fontSize+'" font-weight="'+(el.fontWeight||'700')+'">'+esc(el.text||'Your text')+'</text>';
   }else if(el.type==='rectangle'){
    node='<rect x="'+x+'" y="'+y+'" width="'+(el.width*d.w)+'" height="'+(el.height*d.h)+'" rx="'+(Math.min(d.w,d.h)*.025)+'" fill="'+esc(el.color)+'"/>';
@@ -96,10 +96,16 @@ function customElementsSvg(d){
    const size=(el.size||.12)*Math.min(d.w,d.h),color=esc(el.color);
    if(el.icon==='star'){const pts=[];for(let i=0;i<10;i++){const ang=-Math.PI/2+i*Math.PI/5,r=size*(i%2?.43:1);pts.push((x+Math.cos(ang)*r)+','+(y+Math.sin(ang)*r))}node='<polygon points="'+pts.join(' ')+'" fill="'+color+'"/>'}
    else if(el.icon==='arrow')node='<path d="M '+(x-size*.48)+' '+(y+size*.30)+' L '+(x+size*.25)+' '+(y-size*.36)+' M '+(x-size*.02)+' '+(y-size*.36)+' L '+(x+size*.25)+' '+(y-size*.36)+' L '+(x+size*.25)+' '+(y-size*.08)+'" fill="none" stroke="'+color+'" stroke-width="'+(size*.12)+'" stroke-linecap="round" stroke-linejoin="round"/>';
+   else if(el.icon==='heart')node='<path d="M '+x+' '+(y+size*.48)+' C '+(x-size*.72)+' '+(y-size*.03)+' '+(x-size*.48)+' '+(y-size*.62)+' '+x+' '+(y-size*.25)+' C '+(x+size*.48)+' '+(y-size*.62)+' '+(x+size*.72)+' '+(y-size*.03)+' '+x+' '+(y+size*.48)+' Z" fill="'+color+'"/>';
+   else if(el.icon==='book')node='<path d="M '+(x-size*.5)+' '+(y-size*.38)+' Q '+(x-size*.18)+' '+(y-size*.5)+' '+x+' '+(y-size*.28)+' Q '+(x+size*.18)+' '+(y-size*.5)+' '+(x+size*.5)+' '+(y-size*.38)+' L '+(x+size*.5)+' '+(y+size*.4)+' Q '+(x+size*.18)+' '+(y+size*.25)+' '+x+' '+(y+size*.43)+' Q '+(x-size*.18)+' '+(y+size*.25)+' '+(x-size*.5)+' '+(y+size*.4)+' Z M '+x+' '+(y-size*.28)+' L '+x+' '+(y+size*.43)+'" fill="none" stroke="'+color+'" stroke-width="'+(size*.09)+'" stroke-linejoin="round"/>';
+   else if(el.icon==='bulb')node='<path d="M '+x+' '+(y-size*.52)+' A '+(size*.32)+' '+(size*.32)+' 0 0 0 '+(x-size*.22)+' '+(y+size*.08)+' Q '+(x-size*.2)+' '+(y+size*.23)+' '+(x-size*.1)+' '+(y+size*.29)+' L '+(x-size*.1)+' '+(y+size*.42)+' L '+(x+size*.1)+' '+(y+size*.42)+' L '+(x+size*.1)+' '+(y+size*.29)+' Q '+(x+size*.2)+' '+(y+size*.23)+' '+(x+size*.22)+' '+(y+size*.08)+' A '+(size*.32)+' '+(size*.32)+' 0 0 0 '+x+' '+(y-size*.52)+' Z M '+(x-size*.1)+' '+(y+size*.5)+' L '+(x+size*.1)+' '+(y+size*.5)+'" fill="none" stroke="'+color+'" stroke-width="'+(size*.08)+'" stroke-linecap="round"/>';
+   else if(el.icon==='leaf')node='<path d="M '+(x-size*.48)+' '+(y+size*.42)+' Q '+(x-size*.4)+' '+(y-size*.5)+' '+(x+size*.48)+' '+(y-size*.42)+' Q '+(x+size*.4)+' '+(y+size*.5)+' '+(x-size*.48)+' '+(y+size*.42)+' Z M '+(x-size*.34)+' '+(y+size*.29)+' Q '+x+' '+y+' '+(x+size*.31)+' '+(y-size*.28)+'" fill="'+color+'"/>';
+   else if(el.icon==='check')node='<path d="M '+(x-size*.42)+' '+y+' L '+(x-size*.12)+' '+(y+size*.3)+' L '+(x+size*.45)+' '+(y-size*.36)+'" fill="none" stroke="'+color+'" stroke-width="'+(size*.14)+'" stroke-linecap="round" stroke-linejoin="round"/>';
+   else if(el.icon==='target')node='<circle cx="'+x+'" cy="'+y+'" r="'+(size*.46)+'" fill="none" stroke="'+color+'" stroke-width="'+(size*.09)+'"/><circle cx="'+x+'" cy="'+y+'" r="'+(size*.22)+'" fill="none" stroke="'+color+'" stroke-width="'+(size*.09)+'"/><circle cx="'+x+'" cy="'+y+'" r="'+(size*.06)+'" fill="'+color+'"/>';
    else node='<path d="M '+x+' '+(y-size*.55)+' L '+(x+size*.12)+' '+(y-size*.12)+' L '+(x+size*.55)+' '+y+' L '+(x+size*.12)+' '+(y+size*.12)+' L '+x+' '+(y+size*.55)+' L '+(x-size*.12)+' '+(y+size*.12)+' L '+(x-size*.55)+' '+y+' L '+(x-size*.12)+' '+(y-size*.12)+' Z" fill="'+color+'"/>';
   }
   const key='custom-'+el.id;
-  return '<g data-design-object="'+key+'" transform="'+transformValue(key)+'">'+node+'</g>';
+  return el.hidden?'':'<g data-design-object="'+key+'" transform="'+transformValue(key)+'">'+node+'</g>';
  }).join('');
 }
 function generatedArtworkSvg(d,box,short){
@@ -238,9 +244,10 @@ function renderCustomElements(){
   const forward=document.createElement('button');forward.type='button';forward.className='ghost';forward.textContent='Forward';forward.disabled=index===customElements.length-1;forward.setAttribute('aria-label','Move layer forward');forward.addEventListener('click',()=>move(1));
   const backward=document.createElement('button');backward.type='button';backward.className='ghost';backward.textContent='Back';backward.disabled=index===0;backward.setAttribute('aria-label','Move layer backward');backward.addEventListener('click',()=>move(-1));
   const duplicate=document.createElement('button');duplicate.type='button';duplicate.className='ghost';duplicate.textContent='Duplicate';duplicate.addEventListener('click',()=>duplicateCustomElement(el.id));
+  const visibility=document.createElement('button');visibility.type='button';visibility.className='ghost';visibility.textContent=el.hidden?'Show':'Hide';visibility.setAttribute('aria-label',el.hidden?'Show layer':'Hide layer');visibility.addEventListener('click',()=>{el.hidden=!el.hidden;if(selectedObjectName==='custom-'+el.id&&el.hidden)selectedObjectName='';renderCustomElements();render()});
   const remove=document.createElement('button');remove.type='button';remove.className='ghost';remove.textContent='Remove';
   remove.addEventListener('click',()=>{customElements=customElements.filter(item=>item.id!==el.id);delete layoutOffsets['custom-'+el.id];renderCustomElements();render()});
-  actions.append(forward,backward,duplicate,remove);head.append(name,actions);row.append(head);
+  actions.append(forward,backward,duplicate,visibility,remove);head.append(name,actions);row.append(head);
   if(el.type==='text'){
    const textInput=document.createElement('textarea');textInput.id='customText-'+el.id;textInput.rows=2;textInput.maxLength=100;textInput.value=el.text;textInput.setAttribute('aria-label','Added text');
    textInput.addEventListener('input',()=>{el.text=textInput.value;render()});row.append(textInput);
@@ -254,7 +261,11 @@ function renderCustomElements(){
    const weight=document.createElement('label');weight.className='design-layer-field';weight.append(document.createTextNode('Style'));
    const weightSelect=document.createElement('select');weightSelect.setAttribute('aria-label','Text weight');
    [['Bold','700'],['Regular','400']].forEach(([label,val])=>{const option=document.createElement('option');option.value=val;option.textContent=label;option.selected=(el.fontWeight||'700')===val;weightSelect.append(option)});
-   weightSelect.addEventListener('change',()=>{el.fontWeight=weightSelect.value;render()});weight.append(weightSelect);controls.append(weight);row.append(controls);
+   weightSelect.addEventListener('change',()=>{el.fontWeight=weightSelect.value;render()});weight.append(weightSelect);controls.append(weight);
+   const align=document.createElement('label');align.className='design-layer-field';align.append(document.createTextNode('Alignment'));
+   const alignSelect=document.createElement('select');alignSelect.setAttribute('aria-label','Text alignment');
+   [['Automatic','auto'],['Left','left'],['Center','center'],['Right','right']].forEach(([label,val])=>{const option=document.createElement('option');option.value=val;option.textContent=label;option.selected=(el.align||'auto')===val;alignSelect.append(option)});
+   alignSelect.addEventListener('change',()=>{el.align=alignSelect.value;render()});align.append(alignSelect);controls.append(align);row.append(controls);
   }else if(el.type==='rectangle'){
    const controls=document.createElement('div');controls.className='design-layer-controls';
    addRangeControl(controls,'Width',.1,.9,.01,el.width,v=>{el.width=v});
@@ -404,6 +415,13 @@ $('addCircleElement')?.addEventListener('click',()=>addCustomElement('circle'));
 $('addStarElement')?.addEventListener('click',()=>addCustomElement('icon','star'));
 $('addArrowElement')?.addEventListener('click',()=>addCustomElement('icon','arrow'));
 $('addSparkleElement')?.addEventListener('click',()=>addCustomElement('icon','sparkle'));
+$('addHeartElement')?.addEventListener('click',()=>addCustomElement('icon','heart'));
+$('addBookElement')?.addEventListener('click',()=>addCustomElement('icon','book'));
+$('addBulbElement')?.addEventListener('click',()=>addCustomElement('icon','bulb'));
+$('addLeafElement')?.addEventListener('click',()=>addCustomElement('icon','leaf'));
+$('addCheckElement')?.addEventListener('click',()=>addCustomElement('icon','check'));
+$('addTargetElement')?.addEventListener('click',()=>addCustomElement('icon','target'));
+document.querySelectorAll('[data-palette]').forEach(button=>button.addEventListener('click',()=>{const [bg,accent]=button.dataset.palette.split('|');$('designColor').value=bg;$('designAccent').value=accent;render()}));
 $('undoDesign')?.addEventListener('click',undoDesign);$('redoDesign')?.addEventListener('click',redoDesign);
 $('selectedSizeDown')?.addEventListener('click',()=>adjustSelected('scale',-.1));$('selectedSizeUp')?.addEventListener('click',()=>adjustSelected('scale',.1));
 $('selectedRotateLeft')?.addEventListener('click',()=>adjustSelected('rotate',-15));$('selectedRotateRight')?.addEventListener('click',()=>adjustSelected('rotate',15));
