@@ -317,16 +317,46 @@ $('projectForm').addEventListener('submit',async e=>{
   }catch(err){$('projectFormError').textContent=err.message;}
 });
 
-async function findIdeas() {
-  if(!state.activeProjectId){openProjectModal();return;}
+async function findIdeas({skipConfirmation=false}={}) {
+  if(!state.activeProjectId){openProjectModal();return}
   try{
-    notice('Ranking ideas for execution fit…');
+    if(!skipConfirmation&&state.health?.marketSearchAvailable&&!window.confirm('This uses live OpenAI web search and AI to find product candidates. API usage may incur charges. Continue?'))return;
+    notice('Searching current market signals and ranking product candidates…');
     const data=await api('/api/v2/research/ideas',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,language:profileLanguage(),includeMarketEvidence:true})});
     state.ideas=data.ideas||[]; state.selectedIdea=null; state.analysis=null; renderIdeas();renderIdeaEvidence(data.marketEvidence,data.dataStatus);
     notice(data.dataStatus||'Ideas ready.','success');
-  }catch(e){notice(e.message,'error');}
+  }catch(e){notice(e.message,'error')}
 }
 $('findIdeasButton').addEventListener('click',findIdeas);
+
+async function runLaunchAutopilot(){
+  if(!state.activeProjectId){openProjectModal();return}
+  const button=$('launchAutopilotButton'),status=$('launchAutopilotStatus');
+  if(!window.confirm('The Studio will search current market signals, choose the highest execution-fit candidate, analyze competitors, and save a product and ad-copy draft. This makes several OpenAI requests that may incur API charges. It will not purchase or publish anything. Continue?'))return;
+  button.disabled=true;
+  try{
+    status.textContent='Step 1 of 4: searching live market signals and ranking product candidates…';
+    const ideasData=await api('/api/v2/research/ideas',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,language:profileLanguage(),includeMarketEvidence:true})});
+    state.ideas=ideasData.ideas||[];state.selectedIdea=null;state.analysis=null;renderIdeas();renderIdeaEvidence(ideasData.marketEvidence,ideasData.dataStatus);
+    if(!state.ideas.length)throw new Error('No product candidates were returned. Check the project profile and try again.');
+    if(!ideasData.marketEvidence?.available)throw new Error(ideasData.marketEvidence?.message||'Live market search returned no cited sources. No product was auto-selected.');
+    const chosen=[...state.ideas].sort((a,b)=>(Number(b.score)||0)-(Number(a.score)||0))[0];
+    state.selectedIdea=chosen;renderIdeas();
+    status.textContent='Step 2 of 4: checking competitors and validation signals for '+chosen.name+'…';
+    const research=await analyzeIdeaNow(chosen,{skipConfirmation:true,includeMarketEvidence:true});
+    if(!research)throw new Error('The candidate could not be analyzed.');
+    if(!research.marketEvidence?.available)throw new Error(research.marketEvidence?.message||'Competitor search returned no cited sources. The candidate was not advanced to a product draft.');
+    status.textContent='Step 3 of 4: building the smallest sellable product draft…';
+    const built=await api('/api/v2/products/build',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,idea:chosen,language:profileLanguage()})});
+    status.textContent='Step 4 of 4: preparing ad-copy angles…';
+    await api('/api/v2/ads/generate',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,productId:built.product.id,language:profileLanguage()})});
+    await loadWorkspace(false);showView('product');
+    status.textContent='Done. Selected '+chosen.name+' by execution-fit score, saved its product and ad-copy drafts, and attached cited source leads. Review competitor evidence before investing; search signals are not proof of sales.';
+    notice('Product candidate and launch drafts saved to this project.','success');
+  }catch(e){status.textContent=e.message||'The launch draft could not be completed.';notice(status.textContent,'error')}
+  finally{button.disabled=false}
+}
+$('launchAutopilotButton')?.addEventListener('click',runLaunchAutopilot);
 
 function renderIdeaEvidence(evidence,dataStatus){
   const root=$('ideaEvidence');
@@ -337,6 +367,7 @@ function renderIdeaEvidence(evidence,dataStatus){
   const status=document.createElement('p');
   status.textContent=dataStatus||'Market source status is unavailable.';
   root.append(heading,status);
+  if(evidence?.summary){const summary=document.createElement('p');summary.className='market-summary';summary.textContent=evidence.summary;root.append(summary)}
   if(!evidence?.available){
     const message=document.createElement('p');message.className='notice';
     message.textContent=evidence?.message||'Live search is not configured. No web search was performed.';
@@ -365,7 +396,7 @@ function renderIdeas() {
     const why=document.createElement('p');why.textContent=idea.differentiation;
     const actions=document.createElement('div');actions.className='idea-actions';
     const analyze=document.createElement('button');analyze.className='secondary';analyze.textContent='Analyze';analyze.onclick=()=>analyzeIdeaNow(idea);
-    const build=document.createElement('button');build.className='ghost';build.textContent='Use this idea';build.onclick=async()=>{state.selectedIdea=idea;renderIdeas();await analyzeIdeaNow(idea);showView('product');};
+    const build=document.createElement('button');build.className='ghost';build.textContent='Use this idea';build.onclick=async()=>{state.selectedIdea=idea;renderIdeas();const result=await analyzeIdeaNow(idea);if(result)showView('product');};
     const plan=document.createElement('button');plan.className='secondary';plan.textContent='Plan costs & launch';
     plan.onclick=()=>{
       fillLaunchForm(null,state.dashboard?.activeProject);
@@ -379,12 +410,13 @@ function renderIdeas() {
     actions.append(analyze,build,plan);card.append(score,h,p,meta,why,actions);root.append(card);
   });
 }
-async function analyzeIdeaNow(idea) {
+async function analyzeIdeaNow(idea,{skipConfirmation=false,includeMarketEvidence=true}={}) {
   try{
-    state.selectedIdea=idea;renderIdeas();notice('Analyzing idea…');
-    const data=await api('/api/v2/research/analyze',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,idea,language:profileLanguage(),includeMarketEvidence:true})});
-    state.analysis=data.analysis;renderAnalysis(data.analysis);await loadWorkspace(false);notice('Idea analysis saved to the project.','success');
-  }catch(e){notice(e.message,'error');}
+    if(!skipConfirmation&&includeMarketEvidence&&state.health?.marketSearchAvailable&&!window.confirm('This searches current competitors and offers for this idea. OpenAI web-search usage may incur charges. Continue?'))return null;
+    state.selectedIdea=idea;renderIdeas();notice('Analyzing current competitors, offers and validation signals…');
+    const data=await api('/api/v2/research/analyze',{method:'POST',body:JSON.stringify({projectId:state.activeProjectId,idea,language:profileLanguage(),includeMarketEvidence})});
+    state.analysis=data.analysis;renderAnalysis(data.analysis);await loadWorkspace(false);notice(data.dataStatus||'Idea analysis saved to the project.','success');return data;
+  }catch(e){notice(e.message,'error');return null}
 }
 function fillLaunchForm(plan=null,project=null) {
   const values=plan?.inputs||{};
