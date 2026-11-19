@@ -412,9 +412,9 @@ async function api(req, res, url) {
       }
     }
     const context = {profile:project.profile,marketSourceLeads:marketEvidence?.available ? marketEvidence.sources : []};
-    const generated = await generateV2({operation:marketEvidence?.available ? 'product opportunity hypotheses informed by global source leads' : 'product ideas',context,language,fallback:()=>findProductIdeas(project.profile,language)},config);
+    const generated = await generateV2({operation:marketEvidence?.available ? 'product opportunity hypotheses informed by target-market source leads' : 'product ideas',context,language,fallback:()=>findProductIdeas(project.profile,language)},config);
     const dataStatus = marketEvidence?.available
-      ? (language === 'ar' ? 'مصادر بحث عالمية أولية؛ هذه دلائل للمتابعة وليست إثباتًا للطلب.' : 'Global source leads found; these are research leads, not proof of demand.')
+      ? (language === 'ar' ? 'مصادر أولية للسوق المستهدف؛ هذه دلائل للمتابعة وليست إثباتًا للطلب.' : 'Target-market source leads found; these are research leads, not proof of demand.')
       : (language === 'ar' ? 'تقييم قابلية تنفيذ داخلي؛ لم يُجرَ بحث سوق حي.' : 'Execution-fit analysis; no live web-market search was performed.');
     return json(res,200,{ok:true,ideas:generated.value,marketEvidence,dataStatus,aiEngine:generated.engine});
   }
@@ -427,9 +427,14 @@ async function api(req, res, url) {
     if (body.includeMarketEvidence === true) {
       const idea = body.idea;
       const physical = ['physical','dropshipping','print_on_demand','ecommerce'].includes(idea.type);
+      const profile=project.profile||{};
+      const scope=['local','global','both','unsure'].includes(profile.marketScope)?profile.marketScope:'unsure';
+      const reach=scope==='global'?'worldwide international markets'
+        :scope==='both'?[profile.country,'worldwide international markets'].filter(Boolean).join(' and ')
+        :scope==='local'?(profile.country||'local target market')
+        :'target markets worldwide';
       const query = [
-        idea.name,idea.problem,idea.targetCustomer,
-        'global worldwide international markets',
+        idea.name,idea.problem,idea.targetCustomer,reach,
         physical ? 'competitor product listings supplier offers current pricing' : 'competitor offers customer demand search interest pricing'
       ].filter(Boolean).join(' ').slice(0,360);
       try {
@@ -437,14 +442,14 @@ async function api(req, res, url) {
       } catch (error) {
         throw failure(error.message || 'Global competitor research failed.',error.status || 502);
       }
-      if (marketEvidence.available) workspace.saveOutput(v2Account,project.id,'market-search-evidence',`Global competitor sources: ${idea.name}`,marketEvidence);
+      if (marketEvidence.available) workspace.saveOutput(v2Account,project.id,'market-search-evidence',`Competitor sources: ${idea.name}`,marketEvidence);
     }
     const dataStatus = marketEvidence?.available
-      ? (language === 'ar' ? 'مصادر منافسين عالمية أولية؛ تحقق من الصفحات والأسعار والطلب بنفسك.' : 'Global competitor source leads; verify pages, prices and demand yourself.')
+      ? (language === 'ar' ? 'مصادر منافسين أولية للسوق المستهدف؛ تحقق من الصفحات والأسعار والطلب بنفسك.' : 'Target-market competitor source leads; verify pages, prices and demand yourself.')
       : (language === 'ar' ? 'لم يُجرَ بحث ويب حي؛ هذا تقييم تنفيذ داخلي.' : 'No live web search was performed; this is an internal execution-fit analysis.');
     const sourceLeads = marketEvidence?.available ? marketEvidence.sources : [];
     const generated = await generateV2({
-      operation:'global product and competitor analysis with validation plan',
+      operation:'target-market product and competitor analysis with validation plan',
       context:{profile:project.profile,idea:body.idea,marketSourceLeads:sourceLeads,marketDataStatus:dataStatus},
       language,
       fallback:()=>({ ...analyzeIdea(project.profile,body.idea,language), idea:body.idea })
