@@ -16,6 +16,7 @@ const presets = {
 };
 let photoData='';
 let activeProjectContext=null;
+let imageGenerationAvailable=false;
 let savedDesigns=[];
 let layoutOffsets={};
 let dragState=null;
@@ -469,6 +470,49 @@ $('projectSelect').addEventListener('change',refreshSaved);
 $('resetDesignLayout')?.addEventListener('click',()=>{layoutOffsets={};render()});
 $('addTextElement')?.addEventListener('click',()=>addCustomElement('text'));
 $('addImageElement')?.addEventListener('click',()=>$('designElementImage')?.click());
+async function refreshImageGenerationStatus(){
+ const button=$('generateAiDesignImage'),status=$('aiDesignImageStatus');
+ if(!button||!status)return;
+ button.disabled=true;
+ try{
+  const response=await fetch('/api/v2/designs/image-status');
+  const data=await response.json();
+  imageGenerationAvailable=response.ok&&data.available===true;
+ }catch{imageGenerationAvailable=false}
+ button.disabled=!imageGenerationAvailable;
+ status.textContent=imageGenerationAvailable
+  ? 'Creates one photo using OpenAI. Each generation is a paid API request; confirm before it runs.'
+  : 'AI photo generation is not enabled on the server yet. The connected OpenAI text feature does not automatically include image generation.';
+}
+async function generateAiDesignImage(){
+ const button=$('generateAiDesignImage'),status=$('aiDesignImageStatus'),description=value('aiDesignImagePrompt');
+ if(!imageGenerationAvailable){status.textContent='AI photo generation is not enabled on the server yet.';return}
+ if(description.length<10){status.textContent='Describe the photo you want in at least 10 characters.';return}
+ const d=stateFromForm();
+ const prompt=[
+  'Create one polished, photorealistic marketing photograph for a '+(presets[d.type]?.label||'digital product')+'.',
+  'Main subject and scene: '+description+'.',
+  d.title?'Design title/context: '+d.title+'.':'',
+  d.subtitle?'Product details: '+d.subtitle+'.':'',
+  d.brand?'Brand context: '+d.brand+'.':'',
+  'Do not render any text, letters, logos, watermarks, or labels. Leave clear visual space for text to be added in the design editor. Use realistic lighting, materials, proportions, and a professional commercial photography style.'
+ ].filter(Boolean).join(' ');
+ if(!window.confirm('This sends one image request to OpenAI and may incur an API charge. Generate one photo now?'))return;
+ button.disabled=true;status.textContent='Generating one photo with OpenAI…';
+ try{
+  const response=await fetch('/api/v2/designs/generate-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||'Could not generate the photo.');
+  const base64=data.imageDataUrl.split(',')[1],binary=atob(base64),bytes=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+  const file=new File([bytes],'ai-generated-photo.png',{type:'image/png'});
+  await readDesignElementImage(file);
+  status.textContent='Photo generated and added as a movable image layer. Drag it on the preview to position it.';
+ }catch(error){status.textContent=error.message||'Could not generate the photo.'}
+ finally{button.disabled=!imageGenerationAvailable}
+}
+$('generateAiDesignImage')?.addEventListener('click',generateAiDesignImage);
+refreshImageGenerationStatus();
 $('designElementImage')?.addEventListener('change',event=>{const file=event.target.files?.[0];readDesignElementImage(file);event.target.value=''});
 $('addRectangleElement')?.addEventListener('click',()=>addCustomElement('rectangle'));
 $('addCircleElement')?.addEventListener('click',()=>addCustomElement('circle'));
