@@ -85,7 +85,10 @@ function customElementsSvg(d){
  return customElements.filter(el=>!el.hidden).map(el=>{
   const x=(el.x||0)*d.w,y=(el.y||0)*d.h;
   let node='';
-  if(el.type==='text'){
+  if(el.type==='image'){
+   const width=el.width*d.w,height=el.height*d.h;
+   node='<image data-custom-image-id="'+esc(el.id)+'" href="'+esc(el.src||'')+'" x="'+(x-width/2)+'" y="'+(y-height/2)+'" width="'+width+'" height="'+height+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="'+esc(el.alt||'Uploaded image')+'"/>';
+  }else if(el.type==='text'){
    const rtl=isRtlText(el.text),anchor=el.align==='center'?'middle':el.align==='right'?'end':el.align==='left'?'start':rtl?'end':'start';
    node='<text x="'+x+'" y="'+y+'" text-anchor="'+anchor+'" direction="'+(rtl?'rtl':'ltr')+'" fill="'+esc(el.color)+'" font-family="'+esc(el.fontFamily||'Arial,sans-serif')+'" font-size="'+el.fontSize+'" font-weight="'+(el.fontWeight||'700')+'">'+esc(el.text||'Your text')+'</text>';
   }else if(el.type==='rectangle'){
@@ -272,7 +275,7 @@ function renderCustomElements(){
  customElements.forEach(el=>{
   const row=document.createElement('div');row.className='design-layer';
   const head=document.createElement('div');head.className='design-layer-head';
-  const name=document.createElement('strong');name.textContent=el.type==='text'?'Text':el.type==='rectangle'?'Rectangle':el.type==='circle'?'Circle':(el.icon||'Icon').replace(/^./,c=>c.toUpperCase());
+  const name=document.createElement('strong');name.textContent=el.type==='image'?'Image':el.type==='text'?'Text':el.type==='rectangle'?'Rectangle':el.type==='circle'?'Circle':(el.icon||'Icon').replace(/^./,c=>c.toUpperCase());
   const actions=document.createElement('div');actions.className='design-layer-actions';
   const index=customElements.findIndex(item=>item.id===el.id);
   const move=(delta)=>{const next=index+delta;if(next<0||next>=customElements.length)return;const [item]=customElements.splice(index,1);customElements.splice(next,0,item);renderCustomElements();render()};
@@ -283,7 +286,12 @@ function renderCustomElements(){
   const remove=document.createElement('button');remove.type='button';remove.className='ghost';remove.textContent='Remove';
   remove.addEventListener('click',()=>{customElements=customElements.filter(item=>item.id!==el.id);delete layoutOffsets['custom-'+el.id];renderCustomElements();render()});
   actions.append(forward,backward,duplicate,visibility,remove);head.append(name,actions);row.append(head);
-  if(el.type==='text'){
+  if(el.type==='image'){
+   const preview=document.createElement('img');preview.className='design-layer-thumbnail';preview.src=el.src||'';preview.alt=el.alt||'Uploaded image';row.append(preview);
+   const altInput=document.createElement('input');altInput.type='text';altInput.id='customText-'+el.id;altInput.maxLength=80;altInput.value=el.alt||'';altInput.placeholder='Describe this image';altInput.setAttribute('aria-label','Image description');
+   altInput.addEventListener('input',()=>{el.alt=altInput.value;preview.alt=el.alt||'Uploaded image';render()});row.append(altInput);
+   const hint=document.createElement('p');hint.className='muted';hint.textContent='Drag the image on the preview. Select it to resize, rotate, duplicate or reorder it.';row.append(hint);
+  }else if(el.type==='text'){
    const textInput=document.createElement('textarea');textInput.id='customText-'+el.id;textInput.rows=2;textInput.maxLength=100;textInput.value=el.text;textInput.setAttribute('aria-label','Added text');
    textInput.addEventListener('input',()=>{el.text=textInput.value;render()});row.append(textInput);
    const controls=document.createElement('div');controls.className='design-layer-controls';
@@ -312,7 +320,7 @@ function renderCustomElements(){
    const controls=document.createElement('div');controls.className='design-layer-controls';
    addRangeControl(controls,'Size',.05,.38,.01,el.size||.12,v=>{el.size=v});row.append(controls);
   }
-  const color=document.createElement('input');color.type='color';color.value=el.color;color.setAttribute('aria-label','Element color');color.addEventListener('input',()=>{el.color=color.value;render()});row.append(color);root.append(row);
+  if(el.type!=='image'){const color=document.createElement('input');color.type='color';color.value=el.color;color.setAttribute('aria-label','Element color');color.addEventListener('input',()=>{el.color=color.value;render()});row.append(color)}root.append(row);
  });
 }
 function duplicateCustomElement(id){
@@ -351,6 +359,19 @@ async function readPhoto(file){
  const scale=Math.min(1,1400/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
  photoData=canvas.toDataURL('image/jpeg',.82);$('designPhotoStatus').textContent='Product photo ready. It will be embedded in the saved design.';render();
 }
+async function readDesignElementImage(file){
+ if(!file)return;
+ const status=$('designElementImageStatus');
+ if(!/^image\/(jpeg|png|webp)$/.test(file.type)||file.size>5*1024*1024){status.textContent='Choose a JPG, PNG or WebP image up to 5 MB.';return}
+ try{
+  const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)});
+  const img=await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=data});
+  const scale=Math.min(1,1200/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+  const d=stateFromForm(),fit=Math.min(d.w*.72/canvas.width,d.h*.56/canvas.height),id=String(nextCustomId++);
+  const element={id,type:'image',src:canvas.toDataURL('image/jpeg',.78),alt:(file.name.replace(/\.[^.]+$/,'').slice(0,80)||'Uploaded image'),x:.5,y:.49,width:canvas.width*fit/d.w,height:canvas.height*fit/d.h,aspectRatio:canvas.width/canvas.height};
+  customElements.push(element);selectedObjectName='custom-'+id;renderCustomElements();render();status.textContent='Image added as a movable layer. Drag it on the preview to position it.';
+ }catch{status.textContent='The selected image could not be opened. Try a JPG, PNG or WebP file.'}
+}
 async function loadSavedDesign(item){
  const projectId=value('projectSelect'),state=item.designState;
  if(!state||state.version!==1||!state.form){$('designStatus').textContent='This older saved design can be downloaded as SVG, but its editing details were not stored.';return}
@@ -364,8 +385,10 @@ async function loadSavedDesign(item){
  nextCustomId=customElements.reduce((max,el)=>Math.max(max,Number(el.id)||0),0)+1;
  const response=await fetch('/api/v2/designs/download?projectId='+encodeURIComponent(projectId)+'&id='+encodeURIComponent(item.id));
  if(response.ok){
-  const svg=await response.text(),match=svg.match(/<image[^>]*href="(data:image\/(?:jpeg|png|webp);base64,[^"]+)"/i);
+  const svg=await response.text(),match=svg.match(/<image\b(?![^>]*\bdata-custom-image-id=)[^>]*\bhref="(data:image\/(?:jpeg|png|webp);base64,[^"]+)"/i);
   photoData=match?match[1]:'';
+  const imageSources={};for(const found of svg.matchAll(/<image\b(?=[^>]*\bdata-custom-image-id="([^"]+)")(?=[^>]*\bhref="(data:image\/(?:jpeg|png|webp);base64,[^"]+)")[^>]*>/gi))imageSources[found[1]]=found[2];
+  customElements.forEach(el=>{if(el.type==='image')el.src=imageSources[el.id]||''});
  }else photoData='';
  const photoInput=$('designPhoto');if(photoInput)photoInput.value='';
  $('designPhotoStatus').textContent=photoData?'Saved product photo restored.':'No product photo in this design.';
@@ -435,7 +458,7 @@ $('saveDesign').addEventListener('click',async()=>{
  const button=$('saveDesign');button.disabled=true;$('designStatus').textContent='Saving design to this project…';
  try{
   const d=stateFromForm(),svg=svgFor(d);
-  const response=await fetch('/api/v2/designs/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({projectId,title:d.title||presets[d.type].label,kind:presets[d.type].label,svg,designState:{version:1,form:{type:d.type,w:d.w,h:d.h,unit:d.unit,title:d.title,subtitle:d.subtitle,brand:d.brand,cta:d.cta,color:d.color,accent:d.accent,coverStyle:d.coverStyle},customElements,layoutOffsets}})});
+  const response=await fetch('/api/v2/designs/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({projectId,title:d.title||presets[d.type].label,kind:presets[d.type].label,svg,designState:{version:1,form:{type:d.type,w:d.w,h:d.h,unit:d.unit,title:d.title,subtitle:d.subtitle,brand:d.brand,cta:d.cta,color:d.color,accent:d.accent,coverStyle:d.coverStyle},customElements:customElements.map(el=>{if(el.type!=='image')return el;const {src,...saved}=el;return saved}),layoutOffsets}})});
   const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not save design.');
   $('designStatus').textContent='Design saved to this project. Download the SVG or open it in a compatible design editor.';
   await refreshSaved();
@@ -445,6 +468,8 @@ $('saveDesign').addEventListener('click',async()=>{
 $('projectSelect').addEventListener('change',refreshSaved);
 $('resetDesignLayout')?.addEventListener('click',()=>{layoutOffsets={};render()});
 $('addTextElement')?.addEventListener('click',()=>addCustomElement('text'));
+$('addImageElement')?.addEventListener('click',()=>$('designElementImage')?.click());
+$('designElementImage')?.addEventListener('change',event=>{const file=event.target.files?.[0];readDesignElementImage(file);event.target.value=''});
 $('addRectangleElement')?.addEventListener('click',()=>addCustomElement('rectangle'));
 $('addCircleElement')?.addEventListener('click',()=>addCustomElement('circle'));
 $('addStarElement')?.addEventListener('click',()=>addCustomElement('icon','star'));
