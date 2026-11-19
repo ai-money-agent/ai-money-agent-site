@@ -41,10 +41,13 @@ const config = {
   pendingJobTimeoutMinutes: intEnv('PENDING_JOB_TIMEOUT_MINUTES', 15, 2, 1440),
   demoGenerationCost: 0
 };
+const marketSearchProvider = (process.env.MARKET_SEARCH_PROVIDER || (process.env.TAVILY_API_KEY ? 'tavily' : 'openai')).trim().toLowerCase();
+if (!['openai','tavily'].includes(marketSearchProvider)) throw new Error('MARKET_SEARCH_PROVIDER must be openai or tavily.');
 const marketSearchConfig = {
   enabled: process.env.ENABLE_MARKET_SEARCH === '1',
-  provider: 'tavily',
-  apiKey: process.env.TAVILY_API_KEY || ''
+  provider: marketSearchProvider,
+  apiKey: marketSearchProvider === 'tavily' ? (process.env.TAVILY_API_KEY || '') : (process.env.OPENAI_API_KEY || ''),
+  model: process.env.OPENAI_MARKET_SEARCH_MODEL || 'gpt-6.2-astra'
 };
 const videoConfig = {
   enabled: process.env.ENABLE_VIDEO_GENERATION === '1',
@@ -329,7 +332,7 @@ async function api(req, res, url) {
     const reach = marketScope === 'global' ? 'worldwide international global market' : marketScope === 'both' ? 'local and worldwide international market' : country;
     const query = [productName,audience,reach,focus,'current competitors offers customer demand'].filter(Boolean).join(' ');
     let result;
-    try { result = await searchMarketSources({query,apiKey:marketSearchConfig.apiKey,enabled:marketSearchConfig.enabled}); }
+    try { result = await searchMarketSources({query,apiKey:marketSearchConfig.apiKey,enabled:marketSearchConfig.enabled,provider:marketSearchConfig.provider,model:marketSearchConfig.model}); }
     catch (error) { throw failure(error.message || 'Market search failed.',error.status || 502); }
     if (result.available) workspace.saveOutput(v2Account,project.id,'market-search-evidence',`Market sources: ${productName}`,result);
     return json(res,200,{ok:true,search:result});
@@ -400,7 +403,7 @@ async function api(req, res, url) {
         : 'digital products and physical consumer products';
       const query = [profile.skills,profile.timeAvailable,kinds,reach,'customer problems competing offers marketplace listings recent trends'].filter(Boolean).join(' ').slice(0,360);
       try {
-        marketEvidence = await searchMarketSources({query,apiKey:marketSearchConfig.apiKey,enabled:marketSearchConfig.enabled});
+        marketEvidence = await searchMarketSources({query,apiKey:marketSearchConfig.apiKey,enabled:marketSearchConfig.enabled,provider:marketSearchConfig.provider,model:marketSearchConfig.model});
       } catch (error) {
         throw failure(error.message || 'Global market research failed.',error.status || 502);
       }
@@ -430,7 +433,7 @@ async function api(req, res, url) {
         physical ? 'competitor product listings supplier offers current pricing' : 'competitor offers customer demand search interest pricing'
       ].filter(Boolean).join(' ').slice(0,360);
       try {
-        marketEvidence = await searchMarketSources({query,apiKey:marketSearchConfig.apiKey,enabled:marketSearchConfig.enabled});
+        marketEvidence = await searchMarketSources({query,apiKey:marketSearchConfig.apiKey,enabled:marketSearchConfig.enabled,provider:marketSearchConfig.provider,model:marketSearchConfig.model});
       } catch (error) {
         throw failure(error.message || 'Global competitor research failed.',error.status || 502);
       }
