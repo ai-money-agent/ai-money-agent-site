@@ -26,7 +26,7 @@ test('disabled search makes no network request and reports simulation accurately
 
 test('configured search sends credentials only in the server-side POST body and returns live evidence',async()=>{
   let request;
-  const result=await searchMarketSources({query:'  Kids   activity book Lebanon  ',enabled:true,apiKey:'server-only-test-key',fetchImpl:async(url,init)=>{
+  const result=await searchMarketSources({query:'  Kids   activity book Lebanon  ',enabled:true,provider:'tavily',apiKey:'server-only-test-key',fetchImpl:async(url,init)=>{
     request={url:String(url),init};
     return {ok:true,json:async()=>({results:[{title:'Example listing',url:'https://shop.example/listing',content:'A sample page excerpt',score:.91}]})};
   }});
@@ -44,5 +44,20 @@ test('configured search sends credentials only in the server-side POST body and 
 
 test('invalid query and upstream failures are classified without returning provider payloads',async()=>{
   await assert.rejects(searchMarketSources({query:'x',enabled:false}),{status:422});
-  await assert.rejects(searchMarketSources({query:'tea shop',enabled:true,apiKey:'test',fetchImpl:async()=>({ok:false,status:429})}),{status:502,message:/returned 429/});
+  await assert.rejects(searchMarketSources({query:'tea shop',enabled:true,provider:'tavily',apiKey:'test',fetchImpl:async()=>({ok:false,status:429})}),{status:502,message:/returned 429/});
+});
+
+test('OpenAI web search returns only cited public source leads',async()=>{
+  let request;
+  const result=await searchMarketSources({query:'tea shop Lebanon',enabled:true,provider:'openai',apiKey:'server-only-test-key',fetchImpl:async(url,init)=>{
+    request={url:String(url),init};
+    return {ok:true,json:async()=>({output:[{type:'message',content:[{type:'output_text',text:'Recent buyer interest is visible in current listings [1].',annotations:[{type:'url_citation',url:'https://example.com/market',title:'Market source',start_index:0,end_index:30}]}]}]})};
+  }});
+  assert.equal(request.url,'https://api.openai.com/v1/responses');
+  assert.doesNotMatch(request.url,/server-only-test-key/);
+  assert.equal(JSON.parse(request.init.body).tools[0].type,'web_search');
+  assert.equal(result.available,true);
+  assert.equal(result.provider,'OpenAI web search');
+  assert.equal(result.sourceCount,1);
+  assert.equal(result.sources[0].url,'https://example.com/market');
 });
