@@ -94,6 +94,11 @@ const bannerbearConfig = {
   apiKey: process.env.BANNERBEAR_API_KEY || '',
   templateUid: process.env.BANNERBEAR_TEMPLATE_UID || ''
 };
+const openAiImageConfig = {
+  enabled: process.env.ENABLE_OPENAI_IMAGE_GENERATION === '1',
+  apiKey: process.env.OPENAI_API_KEY || '',
+  model: process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2.5-sunburst'
+};
 const productFilesRoot = process.env.PRODUCT_FILES_DIR || join(ROOT,'data','generated-products');
 const ledgerAccounts = { demo: 'demo-shared', live: 'beta-owner' };
 const rates = new Map();
@@ -207,9 +212,12 @@ function rateLimit(req, path) {
   const key = `${req.socket.remoteAddress}:${path}`;
   const now = Date.now();
   for (const [storedKey,bucket] of rates) if (bucket.until <= now) rates.delete(storedKey);
-  const bucket = rates.get(key) || { count: 0, until: now + 60000 };
+  const imageRoute = path === '/api/v2/designs/generate-image';
+  const limit = imageRoute ? 3 : path === '/api/session' ? 10 : 60;
+  const windowMs = imageRoute ? 10 * 60 * 1000 : 60000;
+  const bucket = rates.get(key) || { count: 0, until: now + windowMs };
   rates.set(key,bucket);
-  return ++bucket.count <= (path === '/api/session' ? 10 : 60);
+  return ++bucket.count <= limit;
 }
 async function api(req, res, url) {
   if (!rateLimit(req, url.pathname)) {
@@ -726,6 +734,45 @@ async function api(req, res, url) {
     const pack = generated.value;
     const saved = workspace.saveOutput(v2Account,project.id,'ad-pack',`${product.name} — 4 ad angles`,pack);
     return json(res,200,{ok:true,pack,savedId:saved.id,aiEngine:generated.engine});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/designs/image-status') {
+    return json(res,200,{ok:true,available:openAiImageConfig.enabled && Boolean(openAiImageConfig.apiKey),provider:'OpenAI'});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/designs/generate-image') {
+    if (!openAiImageConfig.enabled || !openAiImageConfig.apiKey) {
+      throw failure('AI photo generation is not enabled yet. OpenAI text generation is connected separately.',503);
+    }
+    const body = await readBody(req);
+    const prompt = text(body.prompt,1400,'Photo description',10);
+    let response;
+    try {
+      response = await fetch('https://api.openai.com/v1/images/generations',{
+        method:'POST',
+        headers:{'Authorization':`Bearer ${openAiImageConfig.apiKey}`,'Content-Type':'application/json'},
+        body:JSON.stringify({model:openAiImageConfig.model,prompt,n:1}),
+        signal:AbortSignal.timeout(120000)
+      });
+    } catch {
+      throw failure('OpenAI image request could not be completed. Try again later.',502);
+    }
+    if (!response.ok) {
+      const status = response.status;
+      await response.body?.cancel().catch(()=>{});
+      logEvent('warn','openai_image_generation_failed',{status});
+      throw failure(status===429?'OpenAI image service is busy or its usage limit was reached. Try later.':'OpenAI could not generate this image. Check API image access and billing, then try again.',502);
+    }
+    let result;
+    try { result=await response.json(); }
+    catch { throw failure('OpenAI returned an unreadable image response.',502); }
+    const imageBase64=result?.data?.[0]?.b64_json;
+    if (typeof imageBase64!=='string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(imageBase64)) {
+      throw failure('OpenAI did not return a usable image. Try a different description.',502);
+    }
+    const imageBytes=Buffer.from(imageBase64,'base64');
+    if (!imageBytes.length || imageBytes.length>8*1024*1024 || imageBytes.toString('base64')!==imageBase64) {
+      throw failure('The generated image was invalid or too large to add to this design.',502);
+    }
+    return json(res,200,{ok:true,imageDataUrl:'data:image/png;base64,'+imageBase64,model:openAiImageConfig.model});
   }
   if (req.method === 'POST' && url.pathname === '/api/v2/designs/generate') {
     const body = await readBody(req);
