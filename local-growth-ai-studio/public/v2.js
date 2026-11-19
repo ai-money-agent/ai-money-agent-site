@@ -332,6 +332,7 @@ $('findIdeasButton').addEventListener('click',findIdeas);
 async function runLaunchAutopilot(){
   if(!state.activeProjectId){openProjectModal();return}
   const button=$('launchAutopilotButton'),status=$('launchAutopilotStatus');
+  if(!state.health?.marketSearchAvailable){status.textContent='Live OpenAI web search is not configured, so the Studio cannot verify market demand or choose a market-backed candidate yet.';return}
   if(!window.confirm('The Studio will search current market signals, choose the highest execution-fit candidate, analyze competitors, and save a product and ad-copy draft. This makes several OpenAI requests that may incur API charges. It will not purchase or publish anything. Continue?'))return;
   button.disabled=true;
   try{
