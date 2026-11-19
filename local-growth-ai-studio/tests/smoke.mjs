@@ -80,7 +80,7 @@ try {
   assert.equal(healthBefore.workspaceReady,true);
   assert.equal(healthBefore.v2AiProvider,'openai');
   assert.equal(healthBefore.v2AiModel,'gpt-6.1-sol');
-  assert.equal(healthBefore.marketSearchProvider,'tavily');
+  assert.equal(healthBefore.marketSearchProvider,'openai');
   assert.equal(healthBefore.marketSearchAvailable,false);
   assert.equal(healthBefore.v2AiReady,false);
   assert.equal(healthBefore.v2AiMode,'local');
