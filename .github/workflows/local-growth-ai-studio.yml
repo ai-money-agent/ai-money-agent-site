@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - codex/local-growth-studio
+      - codex/local-growth-studio-v2
     paths:
       - "local-growth-ai-studio/**"
       - ".github/workflows/local-growth-ai-studio.yml"

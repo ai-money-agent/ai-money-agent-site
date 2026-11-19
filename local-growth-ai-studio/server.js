@@ -1,11 +1,18 @@
 import http from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHash, createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
+import { createHash, timingSafeEqual, randomUUID, randomBytes } from 'node:crypto';
 import { Ledger } from './lib/ledger.js';
+import { WorkspaceStore } from './lib/workspace.js';
+import { findProductIdeas, analyzeIdea, buildProductBlueprint, buildBrandProfile, buildSalesListing, createAdPack, createReelPack, partnerReply, recipes } from './lib/business-engine.js';
 import { generate } from './lib/generator.js';
-import { prepareVideoRequest, videoCapability } from './lib/video.js';
+import { generateV2 } from './lib/v2-ai.js';
+import { prepareVideoRequest, videoCapability, createHeyGenVideo, getHeyGenVideo } from './lib/video.js';
+import { createDigitalProduct } from './lib/digital-product-factory.js';
+import { buildBusinessLaunchPlan } from './lib/business-planner.js';
+import { searchMarketSources } from './lib/market-search.js';
+import { generateBannerbearImage, uploadBannerbearAsset } from './lib/bannerbear.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const intEnv = (name, fallback, min, max) => {
@@ -22,7 +29,7 @@ const providerEnabled = provider === 'anthropic'
 const config = {
   provider,
   openaiApiKey: process.env.OPENAI_API_KEY || '',
-  openaiModel: process.env.OPENAI_MODEL || '',
+  openaiModel: process.env.OPENAI_MODEL || 'gpt-6.1-sol',
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
   anthropicModel: process.env.ANTHROPIC_MODEL || '',
   allowDemo: process.env.ALLOW_MOCK_GENERATION !== '0',
@@ -34,9 +41,42 @@ const config = {
   pendingJobTimeoutMinutes: intEnv('PENDING_JOB_TIMEOUT_MINUTES', 15, 2, 1440),
   demoGenerationCost: 0
 };
-const ACCESS_CODE = process.env.STUDIO_ACCESS_CODE || '';
+const marketSearchProvider = (process.env.MARKET_SEARCH_PROVIDER || (process.env.TAVILY_API_KEY ? 'tavily' : 'openai')).trim().toLowerCase();
+if (!['openai','tavily'].includes(marketSearchProvider)) throw new Error('MARKET_SEARCH_PROVIDER must be openai or tavily.');
+const marketSearchConfig = {
+  enabled: process.env.ENABLE_MARKET_SEARCH === '1',
+  provider: marketSearchProvider,
+  apiKey: marketSearchProvider === 'tavily' ? (process.env.TAVILY_API_KEY || '') : (process.env.OPENAI_API_KEY || ''),
+  model: process.env.OPENAI_MARKET_SEARCH_MODEL || 'gpt-6.2-astra'
+};
+const videoConfig = {
+  enabled: process.env.ENABLE_VIDEO_GENERATION === '1',
+  apiKey: process.env.HEYGEN_API_KEY || ''
+};
 const ORIGIN = process.env.APP_ORIGIN || '';
 const PORT = Number(process.env.PORT || 8787);
+function loadLoginAccounts() {
+  let configured = {};
+  if (process.env.STUDIO_ACCOUNTS_JSON) {
+    try { configured = JSON.parse(process.env.STUDIO_ACCOUNTS_JSON); }
+    catch { throw new Error('STUDIO_ACCOUNTS_JSON must be valid JSON.'); }
+    if (!configured || Array.isArray(configured) || typeof configured !== 'object') {
+      throw new Error('STUDIO_ACCOUNTS_JSON must be an object mapping account IDs to access codes.');
+    }
+  } else if (process.env.STUDIO_ACCESS_CODE) {
+    configured = { 'beta-owner': process.env.STUDIO_ACCESS_CODE };
+  }
+  const entries = Object.entries(configured);
+  const seenCodes = new Set();
+  for (const [account, code] of entries) {
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(account)) throw new Error('Studio account IDs must use 1-64 letters, numbers, hyphens or underscores.');
+    if (typeof code !== 'string' || code.length < 24) throw new Error('Each Studio access code must be at least 24 characters.');
+    if (seenCodes.has(code)) throw new Error('Each Studio account must have a unique access code.');
+    seenCodes.add(code);
+  }
+  return new Map(entries);
+}
+const loginAccounts = loadLoginAccounts();
 if (config.liveEnabled) {
   const missing = [];
   if (config.provider === 'anthropic') {
@@ -46,19 +86,31 @@ if (config.liveEnabled) {
     if (!config.openaiApiKey) missing.push('OPENAI_API_KEY');
     if (!config.openaiModel) missing.push('OPENAI_MODEL');
   }
-  if (ACCESS_CODE.length < 24) missing.push('STUDIO_ACCESS_CODE(24+ chars)');
+  if (loginAccounts.size === 0) missing.push('STUDIO_ACCOUNTS_JSON or STUDIO_ACCESS_CODE');
   if (!ORIGIN.startsWith('https://')) missing.push('APP_ORIGIN(https://...)');
   if (missing.length) throw new Error(`Live AI config invalid: ${missing.join(', ')}`);
 }
 const ledger = new Ledger(process.env.CREDIT_DB || join(ROOT, 'data', 'credits.sqlite'), config.initialCredits);
-const accounts = { demo: 'demo-shared', live: 'beta-owner' };
+const workspace = new WorkspaceStore(process.env.WORKSPACE_DB || join(ROOT, 'data', 'workspace.sqlite'));
+const bannerbearConfig = {
+  enabled: process.env.ENABLE_BANNERBEAR === '1',
+  apiKey: process.env.BANNERBEAR_API_KEY || '',
+  templateUid: process.env.BANNERBEAR_TEMPLATE_UID || ''
+};
+const openAiImageConfig = {
+  enabled: process.env.ENABLE_OPENAI_IMAGE_GENERATION === '1',
+  apiKey: process.env.OPENAI_API_KEY || '',
+  model: process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2.5-sunburst'
+};
+const productFilesRoot = process.env.PRODUCT_FILES_DIR || join(ROOT,'data','generated-products');
+const ledgerAccounts = { demo: 'demo-shared', live: 'beta-owner' };
 const rates = new Map();
 const equal = (a, b) => {
   const x = createHash('sha256').update(a).digest();
   const y = createHash('sha256').update(b).digest();
   return timingSafeEqual(x, y);
 };
-const sign = value => createHmac('sha256', ACCESS_CODE).update(value).digest('hex');
+const sessionHash = token => createHash('sha256').update(token).digest('hex');
 const runtimeMode = () => config.liveEnabled ? 'live' : 'demo';
 function generationMode(value, fallback = runtimeMode()) {
   if (value == null || value === '') return fallback;
@@ -69,7 +121,7 @@ function ensureModeAvailable(mode) {
   if (mode === 'demo' && !config.allowDemo) throw failure('Demo mode is disabled.',503);
   if (mode === 'live' && !config.liveEnabled) throw failure('Live AI is not enabled yet.',503);
 }
-const accountFor = mode => mode === 'demo' ? accounts.demo : accounts.live;
+const accountFor = (mode, owner = 'beta-owner') => mode === 'demo' ? (owner === 'beta-owner' ? ledgerAccounts.demo : `${owner}:demo`) : owner;
 const costFor = mode => mode === 'demo' ? config.demoGenerationCost : config.generationCost;
 function logEvent(level,event,details={}) {
   const payload = { time:new Date().toISOString(), event, ...details };
@@ -82,11 +134,20 @@ function refundStaleReservations() {
 }
 refundStaleReservations();
 
+function sessionToken(req) {
+  const token = /(?:^|;\s*)studio_session=([A-Za-z0-9_-]{43})(?:;|$)/.exec(req.headers.cookie || '')?.[1] || '';
+  return token || null;
+}
 function authenticated(req) {
-  if (!ACCESS_CODE) return true;
-  const cookie = /(?:^|;\s*)studio_session=([^;]+)/.exec(req.headers.cookie || '')?.[1] || '';
-  const [expires, signature] = cookie.split('.');
-  return /^\d+$/.test(expires || '') && Number(expires) > Date.now() && equal(signature || '', sign(expires));
+  const token = sessionToken(req);
+  if (!token) return null;
+  const tokenHash = sessionHash(token);
+  const account = workspace.sessionAccount(tokenHash);
+  if (account && !loginAccounts.has(account)) {
+    workspace.deleteSession(tokenHash);
+    return null;
+  }
+  return account;
 }
 function headers(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -94,7 +155,7 @@ function headers(res) {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data: blob:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data: blob: https:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
   if (ORIGIN.startsWith('https://')) res.setHeader('Strict-Transport-Security','max-age=31536000; includeSubDomains');
 }
 function json(res, status, body) {
@@ -151,58 +212,715 @@ function validateInput(body) {
   };
 }
 function rateLimit(req, path) {
-  const key = `${req.socket.remoteAddress}:${path === '/api/session' ? 'login' : 'api'}`;
+  const key = `${req.socket.remoteAddress}:${path}`;
   const now = Date.now();
   for (const [storedKey,bucket] of rates) if (bucket.until <= now) rates.delete(storedKey);
-  const bucket = rates.get(key) || { count: 0, until: now + 60000 };
+  const imageRoute = path === '/api/v2/designs/generate-image';
+  const limit = imageRoute ? 3 : path === '/api/session' ? 10 : 60;
+  const windowMs = imageRoute ? 10 * 60 * 1000 : 60000;
+  const bucket = rates.get(key) || { count: 0, until: now + windowMs };
   rates.set(key,bucket);
-  return ++bucket.count <= (path === '/api/session' ? 10 : 60);
+  return ++bucket.count <= limit;
 }
 async function api(req, res, url) {
   if (!rateLimit(req, url.pathname)) {
     res.setHeader('Retry-After','60');
     return json(res,429,{ok:false,error:'Too many requests. Wait one minute.'});
   }
-  if (req.method === 'POST') {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
     const expected = ORIGIN || `http://${req.headers.host}`;
     if ((req.headers.origin && req.headers.origin !== expected) || req.headers['sec-fetch-site'] === 'cross-site') throw failure('Cross-site request blocked.',403);
   }
   if (req.method === 'GET' && url.pathname === '/api/health/ready') {
     const storageReady = ledger.ping();
-    return json(res,storageReady ? 200 : 503,{ok:storageReady,status:storageReady ? 'ready' : 'not_ready',version:'0.6.0'});
+    return json(res,storageReady ? 200 : 503,{ok:storageReady,status:storageReady ? 'ready' : 'not_ready',version:'0.7.0'});
   }
   if (req.method === 'GET' && url.pathname === '/api/health') {
     return json(res,200,{
       ok:true,
-      version:'0.6.0',
+      version:'0.7.0',
       engine:config.liveEnabled ? config.provider : config.allowDemo ? 'demo' : 'disabled',
       aiConnected:config.liveEnabled,
       providerPaused:config.liveRequested && !config.liveEnabled,
-      video:videoCapability(),
+      video:videoCapability(videoConfig),
       generationCost:config.generationCost,
       demoGenerationCost:config.demoGenerationCost,
       demoAvailable:config.allowDemo,
       liveAvailable:config.liveEnabled,
       provider:config.provider,
+      v2AiProvider:config.provider,
+      v2AiModel:config.provider === 'anthropic' ? config.anthropicModel : config.openaiModel,
+      v2AiReady:config.liveEnabled,
+      v2AiMode:config.liveEnabled ? config.provider : 'local',
+      marketSearchProvider:marketSearchConfig.provider,
+      marketSearchAvailable:marketSearchConfig.enabled && Boolean(marketSearchConfig.apiKey),
       pendingJobTimeoutMinutes:config.pendingJobTimeoutMinutes,
       uptimeSeconds:Math.floor(process.uptime()),
       storageReady:ledger.ping(),
+      workspaceReady:workspace.ping(),
       requiresLogin:!authenticated(req)
     });
   }
+
   if (req.method === 'POST' && url.pathname === '/api/session') {
     const body = await readBody(req);
-    if (!ACCESS_CODE || typeof body.accessCode !== 'string' || !equal(body.accessCode,ACCESS_CODE)) throw failure('Invalid access code.',401);
-    const expires = String(Date.now()+8*3600000);
-    res.setHeader('Set-Cookie',`studio_session=${expires}.${sign(expires)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800${ORIGIN.startsWith('https://') ? '; Secure' : ''}`);
+    if (typeof body.accessCode !== 'string' || loginAccounts.size === 0) throw failure('Invalid access code.',401);
+    let account = null;
+    for (const [accountId, accessCode] of loginAccounts) {
+      if (equal(body.accessCode,accessCode)) account = accountId;
+    }
+    if (!account) throw failure('Invalid access code.',401);
+    const token = randomBytes(32).toString('base64url');
+    const expiresAt = Date.now()+8*3600000;
+    workspace.createSession(sessionHash(token),account,expiresAt);
+    res.setHeader('Set-Cookie',`studio_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800${ORIGIN.startsWith('https://') ? '; Secure' : ''}`);
     return json(res,200,{ok:true});
   }
-  if (!authenticated(req)) throw failure('Enter your Studio access code first.',401);
+  if (req.method === 'DELETE' && url.pathname === '/api/session') {
+    const token = sessionToken(req);
+    if (token) workspace.deleteSession(sessionHash(token));
+    res.setHeader('Set-Cookie',`studio_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${ORIGIN.startsWith('https://') ? '; Secure' : ''}`);
+    return json(res,200,{ok:true});
+  }
+  const authenticatedAccount = authenticated(req);
+  if (!authenticatedAccount) throw failure('Enter your Studio access code first.',401);
+
+  const v2Account = authenticatedAccount;
+  const v2Language = (value, sample = '') => {
+    if (value === 'ar' || value === 'en') return value;
+    return /[\u0600-\u06ff]/.test(String(sample || '')) ? 'ar' : 'en';
+  };
+  const projectOrFail = (id) => {
+    if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/.test(id)) throw failure('Choose a valid project.',400);
+    const project = workspace.project(v2Account,id);
+    if (!project) throw failure('Project not found.',404);
+    return project;
+  };
+  const productOrFail = (id) => {
+    if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/.test(id)) throw failure('Choose a valid product.',400);
+    const product = workspace.product(v2Account,id);
+    if (!product) throw failure('Product not found.',404);
+    return product;
+  };
+
+  if (req.method === 'GET' && url.pathname === '/api/v2/designs/status') {
+    return json(res,200,{
+      ok:true,
+      provider:'Bannerbear',
+      available:bannerbearConfig.enabled && Boolean(bannerbearConfig.apiKey && bannerbearConfig.templateUid)
+    });
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/v2/recipes') {
+    return json(res,200,{ok:true,recipes:recipes(v2Language(url.searchParams.get('language')))});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/research/market') {
+    const project = projectOrFail(url.searchParams.get('projectId'));
+    const saved = workspace.listOutputs(v2Account,project.id,1000).find(item => item.type === 'market-search-evidence');
+    return json(res,200,{ok:true,search:marketSearchConfig.enabled && marketSearchConfig.apiKey ? saved?.payload || null : null,available:marketSearchConfig.enabled && Boolean(marketSearchConfig.apiKey)});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/research/market') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const productName = text(body.productName || '',120,'Product or market name',2);
+    const marketScope = ['local','global','both','unsure'].includes(body.marketScope) ? body.marketScope : project.profile.marketScope || 'unsure';
+    const globalScope = marketScope === 'global';
+    const country = globalScope ? '' : text(body.country || project.profile.country || '',80,'Target country',2);
+    const audience = typeof body.audience === 'string' ? body.audience.trim().slice(0,180) : '';
+    const type = ['digital','physical','service','dropshipping','print_on_demand'].includes(body.businessType) ? body.businessType : 'digital';
+    const focus = ['physical','dropshipping','print_on_demand'].includes(type) ? 'market listings and suppliers' : 'market demand, customer problems, and competitors';
+    const reach = marketScope === 'global' ? 'worldwide international global market' : marketScope === 'both' ? 'local and worldwide international market' : country;
+    const query = [productName,audience,reach,focus,'current competitors offers customer demand'].filter(Boolean).join(' ');
+    let result;
+    try { result = await searchMarketSources({query,apiKey:marketSearchConfig.apiKey,enabled:marketSearchConfig.enabled,provider:marketSearchConfig.provider,model:marketSearchConfig.model}); }
+    catch (error) { throw failure(error.message || 'Market search failed.',error.status || 502); }
+    if (result.available) workspace.saveOutput(v2Account,project.id,'market-search-evidence',`Market sources: ${productName}`,result);
+    return json(res,200,{ok:true,search:result});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/projects') {
+    return json(res,200,{ok:true,projects:workspace.listProjects(v2Account)});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/projects') {
+    const body = await readBody(req);
+    const profile = {
+      country:text(body.country || '',80,'Country',2),
+      budget:text(body.budget || '0',80,'Budget',1),
+      skills:text(body.skills || 'Beginner',300,'Skills',2),
+      timeAvailable:text(body.timeAvailable || '5 hours/week',80,'Available time',2),
+      businessType:['digital','physical','service','ecommerce','dropshipping','print_on_demand','unsure'].includes(body.businessType) ? body.businessType : 'unsure',
+      marketScope:['local','global','both','unsure'].includes(body.marketScope) ? body.marketScope : 'unsure',
+      payoutMethods:text(body.payoutMethods || 'Not set yet',300,'Payout methods',2)
+    };
+    const project = workspace.createProject(v2Account,{name:body.name || 'New business project',...profile});
+    return json(res,201,{ok:true,project});
+  }
+  if (req.method === 'PATCH' && url.pathname.startsWith('/api/v2/projects/')) {
+    const id = url.pathname.slice('/api/v2/projects/'.length);
+    projectOrFail(id);
+    const body = await readBody(req);
+    const project = workspace.updateProject(v2Account,id,{
+      name:body.name,
+      status:body.status,
+      profile:body.profile && typeof body.profile === 'object' ? body.profile : undefined
+    });
+    return json(res,200,{ok:true,project});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/dashboard') {
+    const projectId = url.searchParams.get('projectId');
+    if (projectId) projectOrFail(projectId);
+    return json(res,200,{ok:true,...workspace.dashboard(v2Account,projectId || null)});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/launch/plan') {
+    const project = projectOrFail(url.searchParams.get('projectId'));
+    const saved = workspace.listOutputs(v2Account,project.id,1000).find(item => item.type === 'business-launch-plan');
+    return json(res,200,{ok:true,plan:saved?.payload || null,outputId:saved?.id || null,createdAt:saved?.createdAt || null});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/launch/plan') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    let plan;
+    try { plan = buildBusinessLaunchPlan({...body,country:body.country || project.profile.country}); }
+    catch (error) { throw failure(error.message || 'Could not calculate this launch plan.',422); }
+    const saved = workspace.saveOutput(v2Account,project.id,'business-launch-plan',plan.title,plan);
+    return json(res,201,{ok:true,plan:saved.payload,outputId:saved.id,createdAt:saved.createdAt});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/research/ideas') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const language = v2Language(body.language,project.profile.skills);
+    let marketEvidence = null;
+    if (body.includeMarketEvidence === true) {
+      const profile = project.profile || {};
+      const scope = ['local','global','both','unsure'].includes(profile.marketScope) ? profile.marketScope : 'unsure';
+      const reach = scope === 'global' ? 'worldwide global international markets' :
+        scope === 'local' ? (profile.country || 'local target market') :
+        scope === 'both' ? [profile.country,'worldwide international markets'].filter(Boolean).join(' and ') :
+        'worldwide international markets';
+      const type = profile.businessType || 'unsure';
+      const kinds = ['physical','dropshipping','print_on_demand'].includes(type)
+        ? 'physical consumer products'
+        : type === 'digital' ? 'digital products'
+        : 'digital products and physical consumer products';
+      const query = [profile.skills,profile.timeAvailable,kinds,reach,'customer problems competing offers marketplace listings recent trends'].filter(Boolean).join(' ').slice(0,360);
+      try {
+        marketEvidence = await searchMarketSources({query,apiKey:marketSearchConfig.apiKey,enabled:marketSearchConfig.enabled,provider:marketSearchConfig.provider,model:marketSearchConfig.model});
+      } catch (error) {
+        throw failure(error.message || 'Global market research failed.',error.status || 502);
+      }
+      if (marketEvidence.available) {
+        workspace.saveOutput(v2Account,project.id,'market-search-evidence','Global product discovery sources',marketEvidence);
+      }
+    }
+    const context = {profile:project.profile,marketSourceLeads:marketEvidence?.available ? marketEvidence.sources : []};
+    const generated = await generateV2({operation:marketEvidence?.available ? 'product opportunity hypotheses informed by target-market source leads' : 'product ideas',context,language,fallback:()=>findProductIdeas(project.profile,language)},config);
+    const dataStatus = marketEvidence?.available
+      ? (language === 'ar' ? 'مصادر أولية للسوق المستهدف؛ هذه دلائل للمتابعة وليست إثباتًا للطلب.' : 'Target-market source leads found; these are research leads, not proof of demand.')
+      : (language === 'ar' ? 'تقييم قابلية تنفيذ داخلي؛ لم يُجرَ بحث سوق حي.' : 'Execution-fit analysis; no live web-market search was performed.');
+    return json(res,200,{ok:true,ideas:generated.value,marketEvidence,dataStatus,aiEngine:generated.engine});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/research/analyze') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    if (!body.idea || typeof body.idea !== 'object') throw failure('Choose an idea to analyze.',422);
+    const language = v2Language(body.language,body.idea.name);
+    let marketEvidence = null;
+    if (body.includeMarketEvidence === true) {
+      const idea = body.idea;
+      const physical = ['physical','dropshipping','print_on_demand','ecommerce'].includes(idea.type);
+      const profile=project.profile||{};
+      const scope=['local','global','both','unsure'].includes(profile.marketScope)?profile.marketScope:'unsure';
+      const reach=scope==='global'?'worldwide international markets'
+        :scope==='both'?[profile.country,'worldwide international markets'].filter(Boolean).join(' and ')
+        :scope==='local'?(profile.country||'local target market')
+        :'target markets worldwide';
+      const query = [
+        idea.name,idea.problem,idea.targetCustomer,reach,
+        physical ? 'competitor product listings supplier offers current pricing' : 'competitor offers customer demand search interest pricing'
+      ].filter(Boolean).join(' ').slice(0,360);
+      try {
+        marketEvidence = await searchMarketSources({query,apiKey:marketSearchConfig.apiKey,enabled:marketSearchConfig.enabled,provider:marketSearchConfig.provider,model:marketSearchConfig.model});
+      } catch (error) {
+        throw failure(error.message || 'Global competitor research failed.',error.status || 502);
+      }
+      if (marketEvidence.available) workspace.saveOutput(v2Account,project.id,'market-search-evidence',`Competitor sources: ${idea.name}`,marketEvidence);
+    }
+    const dataStatus = marketEvidence?.available
+      ? (language === 'ar' ? 'مصادر منافسين أولية للسوق المستهدف؛ تحقق من الصفحات والأسعار والطلب بنفسك.' : 'Target-market competitor source leads; verify pages, prices and demand yourself.')
+      : (language === 'ar' ? 'لم يُجرَ بحث ويب حي؛ هذا تقييم تنفيذ داخلي.' : 'No live web search was performed; this is an internal execution-fit analysis.');
+    const sourceLeads = marketEvidence?.available ? marketEvidence.sources : [];
+    const generated = await generateV2({
+      operation:'target-market product and competitor analysis with validation plan',
+      context:{profile:project.profile,idea:body.idea,marketSourceLeads:sourceLeads,marketDataStatus:dataStatus},
+      language,
+      fallback:()=>({ ...analyzeIdea(project.profile,body.idea,language), idea:body.idea })
+    },config);
+    const analysis = {...generated.value,marketEvidence,dataStatus};
+    const saved = workspace.saveResearch(v2Account,project.id,analysis.ideaName,analysis);
+    return json(res,200,{ok:true,analysis,researchId:saved.id,marketEvidence,dataStatus,aiEngine:generated.engine});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/products/build') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const latestResearch = workspace.latestResearch(v2Account,project.id)?.payload || null;
+    const language = v2Language(body.language,body.idea?.name || body.answers?.name);
+    const selectedIdea = body.idea && typeof body.idea === 'object' && body.idea.name ? body.idea : latestResearch?.idea || {};
+    if (body.productId) {
+      const existing = productOrFail(body.productId);
+      if (existing.projectId !== project.id) throw failure('Product does not belong to this project.',409);
+    }
+    const build = () => buildProductBlueprint({
+      profile:project.profile,
+      research:latestResearch,
+      idea:selectedIdea,
+      answers:body.answers && typeof body.answers === 'object' ? body.answers : {},
+      language
+    });
+    const generated = await generateV2({operation:'smallest sellable product blueprint and pricing',context:{profile:project.profile,research:latestResearch,idea:selectedIdea,answers:body.answers || {}},language,fallback:build},config);
+    const blueprint = generated.value;
+    if (body.productId) blueprint.id = body.productId;
+    const product = workspace.saveProduct(v2Account,project.id,blueprint);
+    return json(res,201,{ok:true,product,aiEngine:generated.engine});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/products/generate-file') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const latestResearch = workspace.latestResearch(v2Account,project.id)?.payload || null;
+    const existingProducts = workspace.listProducts(v2Account,project.id);
+    const existingProduct = existingProducts[0] || null;
+    const recentMessages = workspace.messages(v2Account,project.id,12).slice(-8);
+    const language = v2Language(body.language,'Digital Product Launch Guide');
+    const template = {
+      title: existingProduct?.name || project.name || 'Digital Product Launch Guide',
+      topic: existingProduct?.description || 'A beginner-friendly guide to planning, creating, pricing, and launching a first digital product',
+      audience: existingProduct?.audience || 'Beginners who want to sell digital products online',
+      problem: existingProduct?.problem || 'The reader is unsure how to turn an idea into a useful first digital product and launch it responsibly.',
+      outcome: existingProduct?.outcome || 'The reader leaves with a practical first-product plan and clear launch steps.',
+      sections: Array.from({length:6},(_,index)=>({
+        heading:`Chapter ${index+1}`,
+        paragraphs:['Explain the key idea in plain language with accurate, practical guidance.','Give one simple example and a clear next step.'],
+        actions:['One practical action the reader can complete.'],
+        exercise:'A short worksheet prompt with space for the reader to apply the guidance.'
+      }))
+    };
+    const generated = await generateV2({
+      operation:'write a complete, useful, beginner-friendly digital product guide as a finished manuscript, not a plan or outline. Use the requested product context and recent partner messages. Produce six concise, complete chapters. Each chapter should have two short explanatory paragraphs, one practical action, and one brief exercise. Avoid repetition and keep the whole manuscript focused. Do not mention internal tools, saving limitations, or that the content is only proposed. Do not make unsupported guarantees or market claims.',
+      context:{project,profile:project.profile,research:latestResearch,existingProduct,recentPartnerMessages:recentMessages.map(message=>({role:message.role,content:String(message.content||'').slice(0,700)})),requestedLanguage:language},
+      language,
+      timeoutMs:90000,
+      maxOutputTokens:4000,
+      fallback:()=>template
+    },config);
+    if (generated.engine === 'local') throw failure('Live AI is not enabled for product writing. No product file was created.',503);
+    const manuscript=generated.value;
+    if (!manuscript.title || !manuscript.topic || !Array.isArray(manuscript.sections) || manuscript.sections.length < 6 || manuscript.sections.length > 12) {
+      throw failure('The AI manuscript was incomplete. No product file was created.',502);
+    }
+    const sections=manuscript.sections.map((section,index)=>({
+      heading:String(section.heading||`Chapter ${index+1}`).trim().slice(0,140),
+      paragraphs:(Array.isArray(section.paragraphs)?section.paragraphs:[]).slice(0,6).map(item=>String(item).trim()).filter(Boolean),
+      actions:(Array.isArray(section.actions)?section.actions:[]).slice(0,5).map(item=>String(item).trim()).filter(Boolean),
+      exercise:String(section.exercise||'').trim().slice(0,1200)
+    }));
+    if(sections.some(section=>section.paragraphs.length<2 || section.actions.length<1 || !section.exercise)) {
+      throw failure('The AI manuscript was missing chapter content. No product file was created.',502);
+    }
+    const product=workspace.saveProduct(v2Account,project.id,{
+      name:String(manuscript.title).trim().slice(0,160),type:'digital',audience:String(manuscript.audience||'').trim().slice(0,300),
+      problem:String(manuscript.problem||'').trim().slice(0,700),outcome:String(manuscript.outcome||'').trim().slice(0,700),
+      description:String(manuscript.topic).trim().slice(0,1000),currency:'USD',price:null,
+      manuscript:{language,sections,generatedBy:generated.engine,createdAt:new Date().toISOString()}
+    });
+    let artifact;
+    try {
+      artifact=createDigitalProduct({
+        type:'ebook',title:manuscript.title,topic:manuscript.topic,audience:manuscript.audience,
+        outcome:manuscript.outcome,language,pages:sections.length,contentPages:sections
+      });
+    } catch(error) {
+      throw failure(error.message||'Could not format the AI manuscript.',422);
+    }
+    const extension=artifact.filename.split('.').pop();
+    const filePath=join(productFilesRoot,artifact.id+'.'+extension);
+    await mkdir(productFilesRoot,{recursive:true,mode:0o700});
+    await writeFile(filePath,artifact.buffer,{flag:'wx',mode:0o600});
+    let previewFileId=artifact.id,previewExtension=extension;
+    if(artifact.preview?.buffer&&artifact.preview.buffer!==artifact.buffer){
+      previewFileId=randomUUID();previewExtension=artifact.preview.filename.split('.').pop();
+      await writeFile(join(productFilesRoot,previewFileId+'.'+previewExtension),artifact.preview.buffer,{flag:'wx',mode:0o600});
+    }
+    let saved;
+    try {
+      saved=workspace.saveOutput(v2Account,project.id,'digital-product',artifact.filename,{
+        productId:product.id,fileId:artifact.id,filename:artifact.filename,extension,contentType:artifact.contentType,
+        pages:artifact.pages||null,type:'ebook',label:'AI-written manuscript saved as a PDF and interactive mobile companion.',
+        previewFileId,previewFilename:artifact.preview?.filename||artifact.filename,
+        previewContentType:artifact.preview?.contentType||artifact.contentType,previewExtension
+      });
+    } catch(error) {
+      await unlink(filePath).catch(()=>{});
+      if(previewFileId!==artifact.id)await unlink(join(productFilesRoot,previewFileId+'.'+previewExtension)).catch(()=>{});
+      throw error;
+    }
+    return json(res,201,{ok:true,product,aiEngine:generated.engine,asset:{id:saved.id,fileId:artifact.id,filename:artifact.filename,contentType:artifact.contentType,pages:artifact.pages||null,label:'AI-written manuscript saved as a PDF and interactive mobile companion.',previewFileId,previewFilename:artifact.preview?.filename||artifact.filename,previewContentType:artifact.preview?.contentType||artifact.contentType,createdAt:saved.createdAt}});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/designs/list') {
+    const project = projectOrFail(url.searchParams.get('projectId'));
+    const designs = workspace.listOutputs(v2Account,project.id,1000)
+      .filter(item => item.type === 'design')
+      .map(item => ({id:item.id,title:item.title,kind:item.payload?.kind||'Design',createdAt:item.createdAt,designState:item.payload?.designState||null}));
+    return json(res,200,{ok:true,designs});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/designs/save') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const title = text(body.title,120,'Design title');
+    const kind = text(body.kind,80,'Design type');
+    const svg = text(body.svg,6*1024*1024,'SVG artwork',50);
+    const designState = body.designState == null ? null : body.designState;
+    if (designState != null && (typeof designState !== 'object' || Array.isArray(designState)
+      || Buffer.byteLength(JSON.stringify(designState)) > 64*1024
+      || designState.version !== 1 || !designState.form || typeof designState.form !== 'object'
+      || !Array.isArray(designState.customElements) || designState.customElements.length > 30
+      || !designState.layoutOffsets || typeof designState.layoutOffsets !== 'object' || Array.isArray(designState.layoutOffsets))) {
+      throw failure('Invalid editable design details.',422);
+    }
+    if (!/^<svg\s+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/i.test(svg)
+      || /<script|<foreignObject|javascript:|on[a-z]+\s*=|<iframe|<object/i.test(svg)
+      || /href="https?:/i.test(svg)) throw failure('The SVG contains unsupported or unsafe artwork.',422);
+    const fileId = randomUUID();
+    const filename = title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,48)||'design';
+    const filePath = join(productFilesRoot,fileId+'.svg');
+    await mkdir(productFilesRoot,{recursive:true,mode:0o700});
+    await writeFile(filePath,svg,{flag:'wx',mode:0o600});
+    let saved;
+    try {
+      saved = workspace.saveOutput(v2Account,project.id,'design',title,{
+        fileId,filename:filename+'.svg',kind,designState,contentType:'image/svg+xml; charset=utf-8',size:Buffer.byteLength(svg)
+      });
+    } catch(error) {
+      await unlink(filePath).catch(()=>{});
+      throw error;
+    }
+    return json(res,201,{ok:true,design:{id:saved.id,title:saved.title,kind,createdAt:saved.createdAt}});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/designs/download') {
+    const project = projectOrFail(url.searchParams.get('projectId'));
+    const id = url.searchParams.get('id')||'';
+    const saved = workspace.listOutputs(v2Account,project.id,1000).find(item=>item.type==='design'&&item.id===id);
+    if (!saved || !/^[0-9a-f-]{36}$/i.test(saved.payload?.fileId||'')) throw failure('Saved design not found in this project.',404);
+    let file;
+    try { file = await readFile(join(productFilesRoot,saved.payload.fileId+'.svg')); }
+    catch { throw failure('The saved design file is missing. Save it again from Design Studio.',404); }
+    const filename=String(saved.payload.filename||'design.svg').replace(/[^a-zA-Z0-9._-]/g,'_');
+    res.writeHead(200,{'Content-Type':'image/svg+xml; charset=utf-8','Content-Disposition':`attachment; filename="${filename}"`,'Content-Length':file.length,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; sandbox"});
+    return res.end(file);
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/factory/assets') {
+    const projectId = url.searchParams.get('projectId');
+    const project = projectOrFail(projectId);
+    const assets = workspace.listOutputs(v2Account,project.id,1000)
+      .filter(item => item.type === 'digital-product')
+      .map(item => ({ id:item.id, title:item.title, createdAt:item.createdAt, ...item.payload }));
+    return json(res,200,{ok:true,assets});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/factory/generate') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    if (body.productId) {
+      const linkedProduct = productOrFail(body.productId);
+      if (linkedProduct.projectId !== project.id) throw failure('Product does not belong to this project.',409);
+    }
+    let artifact;
+    try {
+      artifact = createDigitalProduct({
+        type:body.type, title:body.title, topic:body.topic, audience:body.audience,
+        outcome:body.outcome, level:body.level, questions:body.questions, language:body.language,
+        pages:body.pages, questionsPerPage:body.questionsPerPage
+      });
+    } catch (error) {
+      throw failure(error.message || 'Could not create this digital product.',422);
+    }
+    const extension = artifact.filename.split('.').pop();
+    const filePath = join(productFilesRoot,artifact.id + '.' + extension);
+    await mkdir(productFilesRoot,{recursive:true,mode:0o700});
+    await writeFile(filePath,artifact.buffer,{flag:'wx',mode:0o600});
+    let previewFileId=artifact.id, previewExtension=extension;
+    if(artifact.preview?.buffer && artifact.preview.buffer !== artifact.buffer){
+      previewFileId=randomUUID();previewExtension=artifact.preview.filename.split('.').pop();
+      await writeFile(join(productFilesRoot,previewFileId+'.'+previewExtension),artifact.preview.buffer,{flag:'wx',mode:0o600});
+    }
+    let saved;
+    try {
+      saved = workspace.saveOutput(v2Account,project.id,'digital-product',artifact.filename,{
+        fileId:artifact.id, filename:artifact.filename, extension, contentType:artifact.contentType,
+        pages:artifact.pages || null, type:body.type, label:artifact.label,
+        previewFileId, previewFilename:artifact.preview?.filename || artifact.filename,
+        previewContentType:artifact.preview?.contentType || artifact.contentType,
+        previewExtension
+      });
+    } catch (error) {
+      await unlink(filePath).catch(()=>{});
+      if(previewFileId!==artifact.id)await unlink(join(productFilesRoot,previewFileId+'.'+previewExtension)).catch(()=>{});
+      throw error;
+    }
+    return json(res,201,{ok:true,asset:{id:saved.id,fileId:artifact.id,filename:artifact.filename,contentType:artifact.contentType,pages:artifact.pages||null,label:artifact.label,previewFileId,previewFilename:artifact.preview?.filename||artifact.filename,previewContentType:artifact.preview?.contentType||artifact.contentType,createdAt:saved.createdAt}});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/factory/download') {
+    const project = projectOrFail(url.searchParams.get('projectId'));
+    const fileId = url.searchParams.get('fileId') || '';
+    if (!/^[0-9a-f-]{36}$/i.test(fileId)) throw failure('Choose a valid saved file.',400);
+    const saved = workspace.listOutputs(v2Account,project.id,1000)
+      .find(item => item.type === 'digital-product' && (item.payload?.fileId === fileId || item.payload?.previewFileId === fileId));
+    if (!saved) throw failure('Saved file not found for this project.',404);
+    const isPreview=saved.payload.previewFileId===fileId;
+    const extension = isPreview?saved.payload.previewExtension:saved.payload.extension;
+    if (!['pdf','xlsx','html'].includes(extension)) throw failure('Unsupported saved file.',404);
+    let file;
+    try { file = await readFile(join(productFilesRoot,fileId + '.' + extension)); }
+    catch { throw failure('The saved file is missing. Generate it again from the Product Builder.',404); }
+    const filename = String(isPreview?saved.payload.previewFilename:(saved.payload.filename || saved.title)).replace(/[^a-zA-Z0-9._-]/g,'_');
+    const contentType=isPreview?saved.payload.previewContentType:saved.payload.contentType;
+    const inline=url.searchParams.get('inline')==='1';
+    const previewHeaders=isPreview&&inline&&contentType.startsWith('text/html;')?{'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'",'X-Frame-Options':'SAMEORIGIN'}:{};
+    res.writeHead(200,{'Content-Type':contentType,'Content-Disposition':`${inline?'inline':'attachment'}; filename="${filename}"`,'Content-Length':file.length,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...previewHeaders});
+    return res.end(file);
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/products/save') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    if (!body.product || typeof body.product !== 'object') throw failure('Product details are required.',422);
+    const product = workspace.saveProduct(v2Account,project.id,body.product);
+    return json(res,200,{ok:true,product});
+  }
+  if (req.method === 'GET' && url.pathname.startsWith('/api/v2/products')) {
+    const projectId = url.searchParams.get('projectId');
+    const project = projectOrFail(projectId);
+    return json(res,200,{ok:true,products:workspace.listProducts(v2Account,project.id)});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/brand/generate') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const product = productOrFail(body.productId);
+    if (product.projectId !== project.id) throw failure('Product does not belong to this project.',409);
+    const language = v2Language(body.language,product.name);
+    const generated = await generateV2({operation:'brand profile and buyer persona',context:{product,project},language,fallback:()=>buildBrandProfile(product,project,language)},config);
+    const brand = workspace.saveBrand(v2Account,project.id,generated.value);
+    return json(res,200,{ok:true,brand,aiEngine:generated.engine});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/brand/save') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    if (!body.brand || typeof body.brand !== 'object') throw failure('Brand profile is required.',422);
+    return json(res,200,{ok:true,brand:workspace.saveBrand(v2Account,project.id,body.brand)});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/listing/generate') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const product = productOrFail(body.productId);
+    if (product.projectId !== project.id) throw failure('Product does not belong to this project.',409);
+    const language = v2Language(body.language,product.name);
+    const marketEvidence=workspace.listOutputs(v2Account,project.id,1000)
+      .find(item=>item.type==='market-search-evidence')?.payload||null;
+    const generated=await generateV2({
+      operation:'platform-neutral product sales listing draft for manual review',
+      context:{product,marketSourceLeads:marketEvidence?.sources||[]},
+      language,
+      fallback:()=>buildSalesListing(product,language)
+    },config);
+    const listing=generated.value;
+    listing.publishStatus='draft_only';
+    const saved=workspace.saveOutput(v2Account,project.id,'sales-listing',`${product.name} — sales listing draft`,listing);
+    return json(res,201,{ok:true,listing:saved.payload,outputId:saved.id,aiEngine:generated.engine});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/ads/generate') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const product = productOrFail(body.productId);
+    if (product.projectId !== project.id) throw failure('Product does not belong to this project.',409);
+    const language = v2Language(body.language,product.name);
+    const generated = await generateV2({operation:'four distinct test advertisements',context:{product},language,fallback:()=>createAdPack(product,language)},config);
+    const pack = generated.value;
+    const saved = workspace.saveOutput(v2Account,project.id,'ad-pack',`${product.name} — 4 ad angles`,pack);
+    return json(res,200,{ok:true,pack,savedId:saved.id,aiEngine:generated.engine});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/designs/image-status') {
+    return json(res,200,{ok:true,available:openAiImageConfig.enabled && Boolean(openAiImageConfig.apiKey),provider:'OpenAI'});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/designs/generate-image') {
+    if (!openAiImageConfig.enabled || !openAiImageConfig.apiKey) {
+      throw failure('AI photo generation is not enabled yet. OpenAI text generation is connected separately.',503);
+    }
+    const body = await readBody(req);
+    const prompt = text(body.prompt,1400,'Photo description',10);
+    let response;
+    try {
+      response = await fetch('https://api.openai.com/v1/images/generations',{
+        method:'POST',
+        headers:{'Authorization':`Bearer ${openAiImageConfig.apiKey}`,'Content-Type':'application/json'},
+        body:JSON.stringify({model:openAiImageConfig.model,prompt,n:1}),
+        signal:AbortSignal.timeout(120000)
+      });
+    } catch {
+      throw failure('OpenAI image request could not be completed. Try again later.',502);
+    }
+    if (!response.ok) {
+      const status = response.status;
+      await response.body?.cancel().catch(()=>{});
+      logEvent('warn','openai_image_generation_failed',{status});
+      throw failure(status===429?'OpenAI image service is busy or its usage limit was reached. Try later.':'OpenAI could not generate this image. Check API image access and billing, then try again.',502);
+    }
+    let result;
+    try { result=await response.json(); }
+    catch { throw failure('OpenAI returned an unreadable image response.',502); }
+    const imageBase64=result?.data?.[0]?.b64_json;
+    if (typeof imageBase64!=='string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(imageBase64)) {
+      throw failure('OpenAI did not return a usable image. Try a different description.',502);
+    }
+    const imageBytes=Buffer.from(imageBase64,'base64');
+    if (!imageBytes.length || imageBytes.length>8*1024*1024 || imageBytes.toString('base64')!==imageBase64) {
+      throw failure('The generated image was invalid or too large to add to this design.',502);
+    }
+    return json(res,200,{ok:true,imageDataUrl:'data:image/png;base64,'+imageBase64,model:openAiImageConfig.model});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/designs/generate') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const product = productOrFail(body.productId);
+    if (product.projectId !== project.id) throw failure('Product does not belong to this project.',409);
+    if (!bannerbearConfig.enabled || !bannerbearConfig.apiKey || !bannerbearConfig.templateUid) {
+      throw failure('Bannerbear is not connected yet. The server needs its API key and template UID.',503);
+    }
+    const language = v2Language(body.language,product.name);
+    const headline = text(body.headline || '',180,'Ad headline',2);
+    const primaryText = text(body.primaryText || '',500,'Ad text',3);
+    const cta = text(body.cta || '',80,'Call to action',2);
+    const imageMatch = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/]+={0,2})$/.exec(body.imageDataUrl || '');
+    if (!imageMatch) throw failure('Choose a JPG, PNG or WebP product photo.',422);
+    const imageBytes = Buffer.from(imageMatch[2],'base64');
+    if (imageBytes.toString('base64') !== imageMatch[2] || imageBytes.length > 5 * 1024 * 1024) {
+      throw failure('Product photo is invalid or larger than 5 MB.',413);
+    }
+    const mimeType = imageMatch[1] === 'jpeg' ? 'image/jpeg' : `image/${imageMatch[1]}`;
+    const validImage = mimeType === 'image/png'
+      ? imageBytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))
+      : mimeType === 'image/jpeg'
+        ? imageBytes[0] === 255 && imageBytes[1] === 216 && imageBytes[2] === 255
+        : imageBytes.toString('ascii',0,4) === 'RIFF' && imageBytes.toString('ascii',8,12) === 'WEBP';
+    if (!validImage) throw failure('Product photo contents do not match its file type.',422);
+    let rendered;
+    let photoAsset;
+    try {
+      photoAsset = await uploadBannerbearAsset({apiKey:bannerbearConfig.apiKey,bytes:imageBytes,mimeType});
+      rendered = await generateBannerbearImage({
+        apiKey:bannerbearConfig.apiKey,
+        templateUid:bannerbearConfig.templateUid,
+        modifications:[
+          {name:'title',text:headline},
+          {name:'subtitle',text:primaryText},
+          {name:'cta_label',text:cta},
+          {name:'image_container_rectangle','background-image':photoAsset.url}
+        ]
+      });
+    } catch(error) {
+      throw failure(error.message || 'Bannerbear design generation failed.',error.status || 502);
+    }
+    const design = {
+      provider:'Bannerbear',
+      productId:product.id,
+      language,
+      headline,
+      primaryText,
+      cta,
+      productPhotoAssetUid:photoAsset.uid,
+      imageUrl:rendered.imageUrl,
+      providerImageId:rendered.uid,
+      status:rendered.status
+    };
+    const saved = workspace.saveOutput(v2Account,project.id,'ad-design',`${product.name} — ad creative`,design);
+    return json(res,201,{ok:true,design:saved.payload,outputId:saved.id,createdAt:saved.createdAt});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/reels/generate') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const product = productOrFail(body.productId);
+    if (product.projectId !== project.id) throw failure('Product does not belong to this project.',409);
+    const language = v2Language(body.language,product.name);
+    const generated = await generateV2({operation:'short vertical reel script and shot list',context:{product},language,fallback:()=>createReelPack(product,language)},config);
+    const pack = generated.value;
+    const saved = workspace.saveOutput(v2Account,project.id,'reel',`${product.name} — Reel`,pack);
+    return json(res,200,{ok:true,pack,savedId:saved.id,aiEngine:generated.engine});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/reels/video') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const product = productOrFail(body.productId);
+    if (product.projectId !== project.id) throw failure('Product does not belong to this project.',409);
+    if (!videoCapability(videoConfig).providerConnected) throw failure('Video generation is not connected. The owner must enable the HeyGen API and its usage budget first.',503);
+    const language = v2Language(body.language,product.name);
+    const script = createReelPack(product,language);
+    const prompt = [
+      'Create a 10-second vertical 9:16 social advertisement video for a small business product.',
+      `Product: ${String(product.name||'').slice(0,160)}.`,
+      `Audience: ${String(product.audience||'').slice(0,240)}.`,
+      `Customer problem: ${String(product.problem||'').slice(0,300)}.`,
+      `Outcome: ${String(product.outcome||product.promise||'').slice(0,300)}.`,
+      `Visual direction: ${String(script.scenes?.[0]?.shot||'Show the product clearly in a simple, clean scene.').slice(0,300)}.`,
+      `Spoken line in ${language==='ar'?'Arabic':'English'}: ${String(script.voiceover||product.offer||product.name).slice(0,260)}.`,
+      'Make the product use clear and believable. No logos, no written words, no fake testimonials, no guaranteed results, and no invented product features.'
+    ].join(' ');
+    let job;
+    try {
+      job = await createHeyGenVideo({prompt,durationSeconds:10,aspectRatio:'9:16',apiKey:videoConfig.apiKey,idempotencyKey:randomUUID()});
+    } catch (error) {
+      throw failure(error.message || 'HeyGen video generation failed.',error.status || 502);
+    }
+    const output = workspace.saveOutput(v2Account,project.id,'ai-video',`${product.name} — 10-second video`,{
+      productId:product.id,provider:'HeyGen Video 1',prompt,videoId:job.videoId,status:job.status,
+      durationSeconds:job.durationSeconds,aspectRatio:job.aspectRatio,resolution:job.resolution
+    });
+    return json(res,202,{ok:true,outputId:output.id,...output.payload});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/reels/video') {
+    const project = projectOrFail(url.searchParams.get('projectId'));
+    if (!videoCapability(videoConfig).providerConnected) throw failure('Video generation is not connected.',503);
+    const videoId = url.searchParams.get('videoId')||'';
+    const output = workspace.listOutputs(v2Account,project.id,1000)
+      .find(item=>item.type==='ai-video'&&item.payload?.videoId===videoId);
+    if(!output)throw failure('Video job not found for this project.',404);
+    let status;
+    try { status=await getHeyGenVideo({videoId,apiKey:videoConfig.apiKey}); }
+    catch(error){throw failure(error.message||'Could not check video status.',error.status||502);}
+    const updated=workspace.updateOutput(v2Account,output.id,{...output.payload,...status,lastCheckedAt:new Date().toISOString()});
+    return json(res,200,{ok:true,outputId:updated.id,...updated.payload});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/partner') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const message = text(body.message,4000,'Message',1);
+    workspace.addMessage(v2Account,project.id,'user',message);
+    const products = workspace.listProducts(v2Account,project.id);
+    const language = v2Language(body.language,message);
+    const context = {project,product:products[0] || null,research:workspace.latestResearch(v2Account,project.id)?.payload || null,brand:workspace.brand(v2Account,project.id)};
+    const generated = await generateV2({operation:'business partner reply and next step',context:{...context,message},language,fallback:()=>partnerReply(message,context,language)},config);
+    const result = generated.value;
+    workspace.addMessage(v2Account,project.id,'assistant',result.reply);
+    return json(res,200,{ok:true,...result,aiEngine:generated.engine,messages:workspace.messages(v2Account,project.id)});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v2/partner/messages') {
+    const project = projectOrFail(url.searchParams.get('projectId'));
+    return json(res,200,{ok:true,messages:workspace.messages(v2Account,project.id)});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/v2/tasks') {
+    const body = await readBody(req);
+    const project = projectOrFail(body.projectId);
+    const recipe = text(body.recipe,120,'Recipe',2);
+    return json(res,201,{ok:true,task:workspace.createTask(v2Account,project.id,recipe,body.payload && typeof body.payload === 'object' ? body.payload : {})});
+  }
 
   if (req.method === 'GET' && url.pathname.startsWith('/api/generations/')) {
     const mode = generationMode(url.searchParams.get('mode'));
     refundStaleReservations();
-    const accountId = accountFor(mode);
+    const accountId = accountFor(mode,authenticatedAccount);
     const id = url.pathname.slice('/api/generations/'.length);
     if (!/^[A-Za-z0-9_-]{16,100}$/.test(id)) throw failure('Invalid request ID.',400);
     const job = ledger.job(accountId,id);
@@ -217,7 +935,7 @@ async function api(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/credits') {
     const mode = generationMode(url.searchParams.get('mode'));
     ensureModeAvailable(mode);
-    const accountId = accountFor(mode);
+    const accountId = accountFor(mode,authenticatedAccount);
     return json(res,200,{ok:true,...ledger.account(accountId),generationCost:costFor(mode),generationMode:mode,videoCostEstimate:null});
   }
   if (req.method === 'POST' && url.pathname === '/api/video/prepare') {
@@ -234,7 +952,7 @@ async function api(req, res, url) {
     const mode = generationMode(body.generationMode);
     ensureModeAvailable(mode);
     const input = validateInput(body);
-    const accountId = accountFor(mode);
+    const accountId = accountFor(mode,authenticatedAccount);
     const generationCost = costFor(mode);
     const id = req.headers['idempotency-key'];
     if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{16,100}$/.test(id)) throw failure('A valid request ID is required.',400);
@@ -259,7 +977,7 @@ async function api(req, res, url) {
   throw failure('API route not found.',404);
 }
 
-const assets = { '/':'index.html', '/index.html':'index.html', '/styles.css':'styles.css', '/app.js':'app.js' };
+const assets = { '/':'index.html', '/index.html':'index.html', '/styles.css':'styles.css', '/app.js':'app.js', '/v2':'v2.html', '/v2/':'v2.html', '/v2.html':'v2.html', '/v2.css':'v2.css', '/v2.js':'v2.js', '/research-links.js':'research-links.js', '/design-studio.css':'design-studio.css', '/design-studio.js':'design-studio.js' };
 const mime = { html:'text/html', css:'text/css', js:'text/javascript' };
 const server = http.createServer(async (req,res) => {
   headers(res);
@@ -283,4 +1001,5 @@ const server = http.createServer(async (req,res) => {
 server.requestTimeout = 60000;
 server.listen(PORT,process.env.HOST || '127.0.0.1',() => logEvent('log','server_ready',{ port:PORT, mode:config.liveEnabled ? 'live' : config.allowDemo ? 'demo' : 'disabled', provider:config.provider }));
 process.on('unhandledRejection',(reason) => logEvent('error','unhandled_rejection',{ message:String(reason?.message || reason || 'unknown').slice(0,700) }));
-process.on('SIGTERM',() => server.close(() => {ledger.close(); process.exit(0);}));
+process.on('SIGTERM',() => server.close(() => { ledger.close(); workspace.close(); process.exit(0); }));
+
